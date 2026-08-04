@@ -42,3 +42,5 @@ tareas, contactos, empresas, proyectos.
   fila en `team_members` con su `auth_user_id` — si no, el login funciona
   pero la app no carga el perfil (ver README del backend, sección "Primer
   usuario admin").
+
+<!-- forzar redeploy 1785840855 -->
