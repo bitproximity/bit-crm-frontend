@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || 'https://bit-crm-backend-production.up.railway.app';
 
 async function request(path, options = {}) {
   const { data: sessionData } = await supabase.auth.getSession();
