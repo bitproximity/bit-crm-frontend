@@ -203,6 +203,7 @@ export default function Settings() {
 
       <CustomFieldsAdmin />
       <PipelinesAdmin />
+      <McpKeysAdmin />
     </div>
   );
 }
@@ -401,6 +402,98 @@ function PipelinesAdmin() {
             )}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function McpKeysAdmin() {
+  const [keys, setKeys] = useState([]);
+  const [newKey, setNewKey] = useState(null); // se muestra una sola vez tras crearla
+  const [label, setLabel] = useState('Claude Desktop');
+  const [showForm, setShowForm] = useState(false);
+
+  const load = () => api.get('/api/mcp-keys').then(setKeys).catch(console.error);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const generate = async (e) => {
+    e.preventDefault();
+    const result = await api.post('/api/mcp-keys', { label });
+    setNewKey(result.key);
+    setLabel('Claude Desktop');
+    setShowForm(false);
+    load();
+  };
+
+  const revoke = async (id) => {
+    if (!window.confirm('¿Revocar esta API key? Cualquier integración que la use dejará de funcionar.')) return;
+    await api.delete(`/api/mcp-keys/${id}`);
+    load();
+  };
+
+  const activeKeys = keys.filter((k) => !k.revoked_at);
+
+  return (
+    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mt-4">
+      <div className="flex items-center justify-between mb-1">
+        <div className="font-manrope font-medium">Claude / MCP</div>
+        <button onClick={() => setShowForm(!showForm)} className="text-xs text-brand-ice hover:underline">
+          + Generar API key
+        </button>
+      </div>
+      <p className="text-brand-muted text-sm mb-4">
+        Conecta este CRM a Claude Desktop o la API de Claude para consultar y
+        modificar datos en lenguaje natural. Ver el README del servidor MCP para
+        la instalación completa.
+      </p>
+
+      {newKey && (
+        <div className="mb-4 px-4 py-3 bg-brand-violet/10 border border-brand-violet/30 rounded-lg">
+          <div className="text-xs text-brand-muted mb-1">
+            Copiala ahora — no se vuelve a mostrar completa:
+          </div>
+          <div className="font-tech text-sm text-brand-ice break-all select-all">{newKey}</div>
+          <button onClick={() => setNewKey(null)} className="text-xs text-brand-muted hover:text-brand-white mt-2">
+            Ya la copié, cerrar
+          </button>
+        </div>
+      )}
+
+      {showForm && (
+        <form onSubmit={generate} className="mb-4 flex gap-2">
+          <input
+            placeholder="Nombre (ej. Claude Desktop, laptop trabajo)"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            className="flex-1 px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
+          />
+          <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
+            Generar
+          </button>
+        </form>
+      )}
+
+      <div className="space-y-1.5">
+        {activeKeys.map((k) => (
+          <div key={k.id} className="flex justify-between items-center text-sm bg-brand-bg rounded-lg px-3 py-2">
+            <div>
+              <span>{k.label}</span>
+              <span className="text-brand-muted text-xs font-tech ml-2">····{k.key_preview}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-brand-muted text-xs">
+                {k.last_used_at ? `usado ${new Date(k.last_used_at).toLocaleDateString()}` : 'nunca usado'}
+              </span>
+              <button onClick={() => revoke(k.id)} className="text-brand-muted hover:text-red-400 text-xs">
+                Revocar
+              </button>
+            </div>
+          </div>
+        ))}
+        {activeKeys.length === 0 && <div className="text-brand-muted text-xs">Sin API keys generadas todavía.</div>}
       </div>
     </div>
   );
