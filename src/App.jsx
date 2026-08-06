@@ -13,6 +13,13 @@ import Products from './pages/Products';
 import Metrics from './pages/Metrics';
 import Settings from './pages/Settings';
 
+function PublicOnlyRoute({ children }) {
+  const { session, loading } = useAuth();
+  if (loading) return null;
+  if (session) return <Navigate to="/" replace />;
+  return children;
+}
+
 function PrivateRoutes() {
   const { session, profile, loading, signOut } = useAuth();
 
@@ -49,7 +56,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route element={<PrivateRoutes />}>
             <Route path="/" element={<Dashboard />} />
