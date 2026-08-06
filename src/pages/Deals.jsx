@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import DealDetailPanel from '../components/DealDetailPanel';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
@@ -9,6 +10,7 @@ export default function Deals() {
   const [deals, setDeals] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', value: '', currency: 'USD', probability: 50 });
+  const [selectedDealId, setSelectedDealId] = useState(null);
 
   const pipeline = pipelines.find((p) => p.id === pipelineId);
 
@@ -147,7 +149,8 @@ export default function Deals() {
                     key={deal.id}
                     draggable
                     onDragStart={(e) => e.dataTransfer.setData('dealId', deal.id)}
-                    className="bg-brand-bg border border-brand-border rounded-lg p-3 cursor-move hover:border-brand-violet transition"
+                    onClick={() => setSelectedDealId(deal.id)}
+                    className="bg-brand-bg border border-brand-border rounded-lg p-3 cursor-pointer hover:border-brand-violet transition"
                   >
                     <div className="text-sm font-manrope font-medium">{deal.title}</div>
                     {deal.companies?.name && (
@@ -167,6 +170,12 @@ export default function Deals() {
           </div>
         ))}
       </div>
+
+      <DealDetailPanel
+        dealId={selectedDealId}
+        onClose={() => setSelectedDealId(null)}
+        onChanged={() => loadDeals(pipelineId)}
+      />
     </div>
   );
 }
