@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
+import { csvToContacts } from '../lib/csv';
 
 const STATUS_COLORS = {
   nuevo: 'bg-blue-500/20 text-blue-300',
@@ -14,6 +15,9 @@ export default function Contacts() {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '' });
+  const [importResult, setImportResult] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
 
   const load = () =>
     api.get(`/api/contacts${search ? `?search=${encodeURIComponent(search)}` : ''}`)
@@ -33,17 +37,68 @@ export default function Contacts() {
     load();
   };
 
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const text = await file.text();
+    const parsedContacts = csvToContacts(text);
+
+    if (parsedContacts.length === 0) {
+      setImportResult({ error: 'No se encontraron contactos válidos. Verifica que el CSV tenga una columna de nombre.' });
+      e.target.value = '';
+      return;
+    }
+
+    setImporting(true);
+    const result = await api.post('/api/contacts/import', { contacts: parsedContacts });
+    setImporting(false);
+    setImportResult(result);
+    e.target.value = '';
+    load();
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-headline text-xl font-semibold">Contactos</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 rounded-lg text-sm"
-        >
-          + Nuevo contacto
-        </button>
+        <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="px-4 py-2 border border-brand-border rounded-lg text-sm hover:border-brand-violet transition disabled:opacity-50"
+          >
+            {importing ? 'Importando...' : '↑ Importar CSV'}
+          </button>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 rounded-lg text-sm"
+          >
+            + Nuevo contacto
+          </button>
+        </div>
       </div>
+
+      {importResult && (
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${importResult.error ? 'bg-red-500/10 border border-red-500/30 text-red-300' : 'bg-green-500/10 border border-green-500/30 text-green-300'}`}>
+          {importResult.error ? (
+            importResult.error
+          ) : (
+            <>
+              {importResult.created} contactos importados.
+              {importResult.errors?.length > 0 && ` ${importResult.errors.length} filas con error.`}
+            </>
+          )}
+          <button onClick={() => setImportResult(null)} className="ml-3 text-xs underline">Cerrar</button>
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={createContact} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 grid grid-cols-4 gap-3">

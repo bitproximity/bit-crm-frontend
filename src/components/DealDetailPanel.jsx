@@ -28,17 +28,23 @@ export default function DealDetailPanel({ dealId, onClose, onChanged }) {
 
   const load = async () => {
     setLoading(true);
-    const [dealData, items, acts, fields, prods] = await Promise.all([
+    const [dealData, items, acts, values, defs, prods] = await Promise.all([
       api.get(`/api/deals/${dealId}`),
       api.get(`/api/deals/${dealId}/line-items`),
       api.get(`/api/activities/for/deal/${dealId}`),
       api.get(`/api/custom-fields/values/${dealId}`),
+      api.get('/api/custom-fields?entity_type=deal'),
       api.get('/api/products?active=true'),
     ]);
     setDeal(dealData);
     setLineItems(items);
     setActivities(acts);
-    setCustomFields(fields);
+    // Combina las definiciones de campos con sus valores actuales (si existen)
+    const merged = defs.map((def) => {
+      const existing = values.find((v) => v.field_id === def.id);
+      return { field_id: def.id, custom_field_definitions: def, value: existing?.value || '' };
+    });
+    setCustomFields(merged);
     setProducts(prods);
     setLoading(false);
   };
@@ -206,11 +212,22 @@ export default function DealDetailPanel({ dealId, onClose, onChanged }) {
             {customFields.length > 0 && (
               <div className="p-5 border-b border-brand-border">
                 <div className="font-manrope font-medium text-sm mb-3">Campos personalizados</div>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {customFields.map((f) => (
-                    <div key={f.id} className="flex justify-between text-sm">
-                      <span className="text-brand-muted">{f.custom_field_definitions?.label}</span>
-                      <span>{f.value}</span>
+                    <div key={f.id} className="flex justify-between items-center text-sm gap-3">
+                      <span className="text-brand-muted flex-shrink-0">{f.custom_field_definitions?.label}</span>
+                      <input
+                        defaultValue={f.value || ''}
+                        onBlur={async (e) => {
+                          if (e.target.value === (f.value || '')) return;
+                          await api.put(`/api/custom-fields/values/${dealId}`, {
+                            field_id: f.field_id,
+                            value: e.target.value,
+                          });
+                          load();
+                        }}
+                        className="flex-1 text-right bg-transparent border-b border-transparent hover:border-brand-border focus:border-brand-violet focus:outline-none px-1 py-0.5 text-sm"
+                      />
                     </div>
                   ))}
                 </div>

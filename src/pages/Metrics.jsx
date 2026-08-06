@@ -41,11 +41,13 @@ export default function Metrics() {
   const [funnel, setFunnel] = useState(null);
   const [velocity, setVelocity] = useState(null);
   const [feed, setFeed] = useState([]);
+  const [meetings, setMeetings] = useState(null);
 
   useEffect(() => {
     api.get('/api/metrics').then(setMetrics).catch(console.error);
     api.get('/api/forecast?months=3').then(setForecast).catch(console.error);
     api.get('/api/insights/feed?limit=30').then(setFeed).catch(console.error);
+    api.get('/api/metrics/meetings?weeks=8').then(setMeetings).catch(console.error);
     api.get('/api/pipelines').then((list) => {
       setPipelines(list);
       if (list.length) setPipelineId(list[0].id);
@@ -160,6 +162,50 @@ export default function Metrics() {
           )}
         </div>
       </div>
+
+      {/* Reuniones agendadas */}
+      {meetings && (
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="font-manrope font-medium">Reuniones agendadas (últimas 8 semanas)</div>
+            <div className="text-2xl font-headline font-semibold bg-gradient-to-r from-brand-violet to-brand-magenta bg-clip-text text-transparent">
+              {meetings.total}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <div className="text-xs text-brand-muted font-tech mb-2 uppercase">Por semana</div>
+              <div className="flex items-end gap-1.5 h-20">
+                {meetings.by_week.map((w) => {
+                  const max = Math.max(...meetings.by_week.map((x) => x.count), 1);
+                  return (
+                    <div key={w.week} className="flex-1 flex flex-col items-center justify-end h-full">
+                      <div className="text-xs text-brand-ice font-tech mb-1">{w.count}</div>
+                      <div
+                        className="w-full bg-gradient-to-t from-brand-violet to-brand-magenta rounded-t"
+                        style={{ height: `${Math.max((w.count / max) * 100, 4)}%` }}
+                      />
+                    </div>
+                  );
+                })}
+                {meetings.by_week.length === 0 && <div className="text-brand-muted text-xs">Sin datos</div>}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-brand-muted font-tech mb-2 uppercase">Por vendedor</div>
+              <div className="space-y-1.5">
+                {meetings.by_owner.map((o) => (
+                  <div key={o.owner} className="flex justify-between text-sm">
+                    <span className="text-brand-muted">{o.owner}</span>
+                    <span className="text-brand-ice font-tech">{o.count}</span>
+                  </div>
+                ))}
+                {meetings.by_owner.length === 0 && <div className="text-brand-muted text-xs">Sin datos</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Historial / actividad reciente */}
       <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
