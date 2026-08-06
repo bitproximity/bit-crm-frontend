@@ -9,6 +9,7 @@ import Tasks from './pages/Tasks';
 import Contacts from './pages/Contacts';
 import Companies from './pages/Companies';
 import Projects from './pages/Projects';
+import ProjectDetail from './pages/ProjectDetail';
 import Products from './pages/Products';
 import Metrics from './pages/Metrics';
 import Settings from './pages/Settings';
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="/contacts" element={<Contacts />} />
             <Route path="/companies" element={<Companies />} />
             <Route path="/projects" element={<Projects />} />
+            <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/products" element={<Products />} />
             <Route path="/metrics" element={<Metrics />} />
             <Route path="/settings" element={<Settings />} />

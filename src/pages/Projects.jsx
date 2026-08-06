@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 
 export default function Projects() {
@@ -20,7 +21,7 @@ export default function Projects() {
       <h1 className="font-headline text-xl font-semibold mb-6">Proyectos</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {projects.map((p) => (
-          <div key={p.id} className="bg-brand-panel border border-brand-border rounded-xl p-4">
+          <Link to={`/projects/${p.id}`} key={p.id} className="bg-brand-panel border border-brand-border rounded-xl p-4 hover:border-brand-violet transition block">
             <div className="flex justify-between items-start mb-2">
               <div className="font-manrope font-medium">{p.name}</div>
               <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${statusColor[p.status]}`}>
@@ -45,7 +46,7 @@ export default function Projects() {
                 Vence: {new Date(p.due_date).toLocaleDateString()}
               </div>
             )}
-          </div>
+          </Link>
         ))}
         {projects.length === 0 && (
           <div className="text-brand-muted text-sm">
