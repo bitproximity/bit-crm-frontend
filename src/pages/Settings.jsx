@@ -5,6 +5,9 @@ import { supabase } from '../lib/supabase';
 
 export default function Settings() {
   const [gmail, setGmail] = useState(null);
+  const [calcom, setCalcom] = useState(null);
+  const [calcomKey, setCalcomKey] = useState('');
+  const [calcomError, setCalcomError] = useState('');
   const [params] = useSearchParams();
   const gmailFlag = params.get('gmail');
 
@@ -15,10 +18,29 @@ export default function Settings() {
   const [pwLoading, setPwLoading] = useState(false);
 
   const load = () => api.get('/api/gmail/status').then(setGmail).catch(console.error);
+  const loadCalcom = () => api.get('/api/calcom/status').then(setCalcom).catch(console.error);
 
   useEffect(() => {
     load();
+    loadCalcom();
   }, []);
+
+  const connectCalcom = async (e) => {
+    e.preventDefault();
+    setCalcomError('');
+    try {
+      await api.post('/api/calcom/connect', { api_key: calcomKey });
+      setCalcomKey('');
+      loadCalcom();
+    } catch (err) {
+      setCalcomError(err.message || 'No se pudo conectar');
+    }
+  };
+
+  const disconnectCalcom = async () => {
+    await api.delete('/api/calcom/disconnect');
+    loadCalcom();
+  };
 
   const connect = async () => {
     const { url } = await api.get('/api/gmail/connect');
@@ -48,8 +70,16 @@ export default function Settings() {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setPwLoading(false);
 
-    if (error) setPwError('No se pudo actualizar la contraseña.');
-    else {
+    if (error) {
+      console.error('Error updateUser:', error);
+      if (error.message?.includes('same') || error.message?.includes('different')) {
+        setPwError('La nueva contraseña debe ser distinta a la actual.');
+      } else if (error.status === 422 || error.message?.includes('weak')) {
+        setPwError('La contraseña es muy débil. Usa al menos 6 caracteres con letras y números.');
+      } else {
+        setPwError(`No se pudo actualizar: ${error.message}`);
+      }
+    } else {
       setPwSuccess(true);
       setNewPassword('');
       setConfirmPassword('');
@@ -105,10 +135,10 @@ export default function Settings() {
         </div>
 
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
-          <div className="font-manrope font-medium mb-1">Gmail</div>
+          <div className="font-manrope font-medium mb-1">Gmail + Google Calendar</div>
           <p className="text-brand-muted text-sm mb-4">
-            Conecta tu cuenta para ver y sincronizar el historial de correos con
-            cada contacto directamente desde su ficha.
+            Conecta tu cuenta de Google para sincronizar correos con cada contacto
+            y ver tus próximos eventos de calendario, todo con una sola conexión.
           </p>
 
           {gmail === null ? (
@@ -128,9 +158,46 @@ export default function Settings() {
               onClick={connect}
               className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium"
             >
-              Conectar Gmail
+              Conectar Google
             </button>
           )}
+        </div>
+
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
+          <div className="font-manrope font-medium mb-1">Cal.com</div>
+          <p className="text-brand-muted text-sm mb-4">
+            Conecta tu cuenta de Cal.com para ver tus reuniones agendadas por ese medio.
+            Sacá tu API key en Cal.com → Settings → Developer → API Keys.
+          </p>
+
+          {calcom === null ? (
+            <div className="text-brand-muted text-sm">Cargando...</div>
+          ) : calcom.connected ? (
+            <div>
+              <div className="text-sm text-green-300 mb-3">Conectado</div>
+              <button
+                onClick={disconnectCalcom}
+                className="px-4 py-2 border border-brand-border rounded-lg text-sm hover:border-red-500 hover:text-red-400 transition"
+              >
+                Desconectar
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={connectCalcom} className="flex gap-2">
+              <input
+                type="password"
+                placeholder="cal_live_..."
+                value={calcomKey}
+                onChange={(e) => setCalcomKey(e.target.value)}
+                required
+                className="flex-1 px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm font-tech"
+              />
+              <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium whitespace-nowrap">
+                Conectar
+              </button>
+            </form>
+          )}
+          {calcomError && <p className="text-red-400 text-xs mt-2">{calcomError}</p>}
         </div>
       </div>
 
