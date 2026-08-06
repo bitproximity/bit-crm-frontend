@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import { csvToContacts } from '../lib/csv';
+import { Upload, Plus, Search } from 'lucide-react';
 
 const STATUS_COLORS = {
   nuevo: 'bg-blue-500/20 text-blue-300',
@@ -73,15 +74,16 @@ export default function Contacts() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
-            className="px-4 py-2 border border-brand-border rounded-lg text-sm hover:border-brand-violet transition disabled:opacity-50"
+            className="px-4 py-2 border border-brand-border rounded-lg text-sm hover:border-brand-violet transition disabled:opacity-50 flex items-center gap-1.5"
           >
-            {importing ? 'Importando...' : '↑ Importar CSV'}
+            <Upload size={14} />
+            {importing ? 'Importando...' : 'Importar CSV'}
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 rounded-lg text-sm"
+            className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 rounded-lg text-sm flex items-center gap-1.5"
           >
-            + Nuevo contacto
+            <Plus size={14} /> Nuevo contacto
           </button>
         </div>
       </div>
@@ -120,40 +122,61 @@ export default function Contacts() {
         </form>
       )}
 
-      <input
-        placeholder="Buscar por nombre o email..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full mb-4 px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm"
-      />
+      <div className="relative mb-4">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
+        <input
+          placeholder="Buscar por nombre o email..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full pl-9 pr-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
+        />
+      </div>
 
       <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-brand-panel/80 text-brand-muted text-left">
             <tr>
-              <th className="px-4 py-3">Nombre</th>
-              <th className="px-4 py-3">Empresa</th>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3">Dueño</th>
+              <th className="px-4 py-3 font-manrope font-normal">Nombre</th>
+              <th className="px-4 py-3 font-manrope font-normal">Empresa</th>
+              <th className="px-4 py-3 font-manrope font-normal">Email</th>
+              <th className="px-4 py-3 font-manrope font-normal">Estado</th>
+              <th className="px-4 py-3 font-manrope font-normal">Dueño</th>
             </tr>
           </thead>
           <tbody>
-            {contacts.map((c) => (
-              <tr key={c.id} className="border-t border-brand-border hover:bg-brand-bg/50">
-                <td className="px-4 py-3">{c.first_name} {c.last_name}</td>
-                <td className="px-4 py-3 text-brand-muted">{c.companies?.name || '—'}</td>
-                <td className="px-4 py-3 text-brand-muted">{c.email || '—'}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs ${STATUS_COLORS[c.status]}`}>
-                    {c.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-brand-muted">
-                  {c.team_members?.full_name || '—'}
+            {contacts.map((c) => {
+              const fullName = `${c.first_name} ${c.last_name || ''}`.trim();
+              const initials = fullName.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+              return (
+                <tr key={c.id} className="border-t border-brand-border hover:bg-brand-bg/50 transition">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta flex items-center justify-center text-[10px] font-tech font-bold flex-shrink-0">
+                        {initials}
+                      </div>
+                      {fullName}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-brand-muted">{c.companies?.name || '—'}</td>
+                  <td className="px-4 py-3 text-brand-muted">{c.email || '—'}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${STATUS_COLORS[c.status]}`}>
+                      {c.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-brand-muted">
+                    {c.team_members?.full_name || '—'}
+                  </td>
+                </tr>
+              );
+            })}
+            {contacts.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-10 text-center text-brand-muted text-sm">
+                  Sin contactos todavía.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
