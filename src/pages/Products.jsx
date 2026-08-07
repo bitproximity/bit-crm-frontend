@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Package, Plus, Wrench } from 'lucide-react';
+import { Package, Plus, Wrench, Pencil, Trash2 } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
@@ -8,6 +8,8 @@ export default function Products() {
   const [products, setProducts] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'producto', price: '', currency: 'USD', sku: '' });
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   const load = () => api.get('/api/products').then(setProducts).catch(console.error);
 
@@ -23,15 +25,32 @@ export default function Products() {
     load();
   };
 
+  const startEdit = (p) => {
+    setEditingId(p.id);
+    setEditForm({ name: p.name, type: p.type, price: p.price, currency: p.currency, sku: p.sku || '' });
+  };
+
+  const saveEdit = async (id) => {
+    await api.patch(`/api/products/${id}`, { ...editForm, price: Number(editForm.price) || 0 });
+    setEditingId(null);
+    load();
+  };
+
+  const remove = async (id) => {
+    if (!window.confirm('¿Borrar este producto?')) return;
+    await api.delete(`/api/products/${id}`);
+    load();
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-headline text-xl font-semibold">Productos y servicios</h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium"
+          className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium flex items-center gap-1.5"
         >
-          <Plus size={14} className="inline mr-1" /> Nuevo
+          <Plus size={14} /> Nuevo
         </button>
       </div>
 
@@ -69,29 +88,74 @@ export default function Products() {
               <th className="px-4 py-3">Tipo</th>
               <th className="px-4 py-3">SKU</th>
               <th className="px-4 py-3">Precio</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {products.map((p) => (
               <tr key={p.id} className="border-t border-brand-border hover:bg-brand-bg/50 transition">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-brand-violet/15 flex items-center justify-center flex-shrink-0">
-                      {p.type === 'servicio' ? <Wrench size={13} className="text-brand-ice" /> : <Package size={13} className="text-brand-ice" />}
-                    </div>
-                    {p.name}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-brand-muted font-tech text-xs uppercase">{p.type}</td>
-                <td className="px-4 py-3 text-brand-muted font-tech text-xs">{p.sku || '—'}</td>
-                <td className="px-4 py-3 text-brand-ice font-tech">
-                  {p.currency} {Number(p.price).toLocaleString()}
-                </td>
+                {editingId === p.id ? (
+                  <>
+                    <td className="px-4 py-2">
+                      <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="w-full px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs" />
+                    </td>
+                    <td className="px-4 py-2">
+                      <select value={editForm.type} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
+                        className="px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs">
+                        <option value="producto">producto</option>
+                        <option value="servicio">servicio</option>
+                      </select>
+                    </td>
+                    <td className="px-4 py-2">
+                      <input value={editForm.sku} onChange={(e) => setEditForm({ ...editForm, sku: e.target.value })}
+                        className="w-full px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs" />
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex gap-1">
+                        <input type="number" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                          className="w-20 px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs" />
+                        <select value={editForm.currency} onChange={(e) => setEditForm({ ...editForm, currency: e.target.value })}
+                          className="px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs">
+                          {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-right whitespace-nowrap">
+                      <button onClick={() => saveEdit(p.id)} className="text-xs text-brand-ice hover:underline mr-3">Guardar</button>
+                      <button onClick={() => setEditingId(null)} className="text-xs text-brand-muted hover:underline">Cancelar</button>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-brand-violet/15 flex items-center justify-center flex-shrink-0">
+                          {p.type === 'servicio' ? <Wrench size={13} className="text-brand-ice" /> : <Package size={13} className="text-brand-ice" />}
+                        </div>
+                        {p.name}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-brand-muted font-tech text-xs uppercase">{p.type}</td>
+                    <td className="px-4 py-3 text-brand-muted font-tech text-xs">{p.sku || '—'}</td>
+                    <td className="px-4 py-3 text-brand-ice font-tech">
+                      {p.currency} {Number(p.price).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <button onClick={() => startEdit(p)} className="text-brand-muted hover:text-brand-ice mr-3" title="Editar">
+                        <Pencil size={13} className="inline" />
+                      </button>
+                      <button onClick={() => remove(p.id)} className="text-brand-muted hover:text-red-400" title="Borrar">
+                        <Trash2 size={13} className="inline" />
+                      </button>
+                    </td>
+                  </>
+                )}
               </tr>
             ))}
             {products.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-10 text-center text-brand-muted text-sm">
+                <td colSpan={5} className="px-4 py-10 text-center text-brand-muted text-sm">
                   Sin productos todavía.
                 </td>
               </tr>

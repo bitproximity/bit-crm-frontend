@@ -316,6 +316,11 @@ function PipelinesAdmin() {
   const [name, setName] = useState('');
   const [expandedId, setExpandedId] = useState(null);
   const [stageName, setStageName] = useState('');
+  const [editingPipelineId, setEditingPipelineId] = useState(null);
+  const [editPipelineName, setEditPipelineName] = useState('');
+  const [editingStageId, setEditingStageId] = useState(null);
+  const [editStageName, setEditStageName] = useState('');
+  const [error, setError] = useState('');
 
   const load = () => api.get('/api/pipelines').then(setPipelines).catch(console.error);
 
@@ -340,6 +345,50 @@ function PipelinesAdmin() {
     load();
   };
 
+  const startEditPipeline = (p) => {
+    setEditingPipelineId(p.id);
+    setEditPipelineName(p.name);
+  };
+
+  const saveEditPipeline = async (pipelineId) => {
+    await api.patch(`/api/pipelines/${pipelineId}`, { name: editPipelineName });
+    setEditingPipelineId(null);
+    load();
+  };
+
+  const deletePipeline = async (pipelineId) => {
+    if (!window.confirm('¿Borrar este pipeline? Solo se puede si no tiene deals asociados.')) return;
+    setError('');
+    try {
+      await api.delete(`/api/pipelines/${pipelineId}`);
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo borrar el pipeline');
+    }
+  };
+
+  const startEditStage = (s) => {
+    setEditingStageId(s.id);
+    setEditStageName(s.name);
+  };
+
+  const saveEditStage = async (stageId) => {
+    await api.patch(`/api/pipelines/stages/${stageId}`, { name: editStageName });
+    setEditingStageId(null);
+    load();
+  };
+
+  const deleteStage = async (stageId) => {
+    if (!window.confirm('¿Borrar esta etapa? Solo se puede si no tiene deals en ella.')) return;
+    setError('');
+    try {
+      await api.delete(`/api/pipelines/stages/${stageId}`);
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo borrar la etapa');
+    }
+  };
+
   return (
     <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mt-4">
       <div className="flex items-center justify-between mb-1">
@@ -350,7 +399,14 @@ function PipelinesAdmin() {
       </div>
       <p className="text-brand-muted text-sm mb-4">
         Crea un pipeline distinto por marca, país, o vertical — cada uno con sus propias etapas.
+        Click en un pipeline para editar sus etapas.
       </p>
+
+      {error && (
+        <div className="mb-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+          {error}
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={create} className="mb-4 flex gap-2">
@@ -370,20 +426,82 @@ function PipelinesAdmin() {
       <div className="space-y-1.5">
         {pipelines.map((p) => (
           <div key={p.id} className="bg-brand-bg rounded-lg px-3 py-2">
-            <div
-              className="flex justify-between items-center text-sm cursor-pointer"
-              onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
-            >
-              <span>{p.name}</span>
-              <span className="text-brand-muted text-xs font-tech">{p.pipeline_stages?.length || 0} etapas ▾</span>
+            <div className="flex justify-between items-center text-sm">
+              {editingPipelineId === p.id ? (
+                <div className="flex gap-2 flex-1">
+                  <input
+                    value={editPipelineName}
+                    onChange={(e) => setEditPipelineName(e.target.value)}
+                    autoFocus
+                    className="flex-1 px-2 py-1 rounded bg-brand-panel border border-brand-border text-sm"
+                  />
+                  <button onClick={() => saveEditPipeline(p.id)} className="text-xs text-brand-ice hover:underline">
+                    Guardar
+                  </button>
+                  <button onClick={() => setEditingPipelineId(null)} className="text-xs text-brand-muted hover:underline">
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span
+                    className="cursor-pointer flex-1"
+                    onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                  >
+                    {p.name}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-brand-muted text-xs font-tech">{p.pipeline_stages?.length || 0} etapas</span>
+                    <button onClick={() => startEditPipeline(p)} className="text-xs text-brand-muted hover:text-brand-ice">
+                      Editar
+                    </button>
+                    <button onClick={() => deletePipeline(p.id)} className="text-xs text-brand-muted hover:text-red-400">
+                      Borrar
+                    </button>
+                    <button
+                      onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                      className="text-brand-muted text-xs"
+                    >
+                      {expandedId === p.id ? '▾' : '▸'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
             {expandedId === p.id && (
               <div className="mt-2 pt-2 border-t border-brand-border/50">
-                <div className="flex flex-wrap gap-1.5 mb-2">
+                <div className="space-y-1 mb-2">
                   {(p.pipeline_stages || []).sort((a, b) => a.position - b.position).map((s) => (
-                    <span key={s.id} className="text-xs px-2 py-1 rounded-full bg-brand-panel text-brand-muted font-tech">
-                      {s.position}. {s.name}
-                    </span>
+                    <div key={s.id} className="flex items-center justify-between bg-brand-panel rounded px-2 py-1.5">
+                      {editingStageId === s.id ? (
+                        <div className="flex gap-2 flex-1 items-center">
+                          <input
+                            value={editStageName}
+                            onChange={(e) => setEditStageName(e.target.value)}
+                            autoFocus
+                            className="flex-1 px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs"
+                          />
+                          <button onClick={() => saveEditStage(s.id)} className="text-xs text-brand-ice hover:underline">
+                            Guardar
+                          </button>
+                          <button onClick={() => setEditingStageId(null)} className="text-xs text-brand-muted hover:underline">
+                            Cancelar
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="text-xs text-brand-muted font-tech">{s.position}. {s.name}</span>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => startEditStage(s)} className="text-xs text-brand-muted hover:text-brand-ice">
+                              Editar
+                            </button>
+                            <button onClick={() => deleteStage(s.id)} className="text-xs text-brand-muted hover:text-red-400">
+                              Borrar
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   ))}
                 </div>
                 <form onSubmit={(e) => addStage(e, p.id)} className="flex gap-2">
@@ -406,7 +524,6 @@ function PipelinesAdmin() {
     </div>
   );
 }
-
 function McpKeysAdmin() {
   const [keys, setKeys] = useState([]);
   const [newKey, setNewKey] = useState(null); // se muestra una sola vez tras crearla

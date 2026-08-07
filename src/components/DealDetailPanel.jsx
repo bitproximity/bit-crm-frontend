@@ -24,6 +24,8 @@ export default function DealDetailPanel({ dealId, onClose, onChanged }) {
   const [noteText, setNoteText] = useState('');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [productForm, setProductForm] = useState({ product_id: '', quantity: 1, unit_price: '', currency: 'USD' });
+  const [showNewProduct, setShowNewProduct] = useState(false);
+  const [newProductForm, setNewProductForm] = useState({ name: '', type: 'producto', price: '' });
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -72,6 +74,27 @@ export default function DealDetailPanel({ dealId, onClose, onChanged }) {
     setProductForm({ product_id: '', quantity: 1, unit_price: '', currency: 'USD' });
     setShowAddProduct(false);
     load();
+  };
+
+  const createProduct = async (e) => {
+    e.preventDefault();
+    const newProduct = await api.post('/api/products', {
+      name: newProductForm.name,
+      type: newProductForm.type,
+      price: Number(newProductForm.price) || 0,
+      currency: 'USD',
+    });
+    setProductForm({
+      product_id: newProduct.id,
+      quantity: 1,
+      unit_price: newProduct.price,
+      currency: newProduct.currency,
+    });
+    setNewProductForm({ name: '', type: 'producto', price: '' });
+    setShowNewProduct(false);
+    // Refresca la lista de productos disponibles para que aparezca en el select
+    const updated = await api.get('/api/products?active=true');
+    setProducts(updated);
   };
 
   const removeProduct = async (itemId) => {
@@ -170,6 +193,10 @@ export default function DealDetailPanel({ dealId, onClose, onChanged }) {
                   <select
                     value={productForm.product_id}
                     onChange={(e) => {
+                      if (e.target.value === '__new__') {
+                        setShowNewProduct(true);
+                        return;
+                      }
                       const p = products.find((pr) => pr.id === e.target.value);
                       setProductForm({ ...productForm, product_id: e.target.value, unit_price: p?.price || '', currency: p?.currency || 'USD' });
                     }}
@@ -177,6 +204,7 @@ export default function DealDetailPanel({ dealId, onClose, onChanged }) {
                   >
                     <option value="">Personalizado</option>
                     {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    <option value="__new__">+ Crear producto nuevo...</option>
                   </select>
                   <input type="number" placeholder="Cant." value={productForm.quantity}
                     onChange={(e) => setProductForm({ ...productForm, quantity: e.target.value })}
@@ -185,6 +213,36 @@ export default function DealDetailPanel({ dealId, onClose, onChanged }) {
                     onChange={(e) => setProductForm({ ...productForm, unit_price: e.target.value })}
                     className="w-20 px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs" />
                   <button className="px-3 py-1.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded text-xs font-medium">Agregar</button>
+                </form>
+              )}
+
+              {showNewProduct && (
+                <form onSubmit={createProduct} className="mb-3 flex flex-wrap gap-2 bg-brand-bg border border-brand-violet/40 rounded-lg p-3">
+                  <input
+                    autoFocus
+                    placeholder="Nombre del producto/servicio"
+                    value={newProductForm.name}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, name: e.target.value })}
+                    required
+                    className="flex-1 min-w-[140px] px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs"
+                  />
+                  <select
+                    value={newProductForm.type}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, type: e.target.value })}
+                    className="px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs"
+                  >
+                    <option value="producto">Producto</option>
+                    <option value="servicio">Servicio</option>
+                  </select>
+                  <input type="number" placeholder="Precio" value={newProductForm.price}
+                    onChange={(e) => setNewProductForm({ ...newProductForm, price: e.target.value })}
+                    className="w-20 px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs" />
+                  <button className="px-3 py-1.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded text-xs font-medium">
+                    Crear y usar
+                  </button>
+                  <button type="button" onClick={() => setShowNewProduct(false)} className="text-xs text-brand-muted hover:underline">
+                    Cancelar
+                  </button>
                 </form>
               )}
 
