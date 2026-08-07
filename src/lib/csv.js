@@ -81,3 +81,28 @@ export function csvToDeals(text) {
     return obj;
   }).filter((d) => d.title);
 }
+
+// Mapeo de encabezados para actividades — incluye los que exporta Pipedrive.
+const ACTIVITY_HEADER_MAP = {
+  asunto: 'title', subject: 'title', título: 'title', titulo: 'title', 'actividad - asunto': 'title',
+  tipo: 'type', type: 'type',
+  'fecha de vencimiento': 'due_date', 'due date': 'due_date', 'fecha límite': 'due_date',
+  trato: 'deal_title', deal: 'deal_title',
+  persona: 'contact_name', person: 'contact_name', 'persona de contacto': 'contact_name',
+  finalizada: 'done', done: 'done', completada: 'done',
+};
+
+export function csvToActivities(text) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map((h) => ACTIVITY_HEADER_MAP[h.trim().toLowerCase()] || null);
+
+  return rows.slice(1).map((row) => {
+    const obj = {};
+    headers.forEach((key, i) => {
+      if (key && row[i] !== undefined && row[i] !== '') obj[key] = row[i].trim();
+    });
+    return obj;
+  }).filter((a) => a.title);
+}

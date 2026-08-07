@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
-import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check } from 'lucide-react';
+import { csvToActivities } from '../lib/csv';
+import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check, Upload } from 'lucide-react';
 
 const TYPE_ICONS = {
   llamada: Phone, email: Mail, reunion: Users, whatsapp: MessageCircle, nota: StickyNote, tarea: CheckSquare,
@@ -14,6 +15,30 @@ export default function Activities() {
   const [tab, setTab] = useState('pendiente'); // pendiente | vencida | completada
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', type: 'llamada', due_date: '', summary: '' });
+  const [importResult, setImportResult] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const text = await file.text();
+    const parsed = csvToActivities(text);
+
+    if (parsed.length === 0) {
+      setImportResult({ error: 'No se encontraron actividades válidas. Verifica que el CSV tenga una columna de asunto.' });
+      e.target.value = '';
+      return;
+    }
+
+    setImporting(true);
+    const result = await api.post('/api/activities/import', { activities: parsed });
+    setImporting(false);
+    setImportResult(result);
+    e.target.value = '';
+    load();
+  };
 
   const load = () => api.get(`/api/activities?status=${tab}`).then(setActivities).catch(console.error);
 
@@ -44,14 +69,36 @@ export default function Activities() {
     <div>
       <div className="flex items-center justify-between mb-1">
         <h1 className="font-headline text-xl font-semibold">Actividades</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium flex items-center gap-1.5"
-        >
-          <Plus size={14} /> Nueva actividad
-        </button>
+        <div className="flex gap-2">
+          <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileSelect} className="hidden" />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="px-4 py-2 border border-brand-border rounded-lg text-sm hover:border-brand-violet transition disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <Upload size={14} /> {importing ? 'Importando...' : 'Importar CSV'}
+          </button>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium flex items-center gap-1.5"
+          >
+            <Plus size={14} /> Nueva actividad
+          </button>
+        </div>
       </div>
       <p className="text-brand-muted text-sm mb-6">Llamadas, reuniones y tareas programadas</p>
+
+      {importResult && (
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${importResult.error ? 'bg-red-500/10 border border-red-500/30 text-red-300' : 'bg-green-500/10 border border-green-500/30 text-green-300'}`}>
+          {importResult.error ? importResult.error : (
+            <>
+              {importResult.created} actividades importadas.
+              {importResult.errors?.length > 0 && ` ${importResult.errors.length} filas con error.`}
+            </>
+          )}
+          <button onClick={() => setImportResult(null)} className="ml-3 text-xs underline">Cerrar</button>
+        </div>
+      )}
 
       <div className="flex bg-brand-panel border border-brand-border rounded-xl p-1 w-fit mb-6">
         {[
