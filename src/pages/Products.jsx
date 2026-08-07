@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { Package, Plus, Wrench } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
@@ -30,7 +31,7 @@ export default function Products() {
           onClick={() => setShowForm(!showForm)}
           className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium"
         >
-          + Nuevo
+          <Plus size={14} className="inline mr-1" /> Nuevo
         </button>
       </div>
 
@@ -72,8 +73,15 @@ export default function Products() {
           </thead>
           <tbody>
             {products.map((p) => (
-              <tr key={p.id} className="border-t border-brand-border hover:bg-brand-bg/50">
-                <td className="px-4 py-3">{p.name}</td>
+              <tr key={p.id} className="border-t border-brand-border hover:bg-brand-bg/50 transition">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-brand-violet/15 flex items-center justify-center flex-shrink-0">
+                      {p.type === 'servicio' ? <Wrench size={13} className="text-brand-ice" /> : <Package size={13} className="text-brand-ice" />}
+                    </div>
+                    {p.name}
+                  </div>
+                </td>
                 <td className="px-4 py-3 text-brand-muted font-tech text-xs uppercase">{p.type}</td>
                 <td className="px-4 py-3 text-brand-muted font-tech text-xs">{p.sku || '—'}</td>
                 <td className="px-4 py-3 text-brand-ice font-tech">
@@ -81,6 +89,13 @@ export default function Products() {
                 </td>
               </tr>
             ))}
+            {products.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-10 text-center text-brand-muted text-sm">
+                  Sin productos todavía.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

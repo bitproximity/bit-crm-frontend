@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { LayoutGrid, List, Plus, Flag, Calendar, ChevronRight, ChevronDown } from 'lucide-react';
 
 const STATUSES = [
   { key: 'pendiente', label: 'Pendiente' },
@@ -23,16 +24,20 @@ function dueBadge(dueDate, status) {
   let color = 'text-brand-muted';
   if (diffDays < 0) color = 'text-red-400';
   else if (diffDays === 0) color = 'text-yellow-400';
-  return <span className={`text-xs font-tech ${color}`}>{due.toLocaleDateString()}</span>;
+  return (
+    <span className={`flex items-center gap-1 text-xs font-tech ${color}`}>
+      <Calendar size={11} /> {due.toLocaleDateString()}
+    </span>
+  );
 }
 
 function TaskRow({ task, onToggleExpand, expanded, onStatusChange, indent = false }) {
   return (
-    <div className={`flex items-center justify-between py-2 ${indent ? 'pl-8' : ''} border-b border-brand-border/50`}>
+    <div className={`flex items-center justify-between py-2.5 ${indent ? 'pl-8' : ''} border-b border-brand-border/50`}>
       <div className="flex items-center gap-2 flex-1 min-w-0">
         {task.subtasks?.length > 0 && (
-          <button onClick={() => onToggleExpand(task.id)} className="text-brand-muted w-4 text-xs">
-            {expanded ? '▾' : '▸'}
+          <button onClick={() => onToggleExpand(task.id)} className="text-brand-muted w-4">
+            {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </button>
         )}
         <input
@@ -45,7 +50,7 @@ function TaskRow({ task, onToggleExpand, expanded, onStatusChange, indent = fals
           {task.title}
         </span>
         {task.priority && task.priority !== 'media' && (
-          <span className={`text-xs font-tech uppercase ${PRIORITY_COLORS[task.priority]}`}>{task.priority}</span>
+          <Flag size={11} className={PRIORITY_COLORS[task.priority]} fill="currentColor" />
         )}
       </div>
       <div className="flex items-center gap-3 flex-shrink-0 ml-2">
@@ -58,7 +63,7 @@ function TaskRow({ task, onToggleExpand, expanded, onStatusChange, indent = fals
 
 export default function Tasks() {
   const [tasks, setTasks] = useState([]);
-  const [view, setView] = useState('board'); // 'board' | 'list'
+  const [view, setView] = useState('board');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', due_date: '' });
   const [expanded, setExpanded] = useState({});
@@ -84,7 +89,6 @@ export default function Tasks() {
 
   const toggleExpand = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  // Para la vista de lista: agrupa subtareas bajo su tarea padre
   const rootTasks = tasks.filter((t) => !t.parent_task_id);
   const subtasksByParent = {};
   tasks.filter((t) => t.parent_task_id).forEach((t) => {
@@ -94,29 +98,31 @@ export default function Tasks() {
 
   return (
     <div>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="font-headline text-xl font-semibold">Tareas</h1>
+      </div>
+      <p className="text-brand-muted text-sm mb-6">{tasks.filter((t) => t.status !== 'completada').length} tareas pendientes</p>
+
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="font-headline text-xl font-semibold">Tareas</h1>
-          <div className="flex bg-brand-panel border border-brand-border rounded-lg p-0.5">
-            <button
-              onClick={() => setView('board')}
-              className={`px-3 py-1 rounded text-xs font-tech ${view === 'board' ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted'}`}
-            >
-              Tablero
-            </button>
-            <button
-              onClick={() => setView('list')}
-              className={`px-3 py-1 rounded text-xs font-tech ${view === 'list' ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted'}`}
-            >
-              Lista
-            </button>
-          </div>
+        <div className="flex bg-brand-panel border border-brand-border rounded-xl p-1">
+          <button
+            onClick={() => setView('board')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-tech flex items-center gap-1.5 transition ${view === 'board' ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
+          >
+            <LayoutGrid size={13} /> Tablero
+          </button>
+          <button
+            onClick={() => setView('list')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-tech flex items-center gap-1.5 transition ${view === 'list' ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
+          >
+            <List size={13} /> Lista
+          </button>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium"
+          className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium flex items-center gap-1.5"
         >
-          + Nueva tarea
+          <Plus size={14} /> Nueva tarea
         </button>
       </div>
 
@@ -150,9 +156,9 @@ export default function Tasks() {
               onDrop={(e) => updateStatus(e.dataTransfer.getData('taskId'), status.key)}
               className="bg-brand-panel/60 border border-brand-border rounded-xl p-3"
             >
-              <div className="text-sm font-manrope font-medium text-brand-white mb-3 flex justify-between">
+              <div className="text-sm font-manrope font-semibold text-brand-white mb-3 flex justify-between">
                 <span>{status.label}</span>
-                <span className="text-brand-muted font-tech text-xs">
+                <span className="text-brand-muted font-tech text-xs bg-brand-bg px-2 py-0.5 rounded-full">
                   {tasks.filter((t) => t.status === status.key).length}
                 </span>
               </div>
@@ -164,22 +170,24 @@ export default function Tasks() {
                       key={task.id}
                       draggable
                       onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
-                      className="bg-brand-bg border border-brand-border rounded-lg p-3 cursor-move hover:border-brand-violet transition"
+                      className="bg-brand-bg border border-brand-border rounded-lg p-3 cursor-move hover:border-brand-violet hover:shadow-lg hover:shadow-brand-violet/5 transition"
                     >
-                      <div className="text-sm">{task.title}</div>
-                      <div className="flex justify-between items-center mt-1.5">
-                        <div className="flex items-center gap-2">
-                          {task.projects?.name && <span className="text-xs text-brand-muted">{task.projects.name}</span>}
-                          {task.priority && task.priority !== 'media' && (
-                            <span className={`text-xs font-tech uppercase ${PRIORITY_COLORS[task.priority]}`}>{task.priority}</span>
-                          )}
-                        </div>
+                      <div className="text-sm mb-1.5 flex items-start gap-1.5">
+                        {task.priority && task.priority !== 'media' && (
+                          <Flag size={11} className={`mt-0.5 flex-shrink-0 ${PRIORITY_COLORS[task.priority]}`} fill="currentColor" />
+                        )}
+                        {task.title}
+                      </div>
+                      <div className="flex justify-between items-center">
+                        {task.projects?.name && <span className="text-xs text-brand-muted">{task.projects.name}</span>}
                         {dueBadge(task.due_date, task.status)}
                       </div>
                     </div>
                   ))}
                 {tasks.filter((t) => t.status === status.key).length === 0 && (
-                  <div className="text-brand-muted text-xs text-center py-4">Sin tareas</div>
+                  <div className="text-brand-muted text-xs text-center py-6 border border-dashed border-brand-border rounded-lg">
+                    Sin tareas
+                  </div>
                 )}
               </div>
             </div>
