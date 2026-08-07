@@ -2,12 +2,13 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import {
   LayoutDashboard, GitBranch, CheckSquare, Users, Building2,
-  FolderKanban, Package, BarChart3, Settings as SettingsIcon, LogOut,
+  FolderKanban, Package, BarChart3, Settings as SettingsIcon, LogOut, Clock3,
 } from 'lucide-react';
 
 const nav = [
   { to: '/', label: 'Dashboard', end: true, icon: LayoutDashboard },
   { to: '/deals', label: 'Pipeline', icon: GitBranch },
+  { to: '/activities', label: 'Actividades', icon: Clock3 },
   { to: '/tasks', label: 'Tareas', icon: CheckSquare },
   { to: '/contacts', label: 'Contactos', icon: Users },
   { to: '/companies', label: 'Empresas', icon: Building2 },

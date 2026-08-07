@@ -12,6 +12,7 @@ import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
 import Products from './pages/Products';
 import Metrics from './pages/Metrics';
+import Activities from './pages/Activities';
 import Settings from './pages/Settings';
 
 function PublicOnlyRoute({ children }) {
@@ -69,6 +70,7 @@ export default function App() {
             <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/products" element={<Products />} />
             <Route path="/metrics" element={<Metrics />} />
+            <Route path="/activities" element={<Activities />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>

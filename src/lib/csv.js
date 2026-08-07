@@ -54,3 +54,30 @@ export function csvToContacts(text) {
     return obj;
   }).filter((c) => c.first_name);
 }
+
+// Mapeo de encabezados para deals — incluye los que exporta Pipedrive en español.
+const DEAL_HEADER_MAP = {
+  'título': 'title', 'titulo': 'title', title: 'title', 'trato - título': 'title', 'trato': 'title', 'deal': 'title', 'deal - title': 'title',
+  valor: 'value', value: 'value', 'trato - valor': 'value',
+  moneda: 'currency', currency: 'currency',
+  etapa: 'stage_name', stage: 'stage_name', 'trato - etapa': 'stage_name',
+  'persona de contacto': 'contact_name', contact: 'contact_name', 'contacto': 'contact_name', person: 'contact_name',
+  email: 'contact_email', correo: 'contact_email',
+  organización: 'company_name', organizacion: 'company_name', organization: 'company_name', empresa: 'company_name', company: 'company_name',
+  probabilidad: 'probability', probability: 'probability',
+};
+
+export function csvToDeals(text) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map((h) => DEAL_HEADER_MAP[h.trim().toLowerCase()] || null);
+
+  return rows.slice(1).map((row) => {
+    const obj = {};
+    headers.forEach((key, i) => {
+      if (key && row[i] !== undefined && row[i] !== '') obj[key] = row[i].trim();
+    });
+    return obj;
+  }).filter((d) => d.title);
+}

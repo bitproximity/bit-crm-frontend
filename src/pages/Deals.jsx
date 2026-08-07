@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import DealDetailPanel from '../components/DealDetailPanel';
+import { csvToDeals } from '../lib/csv';
 import {
   LayoutGrid, List, DollarSign, Archive, Plus, Search,
-  Info, ChevronDown, User, AlertTriangle,
+  Info, ChevronDown, User, AlertTriangle, Upload,
 } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
@@ -26,6 +27,30 @@ export default function Deals() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', value: '', currency: 'USD', probability: 50 });
   const [selectedDealId, setSelectedDealId] = useState(null);
+  const [importResult, setImportResult] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !pipelineId) return;
+
+    const text = await file.text();
+    const parsedDeals = csvToDeals(text);
+
+    if (parsedDeals.length === 0) {
+      setImportResult({ error: 'No se encontraron deals válidos. Verifica que el CSV tenga una columna de título.' });
+      e.target.value = '';
+      return;
+    }
+
+    setImporting(true);
+    const result = await api.post('/api/deals/import', { pipeline_id: pipelineId, deals: parsedDeals });
+    setImporting(false);
+    setImportResult(result);
+    e.target.value = '';
+    loadDeals(pipelineId);
+  };
 
   const pipeline = pipelines.find((p) => p.id === pipelineId);
 
@@ -104,8 +129,28 @@ export default function Deals() {
           >
             <Plus size={18} />
           </button>
+          <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileSelect} className="hidden" />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="px-3 py-2 rounded-full bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <Upload size={13} /> {importing ? 'Importando...' : 'Importar CSV'}
+          </button>
         </div>
       </div>
+
+      {importResult && (
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${importResult.error ? 'bg-red-500/10 border border-red-500/30 text-red-300' : 'bg-green-500/10 border border-green-500/30 text-green-300'}`}>
+          {importResult.error ? importResult.error : (
+            <>
+              {importResult.created} deals importados al pipeline "{pipeline.name}".
+              {importResult.errors?.length > 0 && ` ${importResult.errors.length} filas con error.`}
+            </>
+          )}
+          <button onClick={() => setImportResult(null)} className="ml-3 text-xs underline">Cerrar</button>
+        </div>
+      )}
 
       {/* Toolbar: vistas + nuevo trato + conteo + selector de pipeline */}
       <div className="flex items-center justify-between mb-5">
