@@ -23,6 +23,8 @@ export default function Deals() {
   const [pipelineId, setPipelineId] = useState(null);
   const [pipelineMenuOpen, setPipelineMenuOpen] = useState(false);
   const [deals, setDeals] = useState([]);
+  const [archivedDeals, setArchivedDeals] = useState([]);
+  const [view, setView] = useState('board'); // board | list | value | archive
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', value: '', currency: 'USD', probability: 50 });
@@ -30,27 +32,6 @@ export default function Deals() {
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef(null);
-
-  const handleFileSelect = async (e) => {
-    const file = e.target.files[0];
-    if (!file || !pipelineId) return;
-
-    const text = await file.text();
-    const parsedDeals = csvToDeals(text);
-
-    if (parsedDeals.length === 0) {
-      setImportResult({ error: 'No se encontraron deals válidos. Verifica que el CSV tenga una columna de título.' });
-      e.target.value = '';
-      return;
-    }
-
-    setImporting(true);
-    const result = await api.post('/api/deals/import', { pipeline_id: pipelineId, deals: parsedDeals });
-    setImporting(false);
-    setImportResult(result);
-    e.target.value = '';
-    loadDeals(pipelineId);
-  };
 
   const pipeline = pipelines.find((p) => p.id === pipelineId);
 
@@ -66,6 +47,12 @@ export default function Deals() {
     setDeals(dealsData);
   };
 
+  const loadArchived = async (pid) => {
+    if (!pid) return;
+    const data = await api.get(`/api/deals?pipeline_id=${pid}&status=ganado,perdido`);
+    setArchivedDeals(data);
+  };
+
   useEffect(() => {
     loadPipelines().catch(console.error);
   }, []);
@@ -73,6 +60,10 @@ export default function Deals() {
   useEffect(() => {
     loadDeals(pipelineId).catch(console.error);
   }, [pipelineId]);
+
+  useEffect(() => {
+    if (view === 'archive' && pipelineId) loadArchived(pipelineId).catch(console.error);
+  }, [view, pipelineId]);
 
   const onDrop = async (stageId, dealId) => {
     setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage_id: stageId } : d)));
@@ -96,6 +87,27 @@ export default function Deals() {
     loadDeals(pipelineId);
   };
 
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !pipelineId) return;
+
+    const text = await file.text();
+    const parsedDeals = csvToDeals(text);
+
+    if (parsedDeals.length === 0) {
+      setImportResult({ error: 'No se encontraron deals válidos. Verifica que el CSV tenga una columna de título.' });
+      e.target.value = '';
+      return;
+    }
+
+    setImporting(true);
+    const result = await api.post('/api/deals/import', { pipeline_id: pipelineId, deals: parsedDeals });
+    setImporting(false);
+    setImportResult(result);
+    e.target.value = '';
+    loadDeals(pipelineId);
+  };
+
   const filteredDeals = search
     ? deals.filter((d) => d.title.toLowerCase().includes(search.toLowerCase()) || d.companies?.name?.toLowerCase().includes(search.toLowerCase()))
     : deals;
@@ -103,7 +115,16 @@ export default function Deals() {
   const stageTotal = (stageId) =>
     filteredDeals.filter((d) => d.stage_id === stageId).reduce((sum, d) => sum + Number(d.value || 0), 0);
 
+  const contactName = (d) => (d.contacts ? `${d.contacts.first_name || ''} ${d.contacts.last_name || ''}`.trim() : null);
+
   if (!pipeline) return <div className="text-brand-muted">Cargando...</div>;
+
+  const VIEW_TABS = [
+    { key: 'board', icon: LayoutGrid },
+    { key: 'list', icon: List },
+    { key: 'value', icon: DollarSign },
+    { key: 'archive', icon: Archive },
+  ];
 
   return (
     <div>
@@ -156,18 +177,15 @@ export default function Deals() {
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <div className="flex bg-brand-panel border border-brand-border rounded-xl p-1">
-            <button className="w-8 h-8 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta flex items-center justify-center">
-              <LayoutGrid size={15} />
-            </button>
-            <button disabled title="Próximamente" className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-muted/40 cursor-not-allowed">
-              <List size={15} />
-            </button>
-            <button disabled title="Próximamente" className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-muted/40 cursor-not-allowed">
-              <DollarSign size={15} />
-            </button>
-            <button disabled title="Próximamente" className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-muted/40 cursor-not-allowed">
-              <Archive size={15} />
-            </button>
+            {VIEW_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setView(tab.key)}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${view === tab.key ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
+              >
+                <tab.icon size={15} />
+              </button>
+            ))}
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
@@ -179,7 +197,7 @@ export default function Deals() {
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-sm text-brand-muted">
-            <span>{filteredDeals.length} tratos</span>
+            <span>{(view === 'archive' ? archivedDeals : filteredDeals).length} tratos</span>
             <Info size={13} />
           </div>
 
@@ -251,73 +269,213 @@ export default function Deals() {
         </form>
       )}
 
-      {/* Columnas del pipeline */}
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {pipeline.pipeline_stages.sort((a, b) => a.position - b.position).map((stage) => {
-          const stageDeals = filteredDeals.filter((d) => d.stage_id === stage.id);
-          return (
-            <div
-              key={stage.id}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => onDrop(stage.id, e.dataTransfer.getData('dealId'))}
-              className="w-72 flex-shrink-0"
-            >
-              <div className="flex items-center justify-between mb-1 px-1">
-                <span className="text-sm font-manrope font-semibold">{stage.name}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-brand-muted mb-3 px-1">
-                <DollarSign size={12} />
-                <span className="font-tech">${stageTotal(stage.id).toLocaleString()}</span>
-                <span>· {stageDeals.length} tratos</span>
-              </div>
+      {/* ── VISTA TABLERO (kanban) ── */}
+      {view === 'board' && (
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {pipeline.pipeline_stages.sort((a, b) => a.position - b.position).map((stage) => {
+            const stageDeals = filteredDeals.filter((d) => d.stage_id === stage.id);
+            return (
+              <div
+                key={stage.id}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => onDrop(stage.id, e.dataTransfer.getData('dealId'))}
+                className="w-72 flex-shrink-0"
+              >
+                <div className="flex items-center justify-between mb-1 px-1">
+                  <span className="text-sm font-manrope font-semibold">{stage.name}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-brand-muted mb-3 px-1">
+                  <DollarSign size={12} />
+                  <span className="font-tech">${stageTotal(stage.id).toLocaleString()}</span>
+                  <span>· {stageDeals.length} tratos</span>
+                </div>
 
-              <div className="space-y-2 min-h-[40px]">
-                {stageDeals.map((deal) => {
-                  const contactName = deal.contacts ? `${deal.contacts.first_name || ''} ${deal.contacts.last_name || ''}`.trim() : null;
-                  const overdue = isOverdue(deal);
-                  return (
-                    <div
-                      key={deal.id}
-                      draggable
-                      onDragStart={(e) => e.dataTransfer.setData('dealId', deal.id)}
-                      onClick={() => setSelectedDealId(deal.id)}
-                      className="relative bg-brand-panel border border-brand-border rounded-xl p-3.5 cursor-pointer hover:border-brand-violet hover:shadow-lg hover:shadow-brand-violet/5 transition group overflow-hidden"
-                    >
-                      {deal.probability >= 70 && (
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-violet to-brand-magenta" />
-                      )}
-                      <div className="text-sm font-manrope font-medium mb-0.5">{deal.title}</div>
-                      {contactName && <div className="text-xs text-brand-muted mb-0.5">{contactName}</div>}
-                      {deal.companies?.name && <div className="text-xs text-brand-muted mb-2">{deal.companies.name}</div>}
-                      {Number(deal.value) > 0 && (
-                        <div className="text-sm text-brand-ice font-tech font-medium mb-2">
-                          {deal.currency} {Number(deal.value).toLocaleString()}
+                <div className="space-y-2 min-h-[40px]">
+                  {stageDeals.map((deal) => {
+                    const cName = contactName(deal);
+                    const overdue = isOverdue(deal);
+                    return (
+                      <div
+                        key={deal.id}
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData('dealId', deal.id)}
+                        onClick={() => setSelectedDealId(deal.id)}
+                        className="relative bg-brand-panel border border-brand-border rounded-xl p-3.5 cursor-pointer hover:border-brand-violet hover:shadow-lg hover:shadow-brand-violet/5 transition group overflow-hidden"
+                      >
+                        {deal.probability >= 70 && (
+                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-violet to-brand-magenta" />
+                        )}
+                        <div className="text-sm font-manrope font-medium mb-0.5">{deal.title}</div>
+                        {cName && <div className="text-xs text-brand-muted mb-0.5">{cName}</div>}
+                        {deal.companies?.name && <div className="text-xs text-brand-muted mb-2">{deal.companies.name}</div>}
+                        {Number(deal.value) > 0 && (
+                          <div className="text-sm text-brand-ice font-tech font-medium mb-2">
+                            {deal.currency} {Number(deal.value).toLocaleString()}
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="w-6 h-6 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-[10px] text-brand-muted font-tech">
+                            {cName ? initials(cName) : <User size={12} />}
+                          </div>
+                          {overdue && <AlertTriangle size={14} className="text-yellow-400" />}
                         </div>
-                      )}
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="w-6 h-6 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-[10px] text-brand-muted font-tech">
-                          {contactName ? initials(contactName) : <User size={12} />}
-                        </div>
-                        {overdue && <AlertTriangle size={14} className="text-yellow-400" />}
                       </div>
+                    );
+                  })}
+                  {stageDeals.length === 0 && (
+                    <div className="text-brand-muted text-xs text-center py-6 border border-dashed border-brand-border rounded-xl">
+                      Sin tratos
                     </div>
-                  );
-                })}
-                {stageDeals.length === 0 && (
-                  <div className="text-brand-muted text-xs text-center py-6 border border-dashed border-brand-border rounded-xl">
-                    Sin tratos
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── VISTA LISTA (tabla plana, todos los abiertos) ── */}
+      {view === 'list' && (
+        <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-brand-panel/80 text-brand-muted text-left">
+              <tr>
+                <th className="px-4 py-3 font-manrope font-normal">Trato</th>
+                <th className="px-4 py-3 font-manrope font-normal">Contacto</th>
+                <th className="px-4 py-3 font-manrope font-normal">Empresa</th>
+                <th className="px-4 py-3 font-manrope font-normal">Etapa</th>
+                <th className="px-4 py-3 font-manrope font-normal">Valor</th>
+                <th className="px-4 py-3 font-manrope font-normal">Prob.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDeals.map((deal) => (
+                <tr
+                  key={deal.id}
+                  onClick={() => setSelectedDealId(deal.id)}
+                  className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer"
+                >
+                  <td className="px-4 py-3">{deal.title}</td>
+                  <td className="px-4 py-3 text-brand-muted">{contactName(deal) || '—'}</td>
+                  <td className="px-4 py-3 text-brand-muted">{deal.companies?.name || '—'}</td>
+                  <td className="px-4 py-3">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-tech bg-brand-violet/15 text-brand-ice">
+                      {deal.pipeline_stages?.name}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-brand-ice font-tech">
+                    {Number(deal.value) > 0 ? `${deal.currency} ${Number(deal.value).toLocaleString()}` : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-brand-muted font-tech">{deal.probability}%</td>
+                </tr>
+              ))}
+              {filteredDeals.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-brand-muted text-sm">Sin tratos abiertos.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── VISTA VALOR (ordenado por valor, con total corrido) ── */}
+      {view === 'value' && (() => {
+        const sorted = [...filteredDeals].sort((a, b) => Number(b.value || 0) - Number(a.value || 0));
+        const total = sorted.reduce((sum, d) => sum + Number(d.value || 0), 0);
+        let running = 0;
+        return (
+          <div>
+            <div className="mb-4 bg-brand-panel border border-brand-border rounded-xl p-4 flex items-center justify-between">
+              <span className="text-sm text-brand-muted">Valor total del pipeline (mezcla de monedas)</span>
+              <span className="text-xl font-headline font-semibold bg-gradient-to-r from-brand-violet to-brand-magenta bg-clip-text text-transparent">
+                ${total.toLocaleString()}
+              </span>
             </div>
-          );
-        })}
-      </div>
+            <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-brand-panel/80 text-brand-muted text-left">
+                  <tr>
+                    <th className="px-4 py-3 font-manrope font-normal">Trato</th>
+                    <th className="px-4 py-3 font-manrope font-normal">Etapa</th>
+                    <th className="px-4 py-3 font-manrope font-normal">Valor</th>
+                    <th className="px-4 py-3 font-manrope font-normal">% del total</th>
+                    <th className="px-4 py-3 font-manrope font-normal">Acumulado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((deal) => {
+                    running += Number(deal.value || 0);
+                    const pct = total ? Math.round((Number(deal.value || 0) / total) * 100) : 0;
+                    return (
+                      <tr
+                        key={deal.id}
+                        onClick={() => setSelectedDealId(deal.id)}
+                        className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer"
+                      >
+                        <td className="px-4 py-3">{deal.title}</td>
+                        <td className="px-4 py-3 text-brand-muted text-xs">{deal.pipeline_stages?.name}</td>
+                        <td className="px-4 py-3 text-brand-ice font-tech">{deal.currency} {Number(deal.value).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-brand-muted font-tech">{pct}%</td>
+                        <td className="px-4 py-3 text-brand-muted font-tech">${running.toLocaleString()}</td>
+                      </tr>
+                    );
+                  })}
+                  {sorted.length === 0 && (
+                    <tr><td colSpan={5} className="px-4 py-10 text-center text-brand-muted text-sm">Sin tratos abiertos.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── VISTA ARCHIVO (ganados/perdidos) ── */}
+      {view === 'archive' && (
+        <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-brand-panel/80 text-brand-muted text-left">
+              <tr>
+                <th className="px-4 py-3 font-manrope font-normal">Trato</th>
+                <th className="px-4 py-3 font-manrope font-normal">Empresa</th>
+                <th className="px-4 py-3 font-manrope font-normal">Valor</th>
+                <th className="px-4 py-3 font-manrope font-normal">Resultado</th>
+                <th className="px-4 py-3 font-manrope font-normal">Cerrado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {archivedDeals.map((deal) => (
+                <tr
+                  key={deal.id}
+                  onClick={() => setSelectedDealId(deal.id)}
+                  className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer"
+                >
+                  <td className="px-4 py-3">{deal.title}</td>
+                  <td className="px-4 py-3 text-brand-muted">{deal.companies?.name || '—'}</td>
+                  <td className="px-4 py-3 text-brand-ice font-tech">
+                    {Number(deal.value) > 0 ? `${deal.currency} ${Number(deal.value).toLocaleString()}` : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${deal.status === 'ganado' ? 'bg-green-500/15 text-green-300' : 'bg-red-500/15 text-red-300'}`}>
+                      {deal.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-brand-muted font-tech text-xs">
+                    {deal.closed_at ? new Date(deal.closed_at).toLocaleDateString() : '—'}
+                  </td>
+                </tr>
+              ))}
+              {archivedDeals.length === 0 && (
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-brand-muted text-sm">Sin tratos ganados o perdidos todavía.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <DealDetailPanel
         dealId={selectedDealId}
         onClose={() => setSelectedDealId(null)}
-        onChanged={() => loadDeals(pipelineId)}
+        onChanged={() => { loadDeals(pipelineId); if (view === 'archive') loadArchived(pipelineId); }}
       />
     </div>
   );
