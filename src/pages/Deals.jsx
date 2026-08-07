@@ -159,13 +159,13 @@ export default function Deals() {
             <button className="w-8 h-8 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta flex items-center justify-center">
               <LayoutGrid size={15} />
             </button>
-            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-muted hover:text-brand-white transition">
+            <button disabled title="Próximamente" className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-muted/40 cursor-not-allowed">
               <List size={15} />
             </button>
-            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-muted hover:text-brand-white transition">
+            <button disabled title="Próximamente" className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-muted/40 cursor-not-allowed">
               <DollarSign size={15} />
             </button>
-            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-muted hover:text-brand-white transition">
+            <button disabled title="Próximamente" className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-muted/40 cursor-not-allowed">
               <Archive size={15} />
             </button>
           </div>
