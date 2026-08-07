@@ -77,7 +77,9 @@ export default function Layout() {
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto p-6">
-        <Outlet />
+        <div className="page-transition max-w-[1600px] mx-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

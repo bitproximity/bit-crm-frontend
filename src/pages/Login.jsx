@@ -39,8 +39,11 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-bg">
-      <div className="w-full max-w-sm bg-brand-panel border border-brand-border rounded-xl p-8">
+    <div className="min-h-screen flex items-center justify-center bg-brand-bg relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: 'radial-gradient(ellipse 800px 600px at 50% 0%, rgba(133,0,255,0.15), transparent), radial-gradient(ellipse 600px 500px at 100% 100%, rgba(224,0,255,0.1), transparent)'
+      }} />
+      <div className="relative z-10 w-full max-w-sm bg-brand-panel border border-brand-border rounded-xl p-8 shadow-2xl shadow-brand-violet/10">
         <img src="/brand/logo.png" alt="Bit Proximity" className="h-7 mb-6" />
         <h1 className="font-headline text-xl font-semibold mb-1">Bit CRM</h1>
 

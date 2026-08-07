@@ -2,8 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #302b47 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #302b47;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #8500FF;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: 'Manrope', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, .font-headline {
@@ -13,4 +39,38 @@ h1, h2, h3, h4, .font-headline {
 .font-tech {
   font-family: 'Space Mono', monospace;
   letter-spacing: 0.02em;
+}
+
+::selection {
+  background-color: #8500FF;
+  color: #FBFAFF;
+}
+
+/* Transición suave global para hover/focus (bordes, colores, sombras) */
+button, a, input, select, textarea, [class*="transition"] {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Foco accesible pero discreto, acorde a la marca */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid #8500FF;
+  outline-offset: 2px;
+}
+
+/* Fade-in suave al cambiar de página */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-transition {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Pulso más suave para skeletons */
+@keyframes softPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-pulse {
+  animation: softPulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
