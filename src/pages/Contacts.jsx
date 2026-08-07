@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import { csvToContacts } from '../lib/csv';
-import { Upload, Plus, Search } from 'lucide-react';
+import { Upload, Plus, Search, Mail } from 'lucide-react';
+import ContactDetailPanel from '../components/ContactDetailPanel';
 
 const STATUS_COLORS = {
   nuevo: 'bg-blue-500/20 text-blue-300',
@@ -18,6 +19,8 @@ export default function Contacts() {
   const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '' });
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState(null);
   const fileInputRef = useRef(null);
 
   const load = () =>
@@ -29,6 +32,10 @@ export default function Contacts() {
     const t = setTimeout(load, 300);
     return () => clearTimeout(t);
   }, [search]);
+
+  useEffect(() => {
+    api.get('/api/gmail/status').then((s) => setGmailConnected(s.connected)).catch(() => {});
+  }, []);
 
   const createContact = async (e) => {
     e.preventDefault();
@@ -59,6 +66,19 @@ export default function Contacts() {
     load();
   };
 
+  const importFromGoogle = async () => {
+    setImporting(true);
+    try {
+      const googleContacts = await api.get('/api/gmail/contacts');
+      const result = await api.post('/api/contacts/import', { contacts: googleContacts });
+      setImportResult(result);
+      load();
+    } catch (err) {
+      setImportResult({ error: err.message || 'Error importando desde Google' });
+    }
+    setImporting(false);
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -71,6 +91,16 @@ export default function Contacts() {
             onChange={handleFileSelect}
             className="hidden"
           />
+          {gmailConnected && (
+            <button
+              onClick={importFromGoogle}
+              disabled={importing}
+              className="px-4 py-2 border border-brand-border rounded-lg text-sm hover:border-brand-violet transition disabled:opacity-50 flex items-center gap-1.5"
+            >
+              <Mail size={14} />
+              {importing ? 'Importando...' : 'Importar de Google'}
+            </button>
+          )}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
@@ -87,6 +117,12 @@ export default function Contacts() {
           </button>
         </div>
       </div>
+
+      {!gmailConnected && (
+        <div className="mb-4 px-4 py-3 rounded-lg text-sm bg-brand-panel border border-brand-border text-brand-muted">
+          Conecta tu Gmail en <a href="/settings" className="text-brand-ice hover:underline">Configuración</a> para poder importar tus contactos de Google directamente.
+        </div>
+      )}
 
       {importResult && (
         <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${importResult.error ? 'bg-red-500/10 border border-red-500/30 text-red-300' : 'bg-green-500/10 border border-green-500/30 text-green-300'}`}>
@@ -148,7 +184,11 @@ export default function Contacts() {
               const fullName = `${c.first_name} ${c.last_name || ''}`.trim();
               const initials = fullName.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
               return (
-                <tr key={c.id} className="border-t border-brand-border hover:bg-brand-bg/50 transition">
+                <tr
+                  key={c.id}
+                  onClick={() => setSelectedContactId(c.id)}
+                  className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer"
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta flex items-center justify-center text-[10px] font-tech font-bold flex-shrink-0">
@@ -180,6 +220,8 @@ export default function Contacts() {
           </tbody>
         </table>
       </div>
+
+      <ContactDetailPanel contactId={selectedContactId} onClose={() => setSelectedContactId(null)} />
     </div>
   );
 }
