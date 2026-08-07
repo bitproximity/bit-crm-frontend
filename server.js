@@ -8,11 +8,20 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const distPath = path.join(__dirname, 'dist');
 
-app.use(express.static(distPath));
+app.use(express.static(distPath, {
+  index: false, // servimos index.html a mano abajo, sin caché
+  setHeaders: (res, filePath) => {
+    if (filePath.includes('/assets/')) {
+      // Los archivos con hash en el nombre pueden cachearse largo tiempo sin riesgo
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  },
+}));
 
-// Cualquier ruta que no sea un archivo estático devuelve index.html
-// (necesario para que /deals, /tasks, etc. funcionen al refrescar la página)
+// index.html siempre fresco: nunca en caché, para que apunte a los assets
+// más recientes en cada deploy (evita quedarse pegado en una versión vieja).
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
