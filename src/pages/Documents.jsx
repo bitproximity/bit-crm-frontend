@@ -120,6 +120,7 @@ export default function Documents() {
       const raw = data.content || '';
       const isHtml = /^\s*</.test(raw);
       if (editorRef.current) editorRef.current.innerHTML = isHtml ? raw : markdownToHtml(raw);
+      savedRange.current = null;
       api.get(`/api/document-files?document_id=${id}`).then(setFiles).catch(() => setFiles([]));
     } catch (err) {
       setError(err.message || 'No se pudo abrir la página.');
@@ -164,8 +165,26 @@ export default function Documents() {
   const onTitleChange = (v) => { setTitle(v); scheduleSave(v, editorRef.current?.innerHTML || ''); };
   const onEditorInput = () => { scheduleSave(title, editorRef.current?.innerHTML || ''); };
 
+  // contentEditable pierde la selección de texto en cuanto un <select> del toolbar recibe el foco.
+  // Por eso guardamos el Range activo mientras el usuario escribe/selecciona dentro del editor,
+  // y lo restauramos justo antes de aplicar cualquier comando de formato.
+  const savedRange = useRef(null);
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
+      savedRange.current = sel.getRangeAt(0).cloneRange();
+    }
+  };
+  const restoreSelection = () => {
+    if (!savedRange.current) return;
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedRange.current);
+  };
+
   const exec = (command, value) => {
     editorRef.current?.focus();
+    restoreSelection();
     document.execCommand(command, false, value);
     onEditorInput();
   };
@@ -302,6 +321,8 @@ export default function Documents() {
                 contentEditable
                 suppressContentEditableWarning
                 onInput={onEditorInput}
+                onMouseUp={saveSelection}
+                onKeyUp={saveSelection}
                 data-placeholder="Escribe aquí..."
                 className="doc-editor w-full min-h-[400px] bg-transparent text-sm leading-relaxed focus:outline-none font-manrope"
               />
