@@ -13,6 +13,7 @@ import CompanyDetail from './pages/CompanyDetail';
 import Projects from './pages/Projects';
 import Spaces from './pages/Spaces';
 import Documents from './pages/Documents';
+import Invoicing from './pages/Invoicing';
 import ProjectDetail from './pages/ProjectDetail';
 import Products from './pages/Products';
 import Metrics from './pages/Metrics';
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/spaces" element={<Spaces />} />
             <Route path="/documents" element={<Documents />} />
+            <Route path="/invoicing" element={<Invoicing />} />
             <Route path="/products" element={<Products />} />
             <Route path="/metrics" element={<Metrics />} />
             <Route path="/activities" element={<Activities />} />

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { InvoiceDetailModal } from './Invoicing';
 import {
   ChevronLeft, MoreHorizontal, Tag, Calendar, Building2, User,
   Plus, X, Mail, Phone, Video, StickyNote, FileText,
@@ -59,6 +60,11 @@ export default function DealDetail() {
   const [gmailSyncing, setGmailSyncing] = useState(false);
   const [calcomStatus, setCalcomStatus] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [dealInvoices, setDealInvoices] = useState([]);
+  const [showCreateInvoice, setShowCreateInvoice] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
+  const [invoiceForm, setInvoiceForm] = useState({ invoice_number: '', currency: 'USD', due_date: '', description: '', amount: '' });
+  const [savingInvoice, setSavingInvoice] = useState(false);
   const [loading, setLoading] = useState(true);
   const [optionsOpen, setOptionsOpen] = useState(false);
 
@@ -125,7 +131,10 @@ export default function DealDetail() {
         setBookings(email ? data.filter((b) => b.attendees?.includes(email)) : data);
       }).catch(() => setBookings([]));
     }
-  }, [tab, calcomStatus, deal]);
+    if (tab === 'factura') {
+      api.get(`/api/invoices?deal_id=${id}`).then(setDealInvoices).catch(() => setDealInvoices([]));
+    }
+  }, [tab, calcomStatus, deal, id]);
 
   if (loading || !deal) return <div className="text-brand-muted">Cargando...</div>;
 
@@ -276,6 +285,29 @@ export default function DealDetail() {
   const toggleTaskDone = async (taskId, done) => {
     await api.patch(`/api/tasks/${taskId}`, { status: done ? 'completada' : 'pendiente' });
     load();
+  };
+
+  const createInvoiceForDeal = async (e) => {
+    e.preventDefault();
+    setSavingInvoice(true);
+    try {
+      const amount = Number(invoiceForm.amount) || Number(deal.value) || 0;
+      await api.post('/api/invoices', {
+        invoice_number: invoiceForm.invoice_number || null,
+        deal_id: id,
+        company_id: deal.company_id || null,
+        contact_id: deal.contact_id || null,
+        currency: invoiceForm.currency,
+        due_date: invoiceForm.due_date || null,
+        line_items: [{ description: invoiceForm.description || deal.title, quantity: 1, unit_price: amount }],
+      });
+      setInvoiceForm({ invoice_number: '', currency: 'USD', due_date: '', description: '', amount: '' });
+      setShowCreateInvoice(false);
+      api.get(`/api/invoices?deal_id=${id}`).then(setDealInvoices);
+    } catch (err) {
+      alert(err.message);
+    }
+    setSavingInvoice(false);
   };
 
   const pendingTasks = (deal.tasks || []).filter((t) => t.status !== 'completada');
@@ -694,7 +726,30 @@ export default function DealDetail() {
             </div>
           )}
 
-          {(tab === 'archivos' || tab === 'documentos' || tab === 'factura') && (
+          {tab === 'factura' && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-brand-muted">{dealInvoices.length} factura{dealInvoices.length !== 1 ? 's' : ''} de este trato</span>
+                <button onClick={() => setShowCreateInvoice(true)} className="text-xs text-brand-ice hover:underline">+ Nueva factura</button>
+              </div>
+              <div className="space-y-2">
+                {dealInvoices.map((inv) => (
+                  <div key={inv.id} onClick={() => setSelectedInvoiceId(inv.id)} className="flex items-center justify-between bg-brand-panel border border-brand-border rounded-lg p-3 text-sm cursor-pointer hover:border-brand-violet/40 transition">
+                    <span>{inv.invoice_number || `#${inv.id.slice(0, 8)}`}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-brand-ice font-tech">{inv.currency} {Number(inv.total).toLocaleString()}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${inv.overdue ? 'bg-red-500/15 text-red-300' : inv.status === 'pagada' ? 'bg-green-500/15 text-green-300' : 'bg-yellow-500/15 text-yellow-300'}`}>
+                        {inv.overdue ? 'Vencida' : inv.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {dealInvoices.length === 0 && <div className="text-brand-muted text-sm">Sin facturas todavía.</div>}
+              </div>
+            </div>
+          )}
+
+          {(tab === 'archivos' || tab === 'documentos') && (
             <div className="mb-6 text-sm text-brand-muted">
               Próximamente.
             </div>
@@ -765,6 +820,42 @@ export default function DealDetail() {
           </div>
         </div>
       </div>
+
+      {showCreateInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowCreateInvoice(false)} />
+          <div className="relative w-full max-w-md bg-brand-panel border border-brand-border rounded-2xl shadow-2xl p-6">
+            <h2 className="font-headline text-lg font-semibold mb-4">Nueva factura para "{deal.title}"</h2>
+            <form onSubmit={createInvoiceForDeal} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <input placeholder="N° de factura (opcional)" value={invoiceForm.invoice_number} onChange={(e) => setInvoiceForm({ ...invoiceForm, invoice_number: e.target.value })} className={inputClass} />
+                <select value={invoiceForm.currency} onChange={(e) => setInvoiceForm({ ...invoiceForm, currency: e.target.value })} className={`${inputClass} font-tech`}>
+                  {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <input placeholder={`Descripción (por defecto: ${deal.title})`} value={invoiceForm.description} onChange={(e) => setInvoiceForm({ ...invoiceForm, description: e.target.value })} className={inputClass} />
+              <div className="grid grid-cols-2 gap-3">
+                <input type="number" placeholder={`Monto (por defecto: ${deal.value})`} value={invoiceForm.amount} onChange={(e) => setInvoiceForm({ ...invoiceForm, amount: e.target.value })} className={`${inputClass} font-tech`} />
+                <input type="date" value={invoiceForm.due_date} onChange={(e) => setInvoiceForm({ ...invoiceForm, due_date: e.target.value })} className={`${inputClass} font-tech`} />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setShowCreateInvoice(false)} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">Cancelar</button>
+                <button disabled={savingInvoice} className="px-5 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50">
+                  {savingInvoice ? 'Guardando...' : 'Crear factura'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {selectedInvoiceId && (
+        <InvoiceDetailModal
+          invoiceId={selectedInvoiceId}
+          onClose={() => setSelectedInvoiceId(null)}
+          onChanged={() => api.get(`/api/invoices?deal_id=${id}`).then(setDealInvoices)}
+        />
+      )}
     </div>
   );
 }

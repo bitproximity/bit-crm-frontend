@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import {
   LayoutDashboard, GitBranch, CheckSquare, Users, Building2,
   FolderKanban, Package, BarChart3, Settings as SettingsIcon, LogOut, Clock3,
-  Boxes, FileText,
+  Boxes, FileText, Receipt,
 } from 'lucide-react';
 
 const nav = [
@@ -16,6 +16,7 @@ const nav = [
   { to: '/spaces', label: 'Espacios', icon: Boxes },
   { to: '/projects', label: 'Proyectos', icon: FolderKanban },
   { to: '/documents', label: 'Documentos', icon: FileText },
+  { to: '/invoicing', label: 'Facturación', icon: Receipt },
   { to: '/products', label: 'Productos', icon: Package },
   { to: '/metrics', label: 'Métricas', icon: BarChart3 },
 ];
