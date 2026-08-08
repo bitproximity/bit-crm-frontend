@@ -14,8 +14,15 @@ export default function Spaces() {
   const [spaceForm, setSpaceForm] = useState({ name: '', color: COLORS[0] });
   const [newProjectFor, setNewProjectFor] = useState(null);
   const [projectForm, setProjectForm] = useState({ name: '', type: 'onboarding_cliente' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const load = () => api.get('/api/spaces').then(setSpaces).catch(console.error);
+  const load = () => {
+    setError('');
+    return api.get('/api/spaces')
+      .then((data) => { setSpaces(data); setLoading(false); })
+      .catch((err) => { setError(err.message || 'No se pudieron cargar los espacios.'); setLoading(false); });
+  };
 
   useEffect(() => { load(); }, []);
 
@@ -23,17 +30,26 @@ export default function Spaces() {
     const isOpen = expanded[spaceId];
     setExpanded((prev) => ({ ...prev, [spaceId]: !isOpen }));
     if (!isOpen && !projectsBySpace[spaceId]) {
-      const data = await api.get(`/api/spaces/${spaceId}`);
-      setProjectsBySpace((prev) => ({ ...prev, [spaceId]: data.projects }));
+      try {
+        const data = await api.get(`/api/spaces/${spaceId}`);
+        setProjectsBySpace((prev) => ({ ...prev, [spaceId]: data.projects }));
+      } catch (err) {
+        setError(err.message || 'No se pudieron cargar los proyectos de este espacio.');
+      }
     }
   };
 
   const createSpace = async (e) => {
     e.preventDefault();
-    await api.post('/api/spaces', spaceForm);
-    setSpaceForm({ name: '', color: COLORS[0] });
-    setShowNewSpace(false);
-    load();
+    setError('');
+    try {
+      await api.post('/api/spaces', spaceForm);
+      setSpaceForm({ name: '', color: COLORS[0] });
+      setShowNewSpace(false);
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo crear el espacio.');
+    }
   };
 
   const deleteSpace = async (spaceId) => {
@@ -69,6 +85,12 @@ export default function Spaces() {
         </button>
       </div>
       <p className="text-brand-muted text-sm mb-6">{spaces.length} espacios · agrupan tus proyectos por marca, país o equipo</p>
+
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
+          {error}
+        </div>
+      )}
 
       {showNewSpace && (
         <form onSubmit={createSpace} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 flex flex-wrap items-center gap-3">

@@ -66,35 +66,50 @@ export default function Documents() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [saveState, setSaveState] = useState('idle'); // idle | saving | saved
+  const [error, setError] = useState('');
   const saveTimer = useRef(null);
 
-  const loadTree = () => api.get('/api/documents/tree').then(setTree).catch(console.error);
+  const loadTree = () => api.get('/api/documents/tree').then(setTree).catch((err) => setError(err.message || 'No se pudo cargar el árbol de documentos.'));
 
   useEffect(() => { loadTree(); }, []);
 
   const openDoc = async (id) => {
     setActiveId(id);
-    const data = await api.get(`/api/documents/${id}`);
-    setDoc(data);
-    setTitle(data.title);
-    setContent(data.content || '');
-    setSaveState('idle');
+    setError('');
+    try {
+      const data = await api.get(`/api/documents/${id}`);
+      setDoc(data);
+      setTitle(data.title);
+      setContent(data.content || '');
+      setSaveState('idle');
+    } catch (err) {
+      setError(err.message || 'No se pudo abrir la página.');
+    }
   };
 
   const toggleExpand = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const createDoc = async (parentId) => {
-    const created = await api.post('/api/documents', { title: 'Sin título', content: '', parent_id: parentId || null });
-    if (parentId) setExpanded((prev) => ({ ...prev, [parentId]: true }));
-    await loadTree();
-    openDoc(created.id);
+    setError('');
+    try {
+      const created = await api.post('/api/documents', { title: 'Sin título', content: '', parent_id: parentId || null });
+      if (parentId) setExpanded((prev) => ({ ...prev, [parentId]: true }));
+      await loadTree();
+      openDoc(created.id);
+    } catch (err) {
+      setError(err.message || 'No se pudo crear la página.');
+    }
   };
 
   const deleteDoc = async (id) => {
     if (!window.confirm('¿Eliminar esta página y todas sus subpáginas?')) return;
-    await api.delete(`/api/documents/${id}`);
-    if (activeId === id) { setActiveId(null); setDoc(null); }
-    loadTree();
+    try {
+      await api.delete(`/api/documents/${id}`);
+      if (activeId === id) { setActiveId(null); setDoc(null); }
+      loadTree();
+    } catch (err) {
+      setError(err.message || 'No se pudo eliminar la página.');
+    }
   };
 
   const scheduleSave = useCallback((newTitle, newContent) => {
@@ -124,6 +139,11 @@ export default function Documents() {
           </button>
         </div>
         <div className="space-y-0.5">
+          {error && (
+            <div className="mb-3 px-2 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+              {error}
+            </div>
+          )}
           {roots.map((n) => (
             <TreeNode
               key={n.id} node={n} byParent={byParent} depth={0}
