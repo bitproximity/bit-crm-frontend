@@ -11,6 +11,8 @@ import Contacts from './pages/Contacts';
 import Companies from './pages/Companies';
 import CompanyDetail from './pages/CompanyDetail';
 import Projects from './pages/Projects';
+import Spaces from './pages/Spaces';
+import Documents from './pages/Documents';
 import ProjectDetail from './pages/ProjectDetail';
 import Products from './pages/Products';
 import Metrics from './pages/Metrics';
@@ -72,6 +74,8 @@ export default function App() {
             <Route path="/companies/:id" element={<CompanyDetail />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:id" element={<ProjectDetail />} />
+            <Route path="/spaces" element={<Spaces />} />
+            <Route path="/documents" element={<Documents />} />
             <Route path="/products" element={<Products />} />
             <Route path="/metrics" element={<Metrics />} />
             <Route path="/activities" element={<Activities />} />
