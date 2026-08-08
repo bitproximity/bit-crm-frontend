@@ -3,12 +3,12 @@ import { useAuth } from '../hooks/useAuth';
 import {
   LayoutDashboard, GitBranch, CheckSquare, Users, Building2,
   FolderKanban, Package, BarChart3, Settings as SettingsIcon, LogOut, Clock3,
-  Boxes, FileText, Receipt,
+  Boxes, FileText, Receipt, CircleDollarSign,
 } from 'lucide-react';
 
 const nav = [
   { to: '/', label: 'Dashboard', end: true, icon: LayoutDashboard },
-  { to: '/deals', label: 'Pipeline', icon: GitBranch },
+  { to: '/deals', label: 'Pipeline', icon: CircleDollarSign },
   { to: '/activities', label: 'Actividades', icon: Clock3 },
   { to: '/tasks', label: 'Tareas', icon: CheckSquare },
   { to: '/contacts', label: 'Contactos', icon: Users },
