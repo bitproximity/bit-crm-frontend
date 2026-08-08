@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Building2, Search, Plus, MapPin } from 'lucide-react';
 
@@ -16,6 +17,7 @@ const TYPE_COLORS = {
 };
 
 export default function Companies() {
+  const navigate = useNavigate();
   const [companies, setCompanies] = useState([]);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -87,7 +89,7 @@ export default function Companies() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {companies.map((c) => (
-          <div key={c.id} className="bg-brand-panel border border-brand-border rounded-xl p-4 hover:border-brand-violet/40 hover:shadow-lg hover:shadow-brand-violet/5 transition">
+          <div key={c.id} onClick={() => navigate(`/companies/${c.id}`)} className="bg-brand-panel border border-brand-border rounded-xl p-4 hover:border-brand-violet/40 hover:shadow-lg hover:shadow-brand-violet/5 transition cursor-pointer">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center flex-shrink-0">
                 <Building2 size={18} />

@@ -5,9 +5,11 @@ import ResetPassword from './pages/ResetPassword';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Deals from './pages/Deals';
+import DealDetail from './pages/DealDetail';
 import Tasks from './pages/Tasks';
 import Contacts from './pages/Contacts';
 import Companies from './pages/Companies';
+import CompanyDetail from './pages/CompanyDetail';
 import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
 import Products from './pages/Products';
@@ -63,9 +65,11 @@ export default function App() {
           <Route element={<PrivateRoutes />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/deals" element={<Deals />} />
+            <Route path="/deals/:id" element={<DealDetail />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/contacts" element={<Contacts />} />
             <Route path="/companies" element={<Companies />} />
+            <Route path="/companies/:id" element={<CompanyDetail />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/products" element={<Products />} />

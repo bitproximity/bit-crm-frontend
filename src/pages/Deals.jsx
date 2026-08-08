@@ -1,13 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import DealDetailPanel from '../components/DealDetailPanel';
+import AddDealModal from '../components/AddDealModal';
 import { csvToDeals } from '../lib/csv';
 import {
   LayoutGrid, List, DollarSign, Archive, Plus, Search,
   Info, ChevronDown, User, AlertTriangle, Upload,
 } from 'lucide-react';
-
-const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
 function isOverdue(deal) {
   return deal.expected_close_date && new Date(deal.expected_close_date) < new Date();
@@ -19,6 +18,7 @@ function initials(name) {
 }
 
 export default function Deals() {
+  const navigate = useNavigate();
   const [pipelines, setPipelines] = useState([]);
   const [pipelineId, setPipelineId] = useState(null);
   const [pipelineMenuOpen, setPipelineMenuOpen] = useState(false);
@@ -27,8 +27,6 @@ export default function Deals() {
   const [view, setView] = useState('board'); // board | list | value | archive
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: '', value: '', currency: 'USD', probability: 50 });
-  const [selectedDealId, setSelectedDealId] = useState(null);
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef(null);
@@ -68,23 +66,6 @@ export default function Deals() {
   const onDrop = async (stageId, dealId) => {
     setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage_id: stageId } : d)));
     await api.patch(`/api/deals/${dealId}/stage`, { stage_id: stageId });
-  };
-
-  const createDeal = async (e) => {
-    e.preventDefault();
-    if (!pipeline) return;
-    const firstStage = pipeline.pipeline_stages[0];
-    await api.post('/api/deals', {
-      title: form.title,
-      value: Number(form.value) || 0,
-      currency: form.currency,
-      probability: Number(form.probability),
-      pipeline_id: pipeline.id,
-      stage_id: firstStage.id,
-    });
-    setForm({ title: '', value: '', currency: 'USD', probability: 50 });
-    setShowForm(false);
-    loadDeals(pipelineId);
   };
 
   const handleFileSelect = async (e) => {
@@ -231,43 +212,14 @@ export default function Deals() {
         </div>
       </div>
 
-      {showForm && (
-        <form onSubmit={createDeal} className="mb-5 bg-brand-panel border border-brand-border rounded-xl p-4 flex flex-wrap gap-3 items-center">
-          <input
-            placeholder="Título del deal"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            required
-            className="flex-1 min-w-[180px] px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
-          />
-          <input
-            placeholder="Valor"
-            type="number"
-            value={form.value}
-            onChange={(e) => setForm({ ...form, value: e.target.value })}
-            className="w-28 px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
-          />
-          <select
-            value={form.currency}
-            onChange={(e) => setForm({ ...form, currency: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm font-tech"
-          >
-            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <label className="flex items-center gap-2 text-sm text-brand-muted">
-            Prob.
-            <input
-              type="number" min="0" max="100"
-              value={form.probability}
-              onChange={(e) => setForm({ ...form, probability: e.target.value })}
-              className="w-16 px-2 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm font-tech"
-            />%
-          </label>
-          <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
-            Crear
-          </button>
-        </form>
-      )}
+      <AddDealModal
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        pipelines={pipelines}
+        pipelineId={pipelineId}
+        onCreated={() => loadDeals(pipelineId)}
+        onImportClick={() => { setShowForm(false); fileInputRef.current?.click(); }}
+      />
 
       {/* ── VISTA TABLERO (kanban) ── */}
       {view === 'board' && (
@@ -299,7 +251,7 @@ export default function Deals() {
                         key={deal.id}
                         draggable
                         onDragStart={(e) => e.dataTransfer.setData('dealId', deal.id)}
-                        onClick={() => setSelectedDealId(deal.id)}
+                        onClick={() => navigate(`/deals/${deal.id}`)}
                         className="relative bg-brand-panel border border-brand-border rounded-xl p-3.5 cursor-pointer hover:border-brand-violet hover:shadow-lg hover:shadow-brand-violet/5 transition group overflow-hidden"
                       >
                         {deal.probability >= 70 && (
@@ -352,7 +304,7 @@ export default function Deals() {
               {filteredDeals.map((deal) => (
                 <tr
                   key={deal.id}
-                  onClick={() => setSelectedDealId(deal.id)}
+                  onClick={() => navigate(`/deals/${deal.id}`)}
                   className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer"
                 >
                   <td className="px-4 py-3">{deal.title}</td>
@@ -408,7 +360,7 @@ export default function Deals() {
                     return (
                       <tr
                         key={deal.id}
-                        onClick={() => setSelectedDealId(deal.id)}
+                        onClick={() => navigate(`/deals/${deal.id}`)}
                         className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer"
                       >
                         <td className="px-4 py-3">{deal.title}</td>
@@ -446,7 +398,7 @@ export default function Deals() {
               {archivedDeals.map((deal) => (
                 <tr
                   key={deal.id}
-                  onClick={() => setSelectedDealId(deal.id)}
+                  onClick={() => navigate(`/deals/${deal.id}`)}
                   className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer"
                 >
                   <td className="px-4 py-3">{deal.title}</td>
@@ -471,12 +423,6 @@ export default function Deals() {
           </table>
         </div>
       )}
-
-      <DealDetailPanel
-        dealId={selectedDealId}
-        onClose={() => setSelectedDealId(null)}
-        onChanged={() => { loadDeals(pipelineId); if (view === 'archive') loadArchived(pipelineId); }}
-      />
     </div>
   );
 }
