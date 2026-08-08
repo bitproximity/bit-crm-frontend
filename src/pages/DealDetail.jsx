@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { InvoiceDetailModal } from './Invoicing';
+import DateTimePicker from '../components/DateTimePicker';
 import {
   ChevronLeft, MoreHorizontal, Tag, Calendar, Building2, User,
   Plus, X, Mail, Phone, Video, StickyNote, FileText as FileTextIcon, Paperclip,
@@ -577,12 +578,9 @@ export default function DealDetail() {
               </div>
 
               <div className="flex items-center gap-2 text-brand-muted">
-                <Calendar size={14} className="flex-shrink-0" />
-                <input
-                  type="date"
-                  defaultValue={deal.expected_close_date ? deal.expected_close_date.slice(0, 10) : ''}
-                  onBlur={(e) => saveExpectedDate(e.target.value)}
-                  className="bg-transparent text-brand-white text-sm focus:outline-none font-tech"
+                <DateTimePicker
+                  value={deal.expected_close_date ? new Date(deal.expected_close_date).toISOString() : ''}
+                  onChange={(v) => saveExpectedDate(v ? v.slice(0, 10) : '')}
                 />
               </div>
             </div>
@@ -849,7 +847,7 @@ export default function DealDetail() {
             {showTaskForm && (
               <form onSubmit={createTask} className="flex flex-wrap gap-2 mb-3 bg-brand-bg border border-brand-border rounded-lg p-3">
                 <input autoFocus value={taskForm.title} onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} placeholder="Título de la tarea" required className="flex-1 min-w-[140px] px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs" />
-                <input type="date" value={taskForm.due_date} onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })} className="px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs" />
+                <DateTimePicker value={taskForm.due_date ? new Date(taskForm.due_date).toISOString() : ''} onChange={(v) => setTaskForm({ ...taskForm, due_date: v ? v.slice(0, 10) : '' })} />
                 <button className="px-3 py-1.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded text-xs font-medium">Crear</button>
               </form>
             )}
@@ -921,7 +919,7 @@ export default function DealDetail() {
               <input placeholder={`Descripción (por defecto: ${deal.title})`} value={invoiceForm.description} onChange={(e) => setInvoiceForm({ ...invoiceForm, description: e.target.value })} className={inputClass} />
               <div className="grid grid-cols-2 gap-3">
                 <input type="number" placeholder={`Monto (por defecto: ${deal.value})`} value={invoiceForm.amount} onChange={(e) => setInvoiceForm({ ...invoiceForm, amount: e.target.value })} className={`${inputClass} font-tech`} />
-                <input type="date" value={invoiceForm.due_date} onChange={(e) => setInvoiceForm({ ...invoiceForm, due_date: e.target.value })} className={`${inputClass} font-tech`} />
+                <DateTimePicker value={invoiceForm.due_date ? new Date(invoiceForm.due_date).toISOString() : ''} onChange={(v) => setInvoiceForm({ ...invoiceForm, due_date: v ? v.slice(0, 10) : '' })} className="w-full" />
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setShowCreateInvoice(false)} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">Cancelar</button>

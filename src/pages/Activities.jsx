@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
+import DateTimePicker from '../components/DateTimePicker';
 import { csvToActivities } from '../lib/csv';
 import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check, Upload } from 'lucide-react';
 
@@ -132,12 +133,7 @@ export default function Activities() {
           >
             {Object.entries(TYPE_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
-          <input
-            type="datetime-local"
-            value={form.due_date}
-            onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
-          />
+          <DateTimePicker value={form.due_date} onChange={(v) => setForm({ ...form, due_date: v })} />
           <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
             Crear
           </button>

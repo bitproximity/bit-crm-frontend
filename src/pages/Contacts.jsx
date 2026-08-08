@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import { csvToContacts } from '../lib/csv';
+import AddContactModal from '../components/AddContactModal';
 import { Upload, Plus, Search, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
 import ContactDetailPanel from '../components/ContactDetailPanel';
 
@@ -146,23 +147,10 @@ export default function Contacts() {
       )}
 
       {showForm && (
-        <form onSubmit={createContact} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 grid grid-cols-4 gap-3">
-          <input placeholder="Nombre" required value={form.first_name}
-            onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" />
-          <input placeholder="Apellido" value={form.last_name}
-            onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" />
-          <input placeholder="Email" type="email" value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" />
-          <input placeholder="Teléfono" value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" />
-          <button className="col-span-4 px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 rounded-lg text-sm">
-            Crear
-          </button>
-        </form>
+        <AddContactModal
+          onClose={() => setShowForm(false)}
+          onCreated={() => { setShowForm(false); load(); }}
+        />
       )}
 
       <div className="relative mb-4">

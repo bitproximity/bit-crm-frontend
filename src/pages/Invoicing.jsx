@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import DateTimePicker from '../components/DateTimePicker';
 import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
@@ -238,7 +239,7 @@ function CreateInvoiceModal({ onClose, onCreated }) {
             </div>
             <div>
               <label className={labelClass}>Fecha de vencimiento</label>
-              <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} className={`${inputClass} font-tech`} />
+              <DateTimePicker value={form.due_date ? new Date(form.due_date).toISOString() : ''} onChange={(v) => setForm({ ...form, due_date: v ? v.slice(0, 10) : '' })} className="w-full" />
             </div>
           </div>
 

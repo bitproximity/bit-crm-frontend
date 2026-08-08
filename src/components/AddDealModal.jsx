@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
+import DateTimePicker from './DateTimePicker';
 import { User, Building2, X, Plus } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
@@ -510,11 +511,10 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
 
               <div>
                 <label className={labelClass}>Fecha prevista de cierre</label>
-                <input
-                  type="date"
-                  value={expectedCloseDate}
-                  onChange={(e) => setExpectedCloseDate(e.target.value)}
-                  className={`${plainInputClass} font-tech`}
+                <DateTimePicker
+                  value={expectedCloseDate ? new Date(expectedCloseDate).toISOString() : ''}
+                  onChange={(v) => setExpectedCloseDate(v ? v.slice(0, 10) : '')}
+                  className="w-full"
                 />
               </div>
 
