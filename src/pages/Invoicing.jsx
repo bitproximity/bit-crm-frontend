@@ -300,8 +300,13 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
   const [error, setError] = useState('');
   const [showPayment, setShowPayment] = useState(false);
   const [paymentForm, setPaymentForm] = useState({ amount: '', method: '', notes: '' });
+  const [editing, setEditing] = useState(false);
+  const [currencyEdit, setCurrencyEdit] = useState('USD');
+  const [newLine, setNewLine] = useState({ description: '', quantity: 1, unit_price: '' });
+  const [editingLineId, setEditingLineId] = useState(null);
+  const [editLineForm, setEditLineForm] = useState({ description: '', quantity: 1, unit_price: '' });
 
-  const load = () => api.get(`/api/invoices/${invoiceId}`).then(setInvoice).catch((err) => setError(err.message));
+  const load = () => api.get(`/api/invoices/${invoiceId}`).then((data) => { setInvoice(data); setCurrencyEdit(data.currency); }).catch((err) => setError(err.message));
 
   useEffect(() => { load(); }, [invoiceId]);
 
@@ -324,9 +329,51 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
     onChanged?.();
   };
 
+  const saveCurrency = async () => {
+    await api.patch(`/api/invoices/${invoiceId}`, { currency: currencyEdit });
+    load();
+    onChanged?.();
+  };
+
+  const addLine = async (e) => {
+    e.preventDefault();
+    if (!newLine.description.trim()) return;
+    await api.post(`/api/invoices/${invoiceId}/line-items`, {
+      description: newLine.description,
+      quantity: Number(newLine.quantity) || 1,
+      unit_price: Number(newLine.unit_price) || 0,
+    });
+    setNewLine({ description: '', quantity: 1, unit_price: '' });
+    load();
+    onChanged?.();
+  };
+
+  const startEditLine = (li) => {
+    setEditingLineId(li.id);
+    setEditLineForm({ description: li.description || li.products?.name || '', quantity: li.quantity, unit_price: li.unit_price });
+  };
+
+  const saveEditLine = async (itemId) => {
+    await api.patch(`/api/invoices/${invoiceId}/line-items/${itemId}`, {
+      description: editLineForm.description,
+      quantity: Number(editLineForm.quantity) || 1,
+      unit_price: Number(editLineForm.unit_price) || 0,
+    });
+    setEditingLineId(null);
+    load();
+    onChanged?.();
+  };
+
+  const removeLine = async (itemId) => {
+    await api.delete(`/api/invoices/${invoiceId}/line-items/${itemId}`);
+    load();
+    onChanged?.();
+  };
+
   if (!invoice) return null;
 
   const pending = Number(invoice.total) - Number(invoice.paid_amount);
+  const smallInput = 'px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -337,11 +384,26 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
             <h2 className="font-headline text-lg font-semibold">{invoice.invoice_number || `Factura #${invoice.id.slice(0, 8)}`}</h2>
             <div className="text-xs text-brand-muted mt-0.5">{invoice.companies?.name || contactName(invoice.contacts) || '—'} {invoice.deals?.title && `· ${invoice.deals.title}`}</div>
           </div>
-          <button onClick={onClose} className="text-brand-muted hover:text-brand-white"><X size={20} /></button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setEditing(!editing)} className="text-xs text-brand-ice hover:underline">{editing ? 'Listo' : 'Editar'}</button>
+            <button onClick={onClose} className="text-brand-muted hover:text-brand-white"><X size={20} /></button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+
+          {editing && (
+            <div className="flex items-center gap-2 bg-brand-bg border border-brand-border rounded-lg p-3">
+              <label className="text-xs text-brand-muted">Moneda:</label>
+              <select value={currencyEdit} onChange={(e) => setCurrencyEdit(e.target.value)} className={`${smallInput} font-tech`}>
+                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {currencyEdit !== invoice.currency && (
+                <button onClick={saveCurrency} className="text-xs text-brand-ice hover:underline ml-auto">Guardar moneda</button>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="bg-brand-bg rounded-lg p-3">
@@ -359,15 +421,42 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
           </div>
 
           <div>
-            <div className="text-xs text-brand-muted uppercase mb-2">Líneas</div>
+            <div className="text-xs text-brand-muted uppercase mb-2">Líneas (tipo de servicio)</div>
             <div className="space-y-1">
               {(invoice.line_items || []).map((li) => (
-                <div key={li.id} className="flex justify-between text-sm bg-brand-bg rounded-lg px-3 py-2">
-                  <span>{li.products?.name || li.description} <span className="text-brand-muted text-xs">x{li.quantity}</span></span>
-                  <span className="text-brand-ice font-tech">{invoice.currency} {(li.quantity * li.unit_price).toLocaleString()}</span>
-                </div>
+                editingLineId === li.id ? (
+                  <form key={li.id} onSubmit={(e) => { e.preventDefault(); saveEditLine(li.id); }} className="flex flex-wrap gap-1.5 bg-brand-bg rounded-lg px-3 py-2">
+                    <input autoFocus placeholder="Tipo de servicio" value={editLineForm.description} onChange={(e) => setEditLineForm({ ...editLineForm, description: e.target.value })} className={`${smallInput} flex-1 min-w-[100px]`} />
+                    <input type="number" placeholder="Cant." value={editLineForm.quantity} onChange={(e) => setEditLineForm({ ...editLineForm, quantity: e.target.value })} className={`${smallInput} w-14`} />
+                    <input type="number" placeholder="Precio" value={editLineForm.unit_price} onChange={(e) => setEditLineForm({ ...editLineForm, unit_price: e.target.value })} className={`${smallInput} w-20`} />
+                    <button className="px-2 py-1 bg-gradient-to-r from-brand-violet to-brand-magenta rounded text-xs font-medium">Guardar</button>
+                    <button type="button" onClick={() => setEditingLineId(null)} className="text-xs text-brand-muted hover:underline">Cancelar</button>
+                  </form>
+                ) : (
+                  <div key={li.id} className="flex justify-between items-center text-sm bg-brand-bg rounded-lg px-3 py-2">
+                    <span>{li.products?.name || li.description} <span className="text-brand-muted text-xs">x{li.quantity}</span></span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-brand-ice font-tech">{invoice.currency} {(li.quantity * li.unit_price).toLocaleString()}</span>
+                      {editing && (
+                        <>
+                          <button onClick={() => startEditLine(li)} className="text-brand-muted hover:text-brand-ice text-xs">editar</button>
+                          <button onClick={() => removeLine(li.id)} className="text-brand-muted hover:text-red-400 text-xs">×</button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
               ))}
+              {(invoice.line_items || []).length === 0 && <div className="text-brand-muted text-xs">Sin líneas todavía.</div>}
             </div>
+            {editing && (
+              <form onSubmit={addLine} className="flex flex-wrap gap-1.5 mt-2 bg-brand-bg border border-dashed border-brand-border rounded-lg p-2">
+                <input placeholder="Tipo de servicio (ej. Social WiFi, Bit Music...)" value={newLine.description} onChange={(e) => setNewLine({ ...newLine, description: e.target.value })} className={`${smallInput} flex-1 min-w-[140px]`} />
+                <input type="number" placeholder="Cant." value={newLine.quantity} onChange={(e) => setNewLine({ ...newLine, quantity: e.target.value })} className={`${smallInput} w-14`} />
+                <input type="number" placeholder="Precio" value={newLine.unit_price} onChange={(e) => setNewLine({ ...newLine, unit_price: e.target.value })} className={`${smallInput} w-20`} />
+                <button className="px-2 py-1 bg-gradient-to-r from-brand-violet to-brand-magenta rounded text-xs font-medium">+ Añadir</button>
+              </form>
+            )}
           </div>
 
           <div>

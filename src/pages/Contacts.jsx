@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import { csvToContacts } from '../lib/csv';
-import { Upload, Plus, Search, Mail } from 'lucide-react';
+import { Upload, Plus, Search, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
 import ContactDetailPanel from '../components/ContactDetailPanel';
 
 const STATUS_COLORS = {
@@ -21,17 +21,24 @@ export default function Contacts() {
   const [importing, setImporting] = useState(false);
   const [gmailConnected, setGmailConnected] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const PAGE_SIZE = 50;
   const fileInputRef = useRef(null);
 
   const load = () =>
-    api.get(`/api/contacts${search ? `?search=${encodeURIComponent(search)}` : ''}`)
-      .then((r) => setContacts(r.data))
+    api.get(`/api/contacts?page=${page}&limit=${PAGE_SIZE}${search ? `&search=${encodeURIComponent(search)}` : ''}`)
+      .then((r) => { setContacts(r.data); setTotal(r.count || 0); })
       .catch(console.error);
 
   useEffect(() => {
     const t = setTimeout(load, 300);
     return () => clearTimeout(t);
-  }, [search]);
+  }, [search, page]);
+
+  useEffect(() => { setPage(1); }, [search]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   useEffect(() => {
     api.get('/api/gmail/status').then((s) => setGmailConnected(s.connected)).catch(() => {});
@@ -220,6 +227,31 @@ export default function Contacts() {
           </tbody>
         </table>
       </div>
+
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-between mt-4 text-sm">
+          <span className="text-brand-muted">
+            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} de {total.toLocaleString()} contactos
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-brand-panel border border-brand-border disabled:opacity-30 hover:border-brand-violet transition"
+            >
+              <ChevronLeft size={15} />
+            </button>
+            <span className="text-brand-muted font-tech text-xs px-2">Página {page} de {totalPages}</span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-brand-panel border border-brand-border disabled:opacity-30 hover:border-brand-violet transition"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <ContactDetailPanel contactId={selectedContactId} onClose={() => setSelectedContactId(null)} />
     </div>
