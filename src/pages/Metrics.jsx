@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Percent, TrendingUp, Filter, Gauge, Package2, ListChecks, FolderKanban, Activity, Users } from 'lucide-react';
+import { Percent, TrendingUp, Filter, Gauge, Package2, ListChecks, FolderKanban, Activity, Users, Clock, PieChart, DollarSign } from 'lucide-react';
 
 function Bar({ label, value, max, suffix = '' }) {
   const pct = max ? Math.round((value / max) * 100) : 0;
@@ -43,12 +43,14 @@ export default function Metrics() {
   const [velocity, setVelocity] = useState(null);
   const [feed, setFeed] = useState([]);
   const [meetings, setMeetings] = useState(null);
+  const [dashboard, setDashboard] = useState(null);
 
   useEffect(() => {
     api.get('/api/metrics').then(setMetrics).catch(console.error);
     api.get('/api/forecast?months=3').then(setForecast).catch(console.error);
     api.get('/api/insights/feed?limit=30').then(setFeed).catch(console.error);
     api.get('/api/metrics/meetings?weeks=8').then(setMeetings).catch(console.error);
+    api.get('/api/insights/dashboard').then(setDashboard).catch(console.error);
     api.get('/api/pipelines').then((list) => {
       setPipelines(list);
       if (list.length) setPipelineId(list[0].id);
@@ -79,6 +81,149 @@ export default function Metrics() {
           {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </div>
+
+      {dashboard && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          {/* Insights AI Report — valor de deals creados por mes, apilado por pipeline */}
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 lg:col-span-2">
+            <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">
+              <TrendingUp size={15} className="text-brand-muted" /> Valor de tratos creados por mes
+            </div>
+            {(() => {
+              const pipelineNames = dashboard.pipelines.map((p) => p.name);
+              const COLORS = ['#8500FF', '#E000FF', '#D9F6FF', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6'];
+              const colorByPipeline = Object.fromEntries(pipelineNames.map((n, i) => [n, COLORS[i % COLORS.length]]));
+              const max = Math.max(...dashboard.deals_by_month.map((m) => m.total), 1);
+              return (
+                <>
+                  <div className="flex items-end gap-2 h-48">
+                    {dashboard.deals_by_month.map((m) => (
+                      <div key={m.month} className="flex-1 flex flex-col items-center justify-end h-full group relative">
+                        {m.total > 0 && (
+                          <div className="text-[10px] text-brand-muted font-tech mb-1">${(m.total / 1000).toFixed(1)}K</div>
+                        )}
+                        <div className="w-full flex flex-col-reverse rounded-t-md overflow-hidden" style={{ height: `${Math.max((m.total / max) * 100, m.total > 0 ? 3 : 0)}%` }}>
+                          {Object.entries(m.by_pipeline).map(([pName, val]) => (
+                            <div
+                              key={pName}
+                              title={`${pName}: $${val.toLocaleString()}`}
+                              style={{ height: `${(val / m.total) * 100}%`, backgroundColor: colorByPipeline[pName] }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    {dashboard.deals_by_month.map((m) => (
+                      <div key={m.month} className="flex-1 text-center text-[10px] text-brand-muted font-tech">{m.label}</div>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-4">
+                    {pipelineNames.map((n) => (
+                      <div key={n} className="flex items-center gap-1.5 text-xs text-brand-muted">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colorByPipeline[n] }} />
+                        {n}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Deal duration */}
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 flex flex-col">
+            <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">
+              <Clock size={15} className="text-brand-muted" /> Duración de los tratos
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center text-center">
+              <div className="text-3xl font-headline font-semibold">{dashboard.deal_duration_avg_days} días</div>
+              <div className="text-xs text-brand-muted mt-2">Duración promedio (días)</div>
+            </div>
+          </div>
+
+          {/* Deals lost by reasons */}
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 lg:col-span-1">
+            <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">
+              <PieChart size={15} className="text-brand-muted" /> Tratos perdidos por motivo
+            </div>
+            {dashboard.lost_total === 0 ? (
+              <div className="text-brand-muted text-sm">Sin tratos perdidos todavía.</div>
+            ) : (() => {
+              const COLORS = ['#f59e0b', '#ef4444', '#8500FF', '#3b82f6', '#22c55e', '#ec4899'];
+              let cumulative = 0;
+              const gradientParts = dashboard.deals_lost_by_reason.map((r, i) => {
+                const start = cumulative;
+                cumulative += r.pct;
+                return `${COLORS[i % COLORS.length]} ${start}% ${cumulative}%`;
+              });
+              return (
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-28 h-28 rounded-full flex-shrink-0"
+                    style={{ background: `conic-gradient(${gradientParts.join(', ')})` }}
+                  />
+                  <div className="space-y-1.5 min-w-0">
+                    {dashboard.deals_lost_by_reason.map((r, i) => (
+                      <div key={r.reason} className="flex items-center gap-1.5 text-xs">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                        <span className="text-brand-muted truncate">{r.reason}</span>
+                        <span className="text-brand-white font-tech flex-shrink-0">{r.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+            <div className="text-xs text-brand-muted font-tech mt-3">{dashboard.lost_total} tratos perdidos en total</div>
+          </div>
+
+          {/* Average value of won deals */}
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 flex flex-col">
+            <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">
+              <DollarSign size={15} className="text-brand-muted" /> Valor promedio de tratos ganados
+            </div>
+            {dashboard.won_avg_value.pct_change !== null && (
+              <div className={`text-sm font-tech mb-1 ${dashboard.won_avg_value.pct_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {dashboard.won_avg_value.pct_change >= 0 ? '▲' : '▼'} {Math.abs(dashboard.won_avg_value.pct_change)}%
+              </div>
+            )}
+            <div className="text-3xl font-headline font-semibold">${dashboard.won_avg_value.current.toLocaleString()}</div>
+            <div className="text-xs text-brand-muted mt-2">{dashboard.won_avg_value.count} tratos ganados este año</div>
+          </div>
+
+          {/* Deals won over time */}
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 lg:col-span-2">
+            <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">
+              <TrendingUp size={15} className="text-brand-muted" /> Tratos ganados a lo largo del tiempo
+            </div>
+            {(() => {
+              const max = Math.max(...dashboard.deals_won_by_month.map((m) => m.value), 1);
+              return (
+                <>
+                  <div className="flex items-end gap-2 h-40">
+                    {dashboard.deals_won_by_month.map((m) => (
+                      <div key={m.month} className="flex-1 flex flex-col items-center justify-end h-full">
+                        {m.value > 0 && <div className="text-[10px] text-brand-muted font-tech mb-1">${(m.value / 1000).toFixed(1)}K</div>}
+                        <div
+                          className="w-full bg-gradient-to-t from-brand-violet to-brand-magenta rounded-t-md"
+                          style={{ height: `${Math.max((m.value / max) * 100, m.value > 0 ? 3 : 0)}%` }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    {dashboard.deals_won_by_month.map((m) => (
+                      <div key={m.month} className="flex-1 text-center text-[10px] text-brand-muted font-tech">{m.label}</div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
