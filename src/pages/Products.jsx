@@ -1,6 +1,22 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Package, Plus, Wrench, Pencil, Trash2 } from 'lucide-react';
+import { Package, Plus, Wrench, Pencil, Trash2, Wifi, Music2, Monitor, Mail, MessageCircle, Bell, Heart, ShoppingCart, Radio, Users, Receipt } from 'lucide-react';
+
+// Ícono específico según palabras clave del nombre del producto; si no matchea nada, cae a Producto/Servicio genérico.
+function productIcon(name, type) {
+  const n = (name || '').toLowerCase();
+  if (n.includes('wifi')) return Wifi;
+  if (n.includes('music') || n.includes('radio')) return Music2;
+  if (n.includes('signage') || n.includes('cartel') || n.includes('pantalla')) return Monitor;
+  if (n.includes('email') || n.includes('mail') || n.includes('getresponse')) return Mail;
+  if (n.includes('whatsapp')) return MessageCircle;
+  if (n.includes('push') || n.includes('notifica')) return Bell;
+  if (n.includes('loyalty') || n.includes('fideliza')) return Heart;
+  if (n.includes('ecommerce')) return ShoppingCart;
+  if (n.includes('crm')) return Users;
+  if (n.includes('factura') || n.includes('comision') || n.includes('setup')) return Receipt;
+  return type === 'servicio' ? Wrench : Package;
+}
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
@@ -131,7 +147,7 @@ export default function Products() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-lg bg-brand-violet/15 flex items-center justify-center flex-shrink-0">
-                          {p.type === 'servicio' ? <Wrench size={13} className="text-brand-ice" /> : <Package size={13} className="text-brand-ice" />}
+                          {(() => { const Icon = productIcon(p.name, p.type); return <Icon size={13} className="text-brand-ice" />; })()}
                         </div>
                         {p.name}
                       </div>
