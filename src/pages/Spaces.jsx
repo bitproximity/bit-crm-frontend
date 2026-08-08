@@ -147,12 +147,6 @@ export default function Spaces() {
                       <FolderKanban size={14} className="text-brand-muted" />
                       <span className="text-sm">{p.name}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-20 h-1.5 bg-brand-bg rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-brand-violet to-brand-magenta" style={{ width: `${p.progress_pct}%` }} />
-                      </div>
-                      <span className="text-xs text-brand-muted font-tech w-8 text-right">{p.progress_pct}%</span>
-                    </div>
                   </div>
                 ))}
                 {(projectsBySpace[s.id] || []).length === 0 && (

@@ -42,15 +42,8 @@ export default function Projects() {
               </span>
             </div>
 
-            <div className="w-full h-1.5 bg-brand-bg rounded-full overflow-hidden mb-1.5">
-              <div
-                className="h-full bg-gradient-to-r from-brand-violet to-brand-magenta rounded-full transition-all"
-                style={{ width: `${p.progress_pct}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-brand-muted font-tech">
-              <span>{p.progress_pct}% completado</span>
-              <span>{p.total_tasks} tareas</span>
+            <div className="text-xs text-brand-muted font-tech text-right">
+              {p.total_tasks} tareas
             </div>
 
             {p.due_date && (
