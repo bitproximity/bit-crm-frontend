@@ -95,6 +95,15 @@ export default function DealDetail() {
   const [taskForm, setTaskForm] = useState({ title: '', due_date: '' });
   const [showTaskForm, setShowTaskForm] = useState(false);
 
+  const [companyEditing, setCompanyEditing] = useState(false);
+  const [companyQuery, setCompanyQuery] = useState('');
+  const [companyResults, setCompanyResults] = useState([]);
+  const [selectedCompanyPick, setSelectedCompanyPick] = useState(null);
+  const [contactEditing, setContactEditing] = useState(false);
+  const [contactQuery, setContactQuery] = useState('');
+  const [contactResults, setContactResults] = useState([]);
+  const [selectedContactPick, setSelectedContactPick] = useState(null);
+
   const load = async () => {
     setLoading(true);
     const [dealData, items, acts, values, defs, prods, pls, tags] = await Promise.all([
@@ -265,6 +274,61 @@ export default function DealDetail() {
   const saveExpectedDate = async (val) => {
     await api.patch(`/api/deals/${id}`, { expected_close_date: val || null });
     load();
+  };
+
+  useEffect(() => {
+    if (!companyEditing || selectedCompanyPick || !companyQuery.trim()) { setCompanyResults([]); return; }
+    const t = setTimeout(() => {
+      api.get(`/api/companies?search=${encodeURIComponent(companyQuery.trim())}&limit=5`)
+        .then((res) => setCompanyResults(res.data || []))
+        .catch(() => setCompanyResults([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [companyQuery, companyEditing, selectedCompanyPick]);
+
+  useEffect(() => {
+    if (!contactEditing || selectedContactPick || !contactQuery.trim()) { setContactResults([]); return; }
+    const t = setTimeout(() => {
+      api.get(`/api/contacts?search=${encodeURIComponent(contactQuery.trim())}&limit=5`)
+        .then((res) => setContactResults(res.data || []))
+        .catch(() => setContactResults([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [contactQuery, contactEditing, selectedContactPick]);
+
+  const saveCompanyEdit = async (picked) => {
+    const chosen = picked || selectedCompanyPick;
+    try {
+      let companyId = chosen?.id || null;
+      if (!companyId && companyQuery.trim()) {
+        const created = await api.post('/api/companies', { name: companyQuery.trim() });
+        companyId = created.id;
+      }
+      await api.patch(`/api/deals/${id}`, { company_id: companyId });
+      setCompanyEditing(false);
+      setSelectedCompanyPick(null);
+      load();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const saveContactEdit = async (picked) => {
+    const chosen = picked || selectedContactPick;
+    try {
+      let contactId = chosen?.id || null;
+      if (!contactId && contactQuery.trim()) {
+        const parts = contactQuery.trim().split(/\s+/);
+        const created = await api.post('/api/contacts', { first_name: parts[0], last_name: parts.slice(1).join(' ') || null });
+        contactId = created.id;
+      }
+      await api.patch(`/api/deals/${id}`, { contact_id: contactId });
+      setContactEditing(false);
+      setSelectedContactPick(null);
+      load();
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   const toggleTag = async (tag) => {
@@ -523,18 +587,78 @@ export default function DealDetail() {
                 </button>
               )}
 
-              <div className="flex items-center gap-2 text-brand-muted">
-                <Building2 size={14} className="flex-shrink-0" />
-                {deal.companies ? (
-                  <Link to={`/companies/${deal.company_id}`} className="text-brand-ice hover:underline">{deal.companies.name}</Link>
-                ) : (
-                  <span className="text-brand-white">—</span>
+              <div className="relative">
+                <div className="flex items-center gap-2 text-brand-muted">
+                  <Building2 size={14} className="flex-shrink-0" />
+                  {companyEditing ? (
+                    <input
+                      autoFocus value={companyQuery}
+                      onChange={(e) => { setCompanyQuery(e.target.value); setSelectedCompanyPick(null); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') saveCompanyEdit(); if (e.key === 'Escape') setCompanyEditing(false); }}
+                      placeholder="Buscar o crear empresa..."
+                      className="flex-1 bg-transparent border-b border-brand-border focus:outline-none focus:border-brand-violet text-sm text-brand-white"
+                    />
+                  ) : deal.companies ? (
+                    <>
+                      <Link to={`/companies/${deal.company_id}`} className="text-brand-ice hover:underline">{deal.companies.name}</Link>
+                      <button onClick={() => { setCompanyEditing(true); setCompanyQuery(deal.companies.name); }} className="text-brand-muted hover:text-brand-ice text-xs">editar</button>
+                    </>
+                  ) : (
+                    <button onClick={() => { setCompanyEditing(true); setCompanyQuery(''); }} className="text-xs text-brand-ice hover:underline">+ Añadir organización</button>
+                  )}
+                </div>
+                {companyEditing && companyResults.length > 0 && (
+                  <div className="absolute z-10 mt-1 left-6 right-0 bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden">
+                    {companyResults.map((c) => (
+                      <button key={c.id} onClick={() => { setSelectedCompanyPick(c); setCompanyQuery(c.name); setCompanyResults([]); saveCompanyEdit(c); }} className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition">
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {companyEditing && (
+                  <div className="flex gap-2 mt-1 ml-6">
+                    <button onClick={() => saveCompanyEdit()} className="text-xs text-brand-ice hover:underline">Guardar</button>
+                    <button onClick={() => setCompanyEditing(false)} className="text-xs text-brand-muted hover:underline">Cancelar</button>
+                  </div>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 text-brand-muted">
-                <User size={14} className="flex-shrink-0" />
-                <span className="text-brand-white">{contactName || '—'}</span>
+              <div className="relative">
+                <div className="flex items-center gap-2 text-brand-muted">
+                  <User size={14} className="flex-shrink-0" />
+                  {contactEditing ? (
+                    <input
+                      autoFocus value={contactQuery}
+                      onChange={(e) => { setContactQuery(e.target.value); setSelectedContactPick(null); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') saveContactEdit(); if (e.key === 'Escape') setContactEditing(false); }}
+                      placeholder="Buscar o crear contacto..."
+                      className="flex-1 bg-transparent border-b border-brand-border focus:outline-none focus:border-brand-violet text-sm text-brand-white"
+                    />
+                  ) : contactName ? (
+                    <>
+                      <span className="text-brand-white">{contactName}</span>
+                      <button onClick={() => { setContactEditing(true); setContactQuery(contactName); }} className="text-brand-muted hover:text-brand-ice text-xs">editar</button>
+                    </>
+                  ) : (
+                    <button onClick={() => { setContactEditing(true); setContactQuery(''); }} className="text-xs text-brand-ice hover:underline">+ Añadir contacto</button>
+                  )}
+                </div>
+                {contactEditing && contactResults.length > 0 && (
+                  <div className="absolute z-10 mt-1 left-6 right-0 bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden">
+                    {contactResults.map((c) => (
+                      <button key={c.id} onClick={() => { setSelectedContactPick(c); setContactQuery(`${c.first_name} ${c.last_name || ''}`.trim()); setContactResults([]); saveContactEdit(c); }} className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition">
+                        {c.first_name} {c.last_name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {contactEditing && (
+                  <div className="flex gap-2 mt-1 ml-6">
+                    <button onClick={() => saveContactEdit()} className="text-xs text-brand-ice hover:underline">Guardar</button>
+                    <button onClick={() => setContactEditing(false)} className="text-xs text-brand-muted hover:underline">Cancelar</button>
+                  </div>
+                )}
               </div>
 
               <div className="relative">
