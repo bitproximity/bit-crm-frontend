@@ -32,11 +32,15 @@ export function parseCsv(text) {
 
 // Mapea encabezados comunes en español/inglés a las claves que espera el backend.
 const HEADER_MAP = {
-  nombre: 'first_name', first_name: 'first_name', name: 'first_name',
-  apellido: 'last_name', last_name: 'last_name',
+  nombre: 'first_name', first_name: 'first_name', name: 'first_name', 'first name': 'first_name',
+  apellido: 'last_name', apellidos: 'last_name', last_name: 'last_name', 'last name': 'last_name',
   email: 'email', correo: 'email', 'e-mail': 'email',
+  'e-mail 1 - value': 'email', 'e-mail 2 - value': 'email', 'e-mail 3 - value': 'email',
   telefono: 'phone', 'teléfono': 'phone', phone: 'phone',
+  'phone 1 - value': 'phone', 'phone 2 - value': 'phone', 'phone 3 - value': 'phone',
   empresa: 'company_name', company: 'company_name', company_name: 'company_name',
+  organización: 'company_name', organizacion: 'company_name', organization: 'company_name',
+  'organization name': 'company_name',
   origen: 'source', source: 'source',
 };
 
@@ -49,7 +53,7 @@ export function csvToContacts(text) {
   return rows.slice(1).map((row) => {
     const obj = {};
     headers.forEach((key, i) => {
-      if (key && row[i] !== undefined && row[i] !== '') obj[key] = row[i].trim();
+      if (key && !obj[key] && row[i] !== undefined && row[i].trim() !== '') obj[key] = row[i].trim();
     });
     return obj;
   }).filter((c) => c.first_name);
