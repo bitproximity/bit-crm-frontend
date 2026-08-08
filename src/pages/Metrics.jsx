@@ -52,7 +52,6 @@ export default function Metrics() {
     api.get('/api/forecast?months=3').then(setForecast).catch(onErr('Forecast'));
     api.get('/api/insights/feed?limit=30').then(setFeed).catch(onErr('Feed'));
     api.get('/api/metrics/meetings?weeks=8').then(setMeetings).catch(onErr('Reuniones'));
-    api.get('/api/insights/dashboard').then(setDashboard).catch(onErr('Dashboard'));
     api.get('/api/pipelines').then((list) => {
       setPipelines(list);
       if (list.length) setPipelineId(list[0].id);
@@ -60,9 +59,15 @@ export default function Metrics() {
   }, []);
 
   useEffect(() => {
-    if (!pipelineId) return;
-    api.get(`/api/insights/funnel?pipeline_id=${pipelineId}`).then(setFunnel).catch(console.error);
-    api.get(`/api/insights/velocity?pipeline_id=${pipelineId}`).then(setVelocity).catch(console.error);
+    const qs = pipelineId ? `?pipeline_id=${pipelineId}` : '';
+    api.get(`/api/insights/dashboard${qs}`).then(setDashboard).catch(console.error);
+    if (pipelineId) {
+      api.get(`/api/insights/funnel?pipeline_id=${pipelineId}`).then(setFunnel).catch(console.error);
+      api.get(`/api/insights/velocity?pipeline_id=${pipelineId}`).then(setVelocity).catch(console.error);
+    } else {
+      setFunnel(null);
+      setVelocity(null);
+    }
   }, [pipelineId]);
 
   if (loadError) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{loadError}</div>;
@@ -78,9 +83,10 @@ export default function Metrics() {
         <h1 className="font-headline text-xl font-semibold">Métricas</h1>
         <select
           value={pipelineId || ''}
-          onChange={(e) => setPipelineId(e.target.value)}
+          onChange={(e) => setPipelineId(e.target.value || null)}
           className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-sm font-tech"
         >
+          <option value="">Todos los pipelines</option>
           {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </div>
