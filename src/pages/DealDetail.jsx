@@ -156,6 +156,26 @@ export default function DealDetail() {
     }
   }, [tab, calcomStatus, deal, id]);
 
+  useEffect(() => {
+    if (!companyEditing || selectedCompanyPick || !companyQuery.trim()) { setCompanyResults([]); return; }
+    const t = setTimeout(() => {
+      api.get(`/api/companies?search=${encodeURIComponent(companyQuery.trim())}&limit=5`)
+        .then((res) => setCompanyResults(res.data || []))
+        .catch(() => setCompanyResults([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [companyQuery, companyEditing, selectedCompanyPick]);
+
+  useEffect(() => {
+    if (!contactEditing || selectedContactPick || !contactQuery.trim()) { setContactResults([]); return; }
+    const t = setTimeout(() => {
+      api.get(`/api/contacts?search=${encodeURIComponent(contactQuery.trim())}&limit=5`)
+        .then((res) => setContactResults(res.data || []))
+        .catch(() => setContactResults([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [contactQuery, contactEditing, selectedContactPick]);
+
   if (loadError) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{loadError}</div>;
   if (loading || !deal) return <div className="text-brand-muted">Cargando...</div>;
 
@@ -275,26 +295,6 @@ export default function DealDetail() {
     await api.patch(`/api/deals/${id}`, { expected_close_date: val || null });
     load();
   };
-
-  useEffect(() => {
-    if (!companyEditing || selectedCompanyPick || !companyQuery.trim()) { setCompanyResults([]); return; }
-    const t = setTimeout(() => {
-      api.get(`/api/companies?search=${encodeURIComponent(companyQuery.trim())}&limit=5`)
-        .then((res) => setCompanyResults(res.data || []))
-        .catch(() => setCompanyResults([]));
-    }, 250);
-    return () => clearTimeout(t);
-  }, [companyQuery, companyEditing, selectedCompanyPick]);
-
-  useEffect(() => {
-    if (!contactEditing || selectedContactPick || !contactQuery.trim()) { setContactResults([]); return; }
-    const t = setTimeout(() => {
-      api.get(`/api/contacts?search=${encodeURIComponent(contactQuery.trim())}&limit=5`)
-        .then((res) => setContactResults(res.data || []))
-        .catch(() => setContactResults([]));
-    }, 250);
-    return () => clearTimeout(t);
-  }, [contactQuery, contactEditing, selectedContactPick]);
 
   const saveCompanyEdit = async (picked) => {
     const chosen = picked || selectedCompanyPick;
