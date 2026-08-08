@@ -1,171 +1,180 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { Flag, Trash2 } from 'lucide-react';
+import { STATUSES, PRIORITY_COLORS, Avatar, dueBadge, InlineAddRow, TaskDetailModal } from './Tasks';
 
-const STATUSES = [
-  { key: 'pendiente', label: 'Pendiente' },
-  { key: 'en_progreso', label: 'En progreso' },
-  { key: 'bloqueada', label: 'Bloqueada' },
-  { key: 'completada', label: 'Completada' },
-];
-
-function SubtaskRow({ task, onStatusChange }) {
-  return (
-    <div className="flex items-center gap-2 pl-6 py-1 text-xs text-brand-muted">
-      <input
-        type="checkbox"
-        checked={task.status === 'completada'}
-        onChange={(e) => onStatusChange(task.id, e.target.checked ? 'completada' : 'pendiente')}
-        className="accent-brand-violet w-3 h-3"
-      />
-      <span className={task.status === 'completada' ? 'line-through' : ''}>{task.title}</span>
-    </div>
-  );
-}
+const PROJECT_STATUSES = ['activo', 'pausado', 'completado', 'cancelado'];
 
 export default function ProjectDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [project, setProject] = useState(null);
+  const [team, setTeam] = useState([]);
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState({});
-  const [showForm, setShowForm] = useState(null); // status key donde se abre el form
-  const [form, setForm] = useState({ title: '', due_date: '', priority: 'media' });
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [nameEditing, setNameEditing] = useState(false);
+  const [nameValue, setNameValue] = useState('');
 
   const load = () => {
     setError('');
-    api.get(`/api/projects/${id}`).then(setProject).catch((err) => setError(err.message || 'No se pudo cargar el proyecto.'));
+    api.get(`/api/projects/${id}`).then((p) => { setProject(p); setNameValue(p.name); }).catch((err) => setError(err.message || 'No se pudo cargar el proyecto.'));
   };
 
   useEffect(() => {
     load();
+    api.get('/api/team').then(setTeam).catch(() => setTeam([]));
   }, [id]);
 
   const updateStatus = async (taskId, status) => {
+    setProject((prev) => ({ ...prev, tasks: prev.tasks.map((t) => (t.id === taskId ? { ...t, status } : t)) }));
     await api.patch(`/api/tasks/${taskId}`, { status });
     load();
   };
 
-  const createTask = async (e, statusKey) => {
-    e.preventDefault();
-    await api.post('/api/tasks', {
-      project_id: id,
-      title: form.title,
-      due_date: form.due_date || null,
-      priority: form.priority,
-      status: statusKey,
-    });
-    setForm({ title: '', due_date: '', priority: 'media' });
-    setShowForm(null);
+  const quickCreate = async (title, status) => {
+    await api.post('/api/tasks', { project_id: id, title, status: status || 'pendiente' });
     load();
   };
 
   const toggleExpand = (taskId) => setExpanded((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
 
+  const saveName = async () => {
+    if (nameValue.trim() && nameValue !== project.name) {
+      await api.patch(`/api/projects/${id}`, { name: nameValue.trim() });
+      load();
+    }
+    setNameEditing(false);
+  };
+
+  const changeProjectStatus = async (status) => {
+    await api.patch(`/api/projects/${id}`, { status });
+    load();
+  };
+
+  const deleteProject = async () => {
+    if (!window.confirm(`¿Eliminar el proyecto "${project.name}" y todas sus tareas? Esta acción no se puede deshacer.`)) return;
+    await api.delete(`/api/projects/${id}`);
+    navigate('/projects');
+  };
+
   if (error) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{error}</div>;
   if (!project) return <div className="text-brand-muted">Cargando...</div>;
 
-  const tasksByStatus = (statusKey) => project.tasks.filter((t) => t.status === statusKey);
+  const tasksByStatus = (statusKey) => (project.tasks || []).filter((t) => !t.parent_task_id && t.status === statusKey);
+  const subtasksByParent = {};
+  (project.tasks || []).filter((t) => t.parent_task_id).forEach((t) => {
+    subtasksByParent[t.parent_task_id] = subtasksByParent[t.parent_task_id] || [];
+    subtasksByParent[t.parent_task_id].push(t);
+  });
 
   return (
     <div>
       <Link to="/projects" className="text-xs text-brand-muted hover:text-brand-ice mb-3 inline-block">
         ← Proyectos
       </Link>
+
       <div className="flex items-center justify-between mb-2">
-        <h1 className="font-headline text-xl font-semibold">{project.name}</h1>
-        <span className="text-xs px-2 py-1 rounded-full bg-brand-violet/20 text-brand-ice font-tech uppercase">
-          {project.status}
-        </span>
+        {nameEditing ? (
+          <input
+            autoFocus value={nameValue}
+            onChange={(e) => setNameValue(e.target.value)}
+            onBlur={saveName}
+            onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setNameValue(project.name); setNameEditing(false); } }}
+            className="font-headline text-xl font-semibold bg-transparent border-b border-brand-violet focus:outline-none"
+          />
+        ) : (
+          <h1 onClick={() => setNameEditing(true)} className="font-headline text-xl font-semibold cursor-text hover:text-brand-ice transition">
+            {project.name}
+          </h1>
+        )}
+        <div className="flex items-center gap-2">
+          <select
+            value={project.status}
+            onChange={(e) => changeProjectStatus(e.target.value)}
+            className="text-xs px-2 py-1 rounded-full bg-brand-violet/20 text-brand-ice font-tech uppercase border-none focus:outline-none cursor-pointer"
+          >
+            {PROJECT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <button onClick={deleteProject} className="text-brand-muted hover:text-red-400" title="Eliminar proyecto">
+            <Trash2 size={15} />
+          </button>
+        </div>
       </div>
       <p className="text-brand-muted text-sm mb-6">{project.description || project.companies?.name}</p>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {STATUSES.map((status) => (
-          <div key={status.key} className="bg-brand-panel/60 border border-brand-border rounded-xl p-3">
+          <div
+            key={status.key}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => updateStatus(e.dataTransfer.getData('taskId'), status.key)}
+            className="bg-brand-panel/60 border border-brand-border rounded-xl p-3"
+          >
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-manrope font-medium">{status.label}</span>
-              <button
-                onClick={() => setShowForm(showForm === status.key ? null : status.key)}
-                className="text-brand-muted hover:text-brand-ice text-sm"
-              >
-                +
-              </button>
+              <span className="text-brand-muted font-tech text-xs bg-brand-bg px-2 py-0.5 rounded-full">
+                {tasksByStatus(status.key).length}
+              </span>
             </div>
-
-            {showForm === status.key && (
-              <form onSubmit={(e) => createTask(e, status.key)} className="mb-3 bg-brand-bg border border-brand-border rounded-lg p-2 space-y-2">
-                <input
-                  autoFocus
-                  placeholder="Título"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  required
-                  className="w-full px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs"
-                />
-                <div className="flex gap-1.5">
-                  <input
-                    type="date"
-                    value={form.due_date}
-                    onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-                    className="flex-1 px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs"
-                  />
-                  <select
-                    value={form.priority}
-                    onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                    className="px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs"
-                  >
-                    <option value="baja">Baja</option>
-                    <option value="media">Media</option>
-                    <option value="alta">Alta</option>
-                    <option value="urgente">Urgente</option>
-                  </select>
-                </div>
-                <button className="w-full py-1.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded text-xs font-medium">
-                  Agregar
-                </button>
-              </form>
-            )}
 
             <div className="space-y-2">
               {tasksByStatus(status.key).map((task) => (
-                <div key={task.id} className="bg-brand-bg border border-brand-border rounded-lg p-2.5">
-                  <div className="flex items-center gap-2">
-                    {task.subtasks?.length > 0 && (
-                      <button onClick={() => toggleExpand(task.id)} className="text-brand-muted text-xs w-3">
+                <div
+                  key={task.id}
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
+                  className="bg-brand-bg border border-brand-border rounded-lg p-2.5 cursor-pointer hover:border-brand-violet transition"
+                >
+                  <div className="flex items-center gap-2" onClick={() => setSelectedTaskId(task.id)}>
+                    {subtasksByParent[task.id]?.length > 0 && (
+                      <button onClick={(e) => { e.stopPropagation(); toggleExpand(task.id); }} className="text-brand-muted text-xs w-3">
                         {expanded[task.id] ? '▾' : '▸'}
                       </button>
                     )}
-                    <input
-                      type="checkbox"
-                      checked={task.status === 'completada'}
-                      onChange={(e) => updateStatus(task.id, e.target.checked ? 'completada' : 'pendiente')}
-                      className="accent-brand-violet"
-                    />
+                    {task.priority && task.priority !== 'media' && (
+                      <Flag size={11} className={`flex-shrink-0 ${PRIORITY_COLORS[task.priority]}`} fill="currentColor" />
+                    )}
                     <span className={`text-sm flex-1 ${task.status === 'completada' ? 'line-through text-brand-muted' : ''}`}>
                       {task.title}
                     </span>
                   </div>
-                  {task.due_date && (
-                    <div className="text-xs text-brand-muted font-tech mt-1 ml-5">
-                      {new Date(task.due_date).toLocaleDateString()}
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between mt-1.5 ml-1">
+                    {dueBadge(task.due_date, task.status)}
+                    <Avatar name={task.team_members?.full_name} />
+                  </div>
                   {expanded[task.id] && (
-                    <div className="mt-1 border-t border-brand-border/50 pt-1">
-                      {task.subtasks.map((sub) => (
-                        <SubtaskRow key={sub.id} task={sub} onStatusChange={updateStatus} />
+                    <div className="mt-1.5 border-t border-brand-border/50 pt-1.5 space-y-1">
+                      {subtasksByParent[task.id].map((sub) => (
+                        <div key={sub.id} onClick={() => setSelectedTaskId(sub.id)} className="flex items-center gap-2 pl-4 text-xs text-brand-muted hover:text-brand-white">
+                          <input type="checkbox" checked={sub.status === 'completada'} onChange={(e) => { e.stopPropagation(); updateStatus(sub.id, e.target.checked ? 'completada' : 'pendiente'); }} onClick={(e) => e.stopPropagation()} className="accent-brand-violet w-3 h-3" />
+                          <span className={sub.status === 'completada' ? 'line-through' : ''}>{sub.title}</span>
+                        </div>
                       ))}
                     </div>
                   )}
                 </div>
               ))}
-              {tasksByStatus(status.key).length === 0 && !showForm && (
+              {tasksByStatus(status.key).length === 0 && (
                 <div className="text-brand-muted text-xs text-center py-3">Sin tareas</div>
               )}
+            </div>
+            <div className="mt-1 px-1">
+              <InlineAddRow onSubmit={(title) => quickCreate(title, status.key)} />
             </div>
           </div>
         ))}
       </div>
+
+      {selectedTaskId && (
+        <TaskDetailModal
+          taskId={selectedTaskId}
+          team={team}
+          onClose={() => setSelectedTaskId(null)}
+          onChanged={load}
+        />
+      )}
     </div>
   );
 }

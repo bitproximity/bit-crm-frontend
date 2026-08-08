@@ -3,14 +3,14 @@ import { api } from '../lib/api';
 import DateTimePicker from '../components/DateTimePicker';
 import { LayoutGrid, List, Plus, Flag, Calendar, ChevronRight, ChevronDown, X, Send, Trash2 } from 'lucide-react';
 
-const STATUSES = [
+export const STATUSES = [
   { key: 'pendiente', label: 'Pendiente' },
   { key: 'en_progreso', label: 'En progreso' },
   { key: 'bloqueada', label: 'Bloqueada' },
   { key: 'completada', label: 'Completada' },
 ];
 
-const PRIORITY_COLORS = {
+export const PRIORITY_COLORS = {
   baja: 'text-brand-muted',
   media: 'text-brand-ice',
   alta: 'text-yellow-400',
@@ -22,7 +22,7 @@ function initials(name) {
   return name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 }
 
-function Avatar({ name, size = 'w-5 h-5 text-[9px]' }) {
+export function Avatar({ name, size = 'w-5 h-5 text-[9px]' }) {
   if (!name) return <div className={`${size} rounded-full border border-dashed border-brand-border flex-shrink-0`} />;
   return (
     <div className={`${size} rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center font-tech font-bold flex-shrink-0`} title={name}>
@@ -31,7 +31,7 @@ function Avatar({ name, size = 'w-5 h-5 text-[9px]' }) {
   );
 }
 
-function dueBadge(dueDate, status) {
+export function dueBadge(dueDate, status) {
   if (!dueDate || status === 'completada') return null;
   const due = new Date(dueDate);
   const now = new Date();
@@ -46,7 +46,7 @@ function dueBadge(dueDate, status) {
   );
 }
 
-function InlineAddRow({ onSubmit, placeholder = 'Nombre de la tarea' }) {
+export function InlineAddRow({ onSubmit, placeholder = 'Nombre de la tarea' }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
 
@@ -322,7 +322,7 @@ export default function Tasks() {
   );
 }
 
-function TaskDetailModal({ taskId, team, onClose, onChanged }) {
+export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
   const [task, setTask] = useState(null);
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
