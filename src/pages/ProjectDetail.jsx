@@ -26,11 +26,15 @@ function SubtaskRow({ task, onStatusChange }) {
 export default function ProjectDetail() {
   const { id } = useParams();
   const [project, setProject] = useState(null);
+  const [error, setError] = useState('');
   const [expanded, setExpanded] = useState({});
   const [showForm, setShowForm] = useState(null); // status key donde se abre el form
   const [form, setForm] = useState({ title: '', due_date: '', priority: 'media' });
 
-  const load = () => api.get(`/api/projects/${id}`).then(setProject).catch(console.error);
+  const load = () => {
+    setError('');
+    api.get(`/api/projects/${id}`).then(setProject).catch((err) => setError(err.message || 'No se pudo cargar el proyecto.'));
+  };
 
   useEffect(() => {
     load();
@@ -57,6 +61,7 @@ export default function ProjectDetail() {
 
   const toggleExpand = (taskId) => setExpanded((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
 
+  if (error) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{error}</div>;
   if (!project) return <div className="text-brand-muted">Cargando...</div>;
 
   const tasksByStatus = (statusKey) => project.tasks.filter((t) => t.status === statusKey);

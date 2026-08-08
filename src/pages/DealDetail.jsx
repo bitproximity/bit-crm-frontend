@@ -69,6 +69,7 @@ export default function DealDetail() {
   const [invoiceForm, setInvoiceForm] = useState({ invoice_number: '', currency: 'USD', due_date: '', description: '', amount: '' });
   const [savingInvoice, setSavingInvoice] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [optionsOpen, setOptionsOpen] = useState(false);
 
   const [tab, setTab] = useState('notas');
@@ -125,7 +126,7 @@ export default function DealDetail() {
     }
   };
 
-  useEffect(() => { load().catch(console.error); }, [id]);
+  useEffect(() => { load().catch((err) => { setLoadError(err.message || 'No se pudo cargar el trato.'); setLoading(false); }); }, [id]);
 
   useEffect(() => {
     if (tab === 'reuniones' && calcomStatus?.connected) {
@@ -145,6 +146,7 @@ export default function DealDetail() {
     }
   }, [tab, calcomStatus, deal, id]);
 
+  if (loadError) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{loadError}</div>;
   if (loading || !deal) return <div className="text-brand-muted">Cargando...</div>;
 
   const pipeline = pipelines.find((p) => p.id === deal.pipeline_id);

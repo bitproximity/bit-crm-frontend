@@ -17,6 +17,7 @@ export default function CompanyDetail() {
   const [form, setForm] = useState({ name: '', industry: '', country: '', company_type: 'otro' });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const load = () => api.get(`/api/companies/${id}`).then((data) => {
     setCompany(data);
@@ -27,7 +28,7 @@ export default function CompanyDetail() {
       company_type: data.company_type || 'otro',
     });
     setLoading(false);
-  }).catch(console.error);
+  }).catch((err) => { setError(err.message || 'No se pudo cargar la empresa.'); setLoading(false); });
 
   useEffect(() => { load(); }, [id]);
 
@@ -40,6 +41,7 @@ export default function CompanyDetail() {
     load();
   };
 
+  if (error) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{error}</div>;
   if (loading || !company) return <div className="text-brand-muted">Cargando...</div>;
 
   const inputClass = 'w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet';
