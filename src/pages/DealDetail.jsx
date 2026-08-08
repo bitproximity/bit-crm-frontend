@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { InvoiceDetailModal } from './Invoicing';
 import DateTimePicker from '../components/DateTimePicker';
 import {
-  ChevronLeft, MoreHorizontal, Tag, Calendar, Building2, User,
+  ChevronLeft, ChevronDown, MoreHorizontal, Tag, Calendar, Building2, User,
   Plus, X, Mail, Phone, Video, StickyNote, FileText as FileTextIcon, Paperclip,
 } from 'lucide-react';
 
@@ -450,8 +450,9 @@ export default function DealDetail() {
           <div>
             <h1 className="font-headline text-2xl font-semibold">{deal.title}</h1>
             <div className="relative inline-block mt-1">
-              <button onClick={openPipelinePopover} className="text-xs text-brand-muted hover:text-brand-ice font-tech transition">
+              <button onClick={openPipelinePopover} className="flex items-center gap-1 text-xs text-brand-muted hover:text-brand-ice font-tech transition border border-brand-border hover:border-brand-violet rounded-full px-2.5 py-1">
                 {pipeline?.name} {deal.pipeline_stages?.name && <>→ {deal.pipeline_stages.name}</>}
+                <ChevronDown size={12} className="flex-shrink-0" />
               </button>
               {pipelinePopoverOpen && (
                 <div className="absolute z-30 mt-2 w-72 bg-brand-panel border border-brand-border rounded-xl shadow-2xl p-4">
@@ -469,19 +470,23 @@ export default function DealDetail() {
                   </select>
 
                   <label className="block text-xs text-brand-muted mb-1.5">Etapa del embudo</label>
-                  <div className="flex rounded-lg overflow-hidden border border-brand-border mb-4">
+                  <div className="flex flex-wrap gap-1.5 mb-1">
                     {(pipelines.find((p) => p.id === pipelineSel)?.pipeline_stages || [])
                       .slice().sort((a, b) => a.position - b.position)
-                      .map((s, i) => (
+                      .map((s) => (
                         <button
                           key={s.id}
                           type="button"
                           onClick={() => setStageSel(s.id)}
-                          title={s.name}
-                          className={`flex-1 h-6 transition ${stageSel === s.id ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'bg-brand-bg'} ${i > 0 ? 'border-l border-brand-border' : ''}`}
-                        />
+                          className={`px-2.5 py-1 rounded-full text-xs transition ${stageSel === s.id ? 'bg-gradient-to-r from-brand-violet to-brand-magenta text-white' : 'bg-brand-bg text-brand-muted hover:text-brand-white border border-brand-border'}`}
+                        >
+                          {s.name}
+                        </button>
                       ))}
                   </div>
+                  <Link to="/settings" className="text-xs text-brand-ice hover:underline block mb-4">
+                    Editar embudos y etapas en Configuración
+                  </Link>
 
                   <div className="flex justify-end gap-2">
                     <button onClick={() => setPipelinePopoverOpen(false)} className="px-3 py-1.5 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">
