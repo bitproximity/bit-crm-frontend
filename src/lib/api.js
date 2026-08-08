@@ -6,13 +6,18 @@ async function request(path, options = {}) {
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData?.session?.access_token;
 
+  const mergedHeaders = {
+    'Content-Type': 'application/json',
+    Authorization: token ? `Bearer ${token}` : '',
+    ...(options.headers || {}),
+  };
+  Object.keys(mergedHeaders).forEach((key) => {
+    if (mergedHeaders[key] === undefined) delete mergedHeaders[key];
+  });
+
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: token ? `Bearer ${token}` : '',
-      ...(options.headers || {}),
-    },
+    headers: mergedHeaders,
   });
 
   if (!res.ok) {
@@ -29,4 +34,5 @@ export const api = {
   post: (path, body) => request(path, { method: 'POST', body: JSON.stringify(body) }),
   patch: (path, body) => request(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: (path, body) => request(path, { method: 'DELETE', ...(body ? { body: JSON.stringify(body) } : {}) }),
+  upload: (path, formData) => request(path, { method: 'POST', body: formData, headers: { 'Content-Type': undefined } }),
 };

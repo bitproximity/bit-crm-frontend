@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { InvoiceDetailModal } from './Invoicing';
 import {
   ChevronLeft, MoreHorizontal, Tag, Calendar, Building2, User,
-  Plus, X, Mail, Phone, Video, StickyNote, FileText,
+  Plus, X, Mail, Phone, Video, StickyNote, FileText as FileTextIcon, Paperclip,
 } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
@@ -14,7 +14,7 @@ const ACTIVITY_TYPES = [
   { key: 'reunion', label: 'Reunión', icon: Video },
   { key: 'email', label: 'Email', icon: Mail },
   { key: 'whatsapp', label: 'WhatsApp', icon: Phone },
-  { key: 'tarea', label: 'Tarea', icon: FileText },
+  { key: 'tarea', label: 'Tarea', icon: FileTextIcon },
 ];
 
 function initials(name) {
@@ -61,6 +61,9 @@ export default function DealDetail() {
   const [calcomStatus, setCalcomStatus] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [dealInvoices, setDealInvoices] = useState([]);
+  const [dealFiles, setDealFiles] = useState([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [dealDocs, setDealDocs] = useState([]);
   const [showCreateInvoice, setShowCreateInvoice] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
   const [invoiceForm, setInvoiceForm] = useState({ invoice_number: '', currency: 'USD', due_date: '', description: '', amount: '' });
@@ -133,6 +136,12 @@ export default function DealDetail() {
     }
     if (tab === 'factura') {
       api.get(`/api/invoices?deal_id=${id}`).then(setDealInvoices).catch(() => setDealInvoices([]));
+    }
+    if (tab === 'archivos') {
+      api.get(`/api/deal-files?deal_id=${id}`).then(setDealFiles).catch(() => setDealFiles([]));
+    }
+    if (tab === 'documentos') {
+      api.get(`/api/documents/tree?deal_id=${id}`).then(setDealDocs).catch(() => setDealDocs([]));
     }
   }, [tab, calcomStatus, deal, id]);
 
@@ -311,6 +320,35 @@ export default function DealDetail() {
   };
 
   const pendingTasks = (deal.tasks || []).filter((t) => t.status !== 'completada');
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('deal_id', id);
+      await api.upload('/api/deal-files', formData);
+      const files = await api.get(`/api/deal-files?deal_id=${id}`);
+      setDealFiles(files);
+    } catch (err) {
+      alert(err.message || 'No se pudo subir el archivo.');
+    }
+    setUploadingFile(false);
+    e.target.value = '';
+  };
+
+  const removeFile = async (fileId) => {
+    if (!window.confirm('¿Eliminar este archivo?')) return;
+    await api.delete(`/api/deal-files/${fileId}`);
+    setDealFiles((prev) => prev.filter((f) => f.id !== fileId));
+  };
+
+  const createDealDoc = async () => {
+    const created = await api.post('/api/documents', { title: `${deal.title} — nuevo documento`, content: '', deal_id: id });
+    navigate(`/documents?open=${created.id}`);
+  };
 
   // Línea de tiempo combinada: cambios de etapa + actividades
   const timeline = [
@@ -678,9 +716,16 @@ export default function DealDetail() {
 
           {tab === 'reuniones' && (
             <div className="mb-6">
+              <a
+                href={`https://cal.com/bitproximity/45min?name=${encodeURIComponent(contactName || '')}&email=${encodeURIComponent(deal.contacts?.email || '')}`}
+                target="_blank" rel="noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 mb-4 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium hover:opacity-90 transition"
+              >
+                Agendar reunión de 45 min
+              </a>
               {!calcomStatus?.connected ? (
                 <div className="text-sm text-brand-muted">
-                  No has conectado Cal.com. <Link to="/settings" className="text-brand-ice hover:underline">Conéctalo en Configuración</Link> para ver reuniones agendadas aquí.
+                  Conecta tu cuenta de Cal.com en <Link to="/settings" className="text-brand-ice hover:underline">Configuración</Link> para ver aquí las reuniones ya agendadas con este contacto.
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -692,7 +737,7 @@ export default function DealDetail() {
                       </div>
                     </div>
                   ))}
-                  {bookings.length === 0 && <div className="text-brand-muted text-sm">Sin reuniones agendadas con este contacto.</div>}
+                  {bookings.length === 0 && <div className="text-brand-muted text-sm">Sin reuniones agendadas con este contacto todavía.</div>}
                 </div>
               )}
             </div>
@@ -749,9 +794,47 @@ export default function DealDetail() {
             </div>
           )}
 
-          {(tab === 'archivos' || tab === 'documentos') && (
-            <div className="mb-6 text-sm text-brand-muted">
-              Próximamente.
+          {tab === 'archivos' && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-brand-muted">{dealFiles.length} archivo{dealFiles.length !== 1 ? 's' : ''}</span>
+                <label className="text-xs text-brand-ice hover:underline cursor-pointer">
+                  {uploadingFile ? 'Subiendo...' : '+ Subir archivo'}
+                  <input type="file" className="hidden" disabled={uploadingFile} onChange={handleFileUpload} />
+                </label>
+              </div>
+              <div className="space-y-2">
+                {dealFiles.map((f) => (
+                  <div key={f.id} className="flex items-center justify-between bg-brand-panel border border-brand-border rounded-lg p-3 text-sm">
+                    <a href={f.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-brand-ice hover:underline truncate">
+                      <Paperclip size={13} className="flex-shrink-0" /> {f.file_name}
+                    </a>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-xs text-brand-muted font-tech">{(f.file_size / 1024).toFixed(0)} KB</span>
+                      <button onClick={() => removeFile(f.id)} className="text-brand-muted hover:text-red-400 text-xs">×</button>
+                    </div>
+                  </div>
+                ))}
+                {dealFiles.length === 0 && <div className="text-brand-muted text-sm">Sin archivos todavía.</div>}
+              </div>
+            </div>
+          )}
+
+          {tab === 'documentos' && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-brand-muted">{dealDocs.length} documento{dealDocs.length !== 1 ? 's' : ''}</span>
+                <button onClick={createDealDoc} className="text-xs text-brand-ice hover:underline">+ Nuevo documento</button>
+              </div>
+              <div className="space-y-2">
+                {dealDocs.map((d) => (
+                  <Link key={d.id} to={`/documents?open=${d.id}`} className="flex items-center gap-2 bg-brand-panel border border-brand-border rounded-lg p-3 text-sm hover:border-brand-violet/40 transition">
+                    <FileTextIcon size={14} className="text-brand-muted flex-shrink-0" />
+                    {d.title || 'Sin título'}
+                  </Link>
+                ))}
+                {dealDocs.length === 0 && <div className="text-brand-muted text-sm">Sin documentos vinculados todavía.</div>}
+              </div>
             </div>
           )}
 

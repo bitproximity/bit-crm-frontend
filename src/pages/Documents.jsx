@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { FileText, Plus, ChevronRight, ChevronDown, Trash2 } from 'lucide-react';
 
@@ -72,6 +73,13 @@ export default function Documents() {
   const loadTree = () => api.get('/api/documents/tree').then(setTree).catch((err) => setError(err.message || 'No se pudo cargar el árbol de documentos.'));
 
   useEffect(() => { loadTree(); }, []);
+
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const openId = searchParams.get('open');
+    if (openId) openDoc(openId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const openDoc = async (id) => {
     setActiveId(id);
