@@ -113,11 +113,12 @@ export default function Tasks() {
   const [team, setTeam] = useState([]);
   const [view, setView] = useState('board');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: '', due_date: '' });
+  const [form, setForm] = useState({ title: '', due_date: '', assignee_id: '' });
   const [expanded, setExpanded] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [loadError, setLoadError] = useState('');
 
-  const load = () => api.get('/api/tasks').then(setTasks).catch(console.error);
+  const load = () => api.get('/api/tasks').then(setTasks).catch((err) => setLoadError(err.message || 'No se pudieron cargar las tareas.'));
 
   useEffect(() => {
     load();
@@ -131,8 +132,12 @@ export default function Tasks() {
 
   const createTask = async (e) => {
     e.preventDefault();
-    await api.post('/api/tasks', { title: form.title, due_date: form.due_date || null });
-    setForm({ title: '', due_date: '' });
+    await api.post('/api/tasks', {
+      title: form.title,
+      due_date: form.due_date ? new Date(form.due_date).toISOString() : null,
+      assignee_id: form.assignee_id || null,
+    });
+    setForm({ title: '', due_date: '', assignee_id: '' });
     setShowForm(false);
     load();
   };
@@ -158,6 +163,10 @@ export default function Tasks() {
       </div>
       <p className="text-brand-muted text-sm mb-6">{tasks.filter((t) => t.status !== 'completada').length} tareas pendientes</p>
 
+      {loadError && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{loadError}</div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div className="flex bg-brand-panel border border-brand-border rounded-xl p-1">
           <button
@@ -182,23 +191,42 @@ export default function Tasks() {
       </div>
 
       {showForm && (
-        <form onSubmit={createTask} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 flex gap-3">
+        <form onSubmit={createTask} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 space-y-3">
           <input
             placeholder="Título de la tarea"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             required
-            className="flex-1 px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
+            autoFocus
+            className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
           />
-          <input
-            type="date"
-            value={form.due_date}
-            onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
-          />
-          <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
-            Crear
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <div className="flex-1 min-w-[220px]">
+              <label className="block text-xs text-brand-muted mb-1">Fecha y hora límite</label>
+              <input
+                type="datetime-local"
+                value={form.due_date}
+                onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm font-tech focus:outline-none focus:border-brand-violet"
+              />
+            </div>
+            <div className="flex-1 min-w-[180px]">
+              <label className="block text-xs text-brand-muted mb-1">Responsable</label>
+              <select
+                value={form.assignee_id}
+                onChange={(e) => setForm({ ...form, assignee_id: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
+              >
+                <option value="">Sin asignar</option>
+                {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
+              Crear tarea
+            </button>
+          </div>
         </form>
       )}
 
@@ -366,9 +394,9 @@ function TaskDetailModal({ taskId, team, onClose, onChanged }) {
               {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
             </select>
             <input
-              type="date"
-              defaultValue={task.due_date ? task.due_date.slice(0, 10) : ''}
-              onBlur={(e) => update({ due_date: e.target.value || null })}
+              type="datetime-local"
+              defaultValue={task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : ''}
+              onBlur={(e) => update({ due_date: e.target.value ? new Date(e.target.value).toISOString() : null })}
               className={`${selectClass} font-tech`}
             />
           </div>

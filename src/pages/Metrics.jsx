@@ -44,17 +44,19 @@ export default function Metrics() {
   const [feed, setFeed] = useState([]);
   const [meetings, setMeetings] = useState(null);
   const [dashboard, setDashboard] = useState(null);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    api.get('/api/metrics').then(setMetrics).catch(console.error);
-    api.get('/api/forecast?months=3').then(setForecast).catch(console.error);
-    api.get('/api/insights/feed?limit=30').then(setFeed).catch(console.error);
-    api.get('/api/metrics/meetings?weeks=8').then(setMeetings).catch(console.error);
-    api.get('/api/insights/dashboard').then(setDashboard).catch(console.error);
+    const onErr = (label) => (err) => setLoadError((prev) => prev || `${label}: ${err.message}`);
+    api.get('/api/metrics').then(setMetrics).catch(onErr('Métricas'));
+    api.get('/api/forecast?months=3').then(setForecast).catch(onErr('Forecast'));
+    api.get('/api/insights/feed?limit=30').then(setFeed).catch(onErr('Feed'));
+    api.get('/api/metrics/meetings?weeks=8').then(setMeetings).catch(onErr('Reuniones'));
+    api.get('/api/insights/dashboard').then(setDashboard).catch(onErr('Dashboard'));
     api.get('/api/pipelines').then((list) => {
       setPipelines(list);
       if (list.length) setPipelineId(list[0].id);
-    }).catch(console.error);
+    }).catch(onErr('Pipelines'));
   }, []);
 
   useEffect(() => {
@@ -63,6 +65,7 @@ export default function Metrics() {
     api.get(`/api/insights/velocity?pipeline_id=${pipelineId}`).then(setVelocity).catch(console.error);
   }, [pipelineId]);
 
+  if (loadError) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{loadError}</div>;
   if (!metrics || !forecast) return <div className="text-brand-muted">Cargando...</div>;
 
   const maxStageValue = Math.max(...metrics.deals_by_stage.map((s) => s.value), 1);
