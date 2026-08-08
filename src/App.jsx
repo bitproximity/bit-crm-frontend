@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import ResetPassword from './pages/ResetPassword';
 import Layout from './components/Layout';
@@ -60,31 +61,33 @@ function PrivateRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route element={<PrivateRoutes />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/deals" element={<Deals />} />
-            <Route path="/deals/:id" element={<DealDetail />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/contacts" element={<Contacts />} />
-            <Route path="/companies" element={<Companies />} />
-            <Route path="/companies/:id" element={<CompanyDetail />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/projects/:id" element={<ProjectDetail />} />
-            <Route path="/spaces" element={<Spaces />} />
-            <Route path="/documents" element={<Documents />} />
-            <Route path="/invoicing" element={<Invoicing />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/metrics" element={<Metrics />} />
-            <Route path="/activities" element={<Activities />} />
-            <Route path="/settings" element={<Settings />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route element={<PrivateRoutes />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/deals" element={<Deals />} />
+              <Route path="/deals/:id" element={<DealDetail />} />
+              <Route path="/tasks" element={<Tasks />} />
+              <Route path="/contacts" element={<Contacts />} />
+              <Route path="/companies" element={<Companies />} />
+              <Route path="/companies/:id" element={<CompanyDetail />} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/projects/:id" element={<ProjectDetail />} />
+              <Route path="/spaces" element={<Spaces />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/invoicing" element={<Invoicing />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/metrics" element={<Metrics />} />
+              <Route path="/activities" element={<Activities />} />
+              <Route path="/settings" element={<Settings />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
