@@ -201,6 +201,7 @@ export default function Settings() {
         </div>
       </div>
 
+      <TeamAdmin />
       <CustomFieldsAdmin />
       <PipelinesAdmin />
       <McpKeysAdmin />
@@ -524,6 +525,123 @@ function PipelinesAdmin() {
     </div>
   );
 }
+function TeamAdmin() {
+  const [members, setMembers] = useState([]);
+  const [showInvite, setShowInvite] = useState(false);
+  const [form, setForm] = useState({ full_name: '', email: '', role: 'vendedor' });
+  const [error, setError] = useState('');
+  const [inviting, setInviting] = useState(false);
+
+  const load = () => api.get('/api/team').then(setMembers).catch((err) => setError(err.message));
+
+  useEffect(() => { load(); }, []);
+
+  const invite = async (e) => {
+    e.preventDefault();
+    setInviting(true);
+    setError('');
+    try {
+      await api.post('/api/team/invite', form);
+      setForm({ full_name: '', email: '', role: 'vendedor' });
+      setShowInvite(false);
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo invitar al usuario.');
+    }
+    setInviting(false);
+  };
+
+  const changeRole = async (id, role) => {
+    await api.patch(`/api/team/${id}`, { role });
+    load();
+  };
+
+  const deactivate = async (id, name) => {
+    if (!window.confirm(`¿Quitar el acceso de ${name}? Ya no va a poder iniciar sesión en el CRM.`)) return;
+    await api.delete(`/api/team/${id}`);
+    load();
+  };
+
+  const reactivate = async (id) => {
+    await api.patch(`/api/team/${id}`, { active: true });
+    load();
+  };
+
+  return (
+    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6">
+      <div className="flex items-center justify-between mb-1">
+        <div className="font-manrope font-medium">Equipo y permisos</div>
+        <button onClick={() => setShowInvite(!showInvite)} className="text-xs text-brand-ice hover:underline">
+          + Invitar persona
+        </button>
+      </div>
+      <p className="text-brand-muted text-xs mb-4">
+        Da acceso a tu equipo al CRM. Cada invitación envía un correo real para que la persona cree su contraseña.
+      </p>
+
+      {error && <div className="mb-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">{error}</div>}
+
+      {showInvite && (
+        <form onSubmit={invite} className="mb-4 bg-brand-bg border border-brand-border rounded-lg p-4 flex flex-wrap gap-2 items-end">
+          <div className="flex-1 min-w-[140px]">
+            <label className="block text-xs text-brand-muted mb-1">Nombre</label>
+            <input required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm" />
+          </div>
+          <div className="flex-1 min-w-[180px]">
+            <label className="block text-xs text-brand-muted mb-1">Correo</label>
+            <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs text-brand-muted mb-1">Rol</label>
+            <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm">
+              <option value="admin">Admin</option>
+              <option value="vendedor">Vendedor</option>
+              <option value="operaciones">Operaciones</option>
+            </select>
+          </div>
+          <button disabled={inviting} className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium disabled:opacity-50">
+            {inviting ? 'Enviando...' : 'Invitar'}
+          </button>
+        </form>
+      )}
+
+      <div className="space-y-1.5">
+        {members.map((m) => (
+          <div key={m.id} className={`flex items-center justify-between px-3 py-2 rounded-lg ${m.active ? 'bg-brand-bg' : 'bg-brand-bg/40'}`}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center text-[10px] font-tech font-bold flex-shrink-0">
+                {(m.full_name || '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <div className={`text-sm truncate ${!m.active ? 'text-brand-muted line-through' : ''}`}>{m.full_name}</div>
+                <div className="text-xs text-brand-muted truncate">{m.email}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <select
+                value={m.role || ''}
+                onChange={(e) => changeRole(m.id, e.target.value)}
+                disabled={!m.active}
+                className="px-2 py-1 rounded bg-brand-panel border border-brand-border text-xs disabled:opacity-50"
+              >
+                <option value="admin">Admin</option>
+                <option value="vendedor">Vendedor</option>
+                <option value="operaciones">Operaciones</option>
+              </select>
+              {m.active ? (
+                <button onClick={() => deactivate(m.id, m.full_name)} className="text-xs text-brand-muted hover:text-red-400">Quitar acceso</button>
+              ) : (
+                <button onClick={() => reactivate(m.id)} className="text-xs text-brand-ice hover:underline">Reactivar</button>
+              )}
+            </div>
+          </div>
+        ))}
+        {members.length === 0 && <div className="text-brand-muted text-xs">Sin miembros todavía.</div>}
+      </div>
+    </div>
+  );
+}
+
 function McpKeysAdmin() {
   const [keys, setKeys] = useState([]);
   const [newKey, setNewKey] = useState(null); // se muestra una sola vez tras crearla

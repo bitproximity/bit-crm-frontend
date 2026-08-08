@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import DateTimePicker from '../components/DateTimePicker';
 import { LayoutGrid, List, Plus, Flag, Calendar, ChevronRight, ChevronDown, X, Send, Trash2 } from 'lucide-react';
 
 const STATUSES = [
@@ -134,7 +135,7 @@ export default function Tasks() {
     e.preventDefault();
     await api.post('/api/tasks', {
       title: form.title,
-      due_date: form.due_date ? new Date(form.due_date).toISOString() : null,
+      due_date: form.due_date || null,
       assignee_id: form.assignee_id || null,
     });
     setForm({ title: '', due_date: '', assignee_id: '' });
@@ -203,12 +204,7 @@ export default function Tasks() {
           <div className="flex flex-wrap gap-3">
             <div className="flex-1 min-w-[220px]">
               <label className="block text-xs text-brand-muted mb-1">Fecha y hora límite</label>
-              <input
-                type="datetime-local"
-                value={form.due_date}
-                onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm font-tech focus:outline-none focus:border-brand-violet"
-              />
+              <DateTimePicker value={form.due_date} onChange={(v) => setForm({ ...form, due_date: v })} className="w-full" />
             </div>
             <div className="flex-1 min-w-[180px]">
               <label className="block text-xs text-brand-muted mb-1">Responsable</label>
@@ -393,11 +389,9 @@ function TaskDetailModal({ taskId, team, onClose, onChanged }) {
               <option value="">Sin asignar</option>
               {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
             </select>
-            <input
-              type="datetime-local"
-              defaultValue={task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : ''}
-              onBlur={(e) => update({ due_date: e.target.value ? new Date(e.target.value).toISOString() : null })}
-              className={`${selectClass} font-tech`}
+            <DateTimePicker
+              value={task.due_date || ''}
+              onChange={(v) => update({ due_date: v || null })}
             />
           </div>
 
