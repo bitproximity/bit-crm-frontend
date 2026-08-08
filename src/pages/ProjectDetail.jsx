@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Flag, Trash2 } from 'lucide-react';
+import { Flag, Trash2, FileText } from 'lucide-react';
 import { STATUSES, PRIORITY_COLORS, Avatar, dueBadge, InlineAddRow, TaskDetailModal } from './Tasks';
 
 const PROJECT_STATUSES = ['activo', 'pausado', 'completado', 'cancelado'];
@@ -16,6 +16,7 @@ export default function ProjectDetail() {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [nameEditing, setNameEditing] = useState(false);
   const [nameValue, setNameValue] = useState('');
+  const [docs, setDocs] = useState([]);
 
   const load = () => {
     setError('');
@@ -25,7 +26,13 @@ export default function ProjectDetail() {
   useEffect(() => {
     load();
     api.get('/api/team').then(setTeam).catch(() => setTeam([]));
+    api.get(`/api/documents/tree?project_id=${id}`).then(setDocs).catch(() => setDocs([]));
   }, [id]);
+
+  const createDoc = async () => {
+    const created = await api.post('/api/documents', { title: `${project.name} — nuevo documento`, content: '', project_id: id });
+    navigate(`/documents?open=${created.id}`);
+  };
 
   const updateStatus = async (taskId, status) => {
     setProject((prev) => ({ ...prev, tasks: prev.tasks.map((t) => (t.id === taskId ? { ...t, status } : t)) }));
@@ -175,6 +182,22 @@ export default function ProjectDetail() {
           onChanged={load}
         />
       )}
+
+      <div className="mt-8 pt-5 border-t border-brand-border">
+        <div className="flex items-center justify-between mb-3">
+          <span className="font-manrope font-medium text-sm">Documentos</span>
+          <button onClick={createDoc} className="text-xs text-brand-ice hover:underline">+ Nuevo documento</button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {docs.map((d) => (
+            <Link key={d.id} to={`/documents?open=${d.id}`} className="flex items-center gap-2 bg-brand-panel border border-brand-border rounded-lg p-3 text-sm hover:border-brand-violet/40 transition">
+              <FileText size={14} className="text-brand-muted flex-shrink-0" />
+              {d.title || 'Sin título'}
+            </Link>
+          ))}
+          {docs.length === 0 && <div className="text-brand-muted text-sm">Sin documentos vinculados todavía.</div>}
+        </div>
+      </div>
     </div>
   );
 }
