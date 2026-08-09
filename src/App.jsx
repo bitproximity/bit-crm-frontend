@@ -22,6 +22,7 @@ const Products = lazy(() => import('./pages/Products'));
 const Metrics = lazy(() => import('./pages/Metrics'));
 const Activities = lazy(() => import('./pages/Activities'));
 const Settings = lazy(() => import('./pages/Settings'));
+const B2bMeetings = lazy(() => import('./pages/B2bMeetings'));
 
 function PageFallback() {
   return <div className="text-brand-muted p-6">Cargando...</div>;
@@ -94,6 +95,7 @@ export default function App() {
               <Route path="/products" element={<Suspense fallback={<PageFallback />}><Products /></Suspense>} />
               <Route path="/metrics" element={<Suspense fallback={<PageFallback />}><Metrics /></Suspense>} />
               <Route path="/activities" element={<Suspense fallback={<PageFallback />}><Activities /></Suspense>} />
+              <Route path="/b2b-meetings" element={<Suspense fallback={<PageFallback />}><B2bMeetings /></Suspense>} />
               <Route path="/settings" element={<Suspense fallback={<PageFallback />}><Settings /></Suspense>} />
             </Route>
           </Routes>
