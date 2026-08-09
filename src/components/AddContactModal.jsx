@@ -12,6 +12,8 @@ export default function AddContactModal({ onClose, onCreated }) {
   const [companyResults, setCompanyResults] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [industry, setIndustry] = useState('');
+  const [country, setCountry] = useState('');
+  const [position, setPosition] = useState('');
   const [phone, setPhone] = useState('');
   const [phoneType, setPhoneType] = useState('Trabajo');
   const [email, setEmail] = useState('');
@@ -88,6 +90,8 @@ export default function AddContactModal({ onClose, onCreated }) {
         email: email || null,
         company_id: companyId,
         owner_id: ownerId || null,
+        country: country || null,
+        position: position || null,
       });
 
       for (const tagId of selectedTagIds) {
@@ -167,12 +171,22 @@ export default function AddContactModal({ onClose, onCreated }) {
                 </select>
               </div>
             </div>
+
+            <div>
+              <label className={labelClass}>Cargo</label>
+              <input value={position} onChange={(e) => setPosition(e.target.value)} className={inputClass} placeholder="ej. Gerente de Marketing" />
+            </div>
           </div>
 
           <div className="space-y-4">
             <div>
               <label className={labelClass}>Industria</label>
               <input value={industry} onChange={(e) => setIndustry(e.target.value)} className={inputClass} placeholder="ej. Restaurantes, Retail, Hotelería" />
+            </div>
+
+            <div>
+              <label className={labelClass}>País</label>
+              <input value={country} onChange={(e) => setCountry(e.target.value)} className={inputClass} placeholder="ej. Colombia, México, Ecuador" />
             </div>
 
             <div>
