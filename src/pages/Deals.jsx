@@ -1,3 +1,4 @@
+import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -98,7 +99,7 @@ export default function Deals() {
 
   const contactName = (d) => (d.contacts ? `${d.contacts.first_name || ''} ${d.contacts.last_name || ''}`.trim() : null);
 
-  if (!pipeline) return <div className="text-brand-muted">Cargando...</div>;
+  if (!pipeline) return <SkeletonPage />;
 
   const VIEW_TABS = [
     { key: 'board', icon: LayoutGrid },

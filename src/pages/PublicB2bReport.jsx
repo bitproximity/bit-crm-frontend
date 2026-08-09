@@ -25,7 +25,16 @@ export default function PublicB2bReport() {
     );
   }
 
-  if (!report) return <div className="min-h-screen bg-brand-bg text-brand-muted flex items-center justify-center">Cargando...</div>;
+  if (!report) {
+    return (
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded bg-gradient-to-br from-brand-violet to-brand-magenta animate-pulse" />
+          <span className="text-brand-muted text-sm font-tech">Cargando reporte...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-white p-6 md:p-10">

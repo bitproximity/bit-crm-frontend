@@ -37,7 +37,7 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-bg">
-      <div className="w-full max-w-sm bg-brand-panel border border-brand-border rounded-xl p-8">
+      <div className="w-full max-w-sm bg-brand-panel border border-brand-border rounded-xl p-8 shadow-2xl shadow-brand-violet/10">
         <img src="/brand/logo.png" alt="Bit Proximity" className="h-7 mb-6" />
         <h1 className="font-headline text-xl font-semibold mb-1">Nueva contraseña</h1>
         <p className="text-brand-muted text-sm mb-6">Elige una contraseña nueva para tu cuenta.</p>

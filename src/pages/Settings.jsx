@@ -1,3 +1,4 @@
+import { SkeletonLine } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -142,7 +143,7 @@ export default function Settings() {
           </p>
 
           {gmail === null ? (
-            <div className="text-brand-muted text-sm">Cargando...</div>
+            <SkeletonLine className="w-32" />
           ) : gmail.connected ? (
             <div>
               <div className="text-sm text-brand-ice font-tech mb-3">{gmail.email}</div>
@@ -171,7 +172,7 @@ export default function Settings() {
           </p>
 
           {calcom === null ? (
-            <div className="text-brand-muted text-sm">Cargando...</div>
+            <SkeletonLine className="w-32" />
           ) : calcom.connected ? (
             <div>
               <div className="text-sm text-green-300 mb-3">Conectado</div>

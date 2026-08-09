@@ -1,3 +1,4 @@
+import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Percent, TrendingUp, Filter, Gauge, Package2, ListChecks, FolderKanban, Activity, Users, Clock, PieChart, DollarSign } from 'lucide-react';
@@ -71,7 +72,7 @@ export default function Metrics() {
   }, [pipelineId]);
 
   if (loadError) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{loadError}</div>;
-  if (!metrics || !forecast) return <div className="text-brand-muted">Cargando...</div>;
+  if (!metrics || !forecast) return <SkeletonPage />;
 
   const maxStageValue = Math.max(...metrics.deals_by_stage.map((s) => s.value), 1);
   const maxTaskCount = Math.max(...Object.values(metrics.tasks_by_status), 1);

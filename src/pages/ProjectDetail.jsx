@@ -1,3 +1,4 @@
+import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -67,7 +68,7 @@ export default function ProjectDetail() {
   };
 
   if (error) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{error}</div>;
-  if (!project) return <div className="text-brand-muted">Cargando...</div>;
+  if (!project) return <SkeletonPage />;
 
   const tasksByStatus = (statusKey) => (project.tasks || []).filter((t) => !t.parent_task_id && t.status === statusKey);
   const subtasksByParent = {};

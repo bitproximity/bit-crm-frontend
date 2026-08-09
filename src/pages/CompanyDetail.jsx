@@ -1,3 +1,4 @@
+import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -42,7 +43,7 @@ export default function CompanyDetail() {
   };
 
   if (error) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{error}</div>;
-  if (loading || !company) return <div className="text-brand-muted">Cargando...</div>;
+  if (loading || !company) return <SkeletonPage />;
 
   const inputClass = 'w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet';
   const labelClass = 'block text-xs text-brand-muted mb-1.5';

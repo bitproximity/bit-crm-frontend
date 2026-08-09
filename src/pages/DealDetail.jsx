@@ -1,3 +1,4 @@
+import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -180,7 +181,7 @@ export default function DealDetail() {
   }, [contactQuery, contactEditing, selectedContactPick]);
 
   if (loadError) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{loadError}</div>;
-  if (loading || !deal) return <div className="text-brand-muted">Cargando...</div>;
+  if (loading || !deal) return <SkeletonPage />;
 
   const pipeline = pipelines.find((p) => p.id === deal.pipeline_id);
   const stages = pipeline ? [...pipeline.pipeline_stages].sort((a, b) => a.position - b.position) : [];
@@ -835,7 +836,7 @@ export default function DealDetail() {
               </form>
               <div className="space-y-2">
                 {activities.filter((a) => a.type === 'nota').map((a) => (
-                  <div key={a.id} className="bg-brand-panel border border-brand-border rounded-lg p-3 text-sm">
+                  <div key={a.id} className="bg-brand-panel border border-brand-border rounded-lg p-3 text-sm panel-depth">
                     <div>{a.summary}</div>
                     <div className="text-xs text-brand-muted font-tech mt-1">{a.team_members?.full_name} · {new Date(a.occurred_at || a.created_at).toLocaleString()}</div>
                   </div>
@@ -857,7 +858,7 @@ export default function DealDetail() {
               </form>
               <div className="space-y-2">
                 {activities.filter((a) => a.type !== 'nota').map((a) => (
-                  <div key={a.id} className="bg-brand-panel border border-brand-border rounded-lg p-3 text-sm flex items-center justify-between">
+                  <div key={a.id} className="bg-brand-panel border border-brand-border rounded-lg p-3 text-sm flex items-center justify-between panel-depth">
                     <div>
                       <span className="text-xs px-1.5 py-0.5 rounded bg-brand-violet/15 text-brand-ice font-tech uppercase mr-2">{a.type}</span>
                       {a.summary || a.title}
@@ -886,7 +887,7 @@ export default function DealDetail() {
               ) : (
                 <div className="space-y-2">
                   {bookings.map((b) => (
-                    <div key={b.id} className="bg-brand-panel border border-brand-border rounded-lg p-3 text-sm">
+                    <div key={b.id} className="bg-brand-panel border border-brand-border rounded-lg p-3 text-sm panel-depth">
                       <div className="font-medium">{b.title}</div>
                       <div className="text-xs text-brand-muted font-tech mt-1">
                         {new Date(b.start).toLocaleString()} · {b.status}
@@ -914,7 +915,7 @@ export default function DealDetail() {
                   </button>
                   <div className="space-y-2">
                     {gmailMessages.map((m) => (
-                      <div key={m.id} className="bg-brand-panel border border-brand-border rounded-lg p-3 text-sm">
+                      <div key={m.id} className="bg-brand-panel border border-brand-border rounded-lg p-3 text-sm panel-depth">
                         <div className="font-medium">{m.subject || '(sin asunto)'}</div>
                         <div className="text-xs text-brand-muted mt-1">{m.snippet}</div>
                         <div className="text-xs text-brand-muted font-tech mt-1">{m.from_email} · {m.sent_at ? new Date(m.sent_at).toLocaleString() : ''}</div>
@@ -935,7 +936,7 @@ export default function DealDetail() {
               </div>
               <div className="space-y-2">
                 {dealInvoices.map((inv) => (
-                  <div key={inv.id} onClick={() => setSelectedInvoiceId(inv.id)} className="flex items-center justify-between bg-brand-panel border border-brand-border rounded-lg p-3 text-sm cursor-pointer hover:border-brand-violet/40 transition">
+                  <div key={inv.id} onClick={() => setSelectedInvoiceId(inv.id)} className="flex items-center justify-between bg-brand-panel border border-brand-border rounded-lg p-3 text-sm cursor-pointer row-hover">
                     <span>{inv.invoice_number || `#${inv.id.slice(0, 8)}`}</span>
                     <div className="flex items-center gap-3">
                       <span className="text-brand-ice font-tech">{inv.currency} {Number(inv.total).toLocaleString()}</span>
@@ -961,7 +962,7 @@ export default function DealDetail() {
               </div>
               <div className="space-y-2">
                 {dealFiles.map((f) => (
-                  <div key={f.id} className="flex items-center justify-between bg-brand-panel border border-brand-border rounded-lg p-3 text-sm">
+                  <div key={f.id} className="flex items-center justify-between bg-brand-panel border border-brand-border rounded-lg p-3 text-sm panel-depth">
                     <a href={f.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-brand-ice hover:underline truncate">
                       <Paperclip size={13} className="flex-shrink-0" /> {f.file_name}
                     </a>
@@ -984,7 +985,7 @@ export default function DealDetail() {
               </div>
               <div className="space-y-2">
                 {dealDocs.map((d) => (
-                  <Link key={d.id} to={`/documents?open=${d.id}`} className="flex items-center gap-2 bg-brand-panel border border-brand-border rounded-lg p-3 text-sm hover:border-brand-violet/40 transition">
+                  <Link key={d.id} to={`/documents?open=${d.id}`} className="flex items-center gap-2 bg-brand-panel border border-brand-border rounded-lg p-3 text-sm row-hover">
                     <FileTextIcon size={14} className="text-brand-muted flex-shrink-0" />
                     {d.title || 'Sin título'}
                   </Link>
@@ -1012,7 +1013,7 @@ export default function DealDetail() {
             ) : (
               <div className="space-y-1.5">
                 {pendingTasks.map((t) => (
-                  <label key={t.id} className="flex items-center gap-2 text-sm bg-brand-panel border border-brand-border rounded-lg px-3 py-2 cursor-pointer">
+                  <label key={t.id} className="flex items-center gap-2 text-sm bg-brand-panel border border-brand-border rounded-lg px-3 py-2 cursor-pointer row-hover">
                     <input type="checkbox" onChange={(e) => toggleTaskDone(t.id, e.target.checked)} className="accent-brand-violet" />
                     <span className="flex-1">{t.title}</span>
                     {t.due_date && <span className="text-xs text-brand-muted font-tech">{new Date(t.due_date).toLocaleDateString()}</span>}
