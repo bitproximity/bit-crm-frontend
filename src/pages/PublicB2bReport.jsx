@@ -34,8 +34,8 @@ export default function PublicB2bReport() {
           <div className="w-7 h-7 rounded bg-gradient-to-br from-brand-violet to-brand-magenta" />
           <span className="font-headline font-semibold text-brand-ice">Bit Proximity</span>
         </div>
-        <h1 className="font-headline text-2xl font-semibold mb-1">{report.project_name}</h1>
-        {report.client_name && <p className="text-brand-muted text-sm mb-6">{report.client_name}</p>}
+        <h1 className="font-headline text-2xl font-semibold mb-1">{report.client_name}</h1>
+        <p className="text-brand-muted text-sm mb-6">Reporte de prospección B2B</p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-brand-panel border border-brand-border rounded-xl p-4">

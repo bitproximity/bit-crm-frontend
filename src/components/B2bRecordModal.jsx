@@ -1,0 +1,118 @@
+import { useState } from 'react';
+import { api } from '../lib/api';
+import { X } from 'lucide-react';
+import DateTimePicker from './DateTimePicker';
+
+const STATUS_OPTIONS = [
+  { key: 'contactado', label: 'Contactado' },
+  { key: 'reunion_agendada', label: 'Reunión agendada' },
+  { key: 'reunion_realizada', label: 'Reunión realizada' },
+  { key: 'no_interesado', label: 'No interesado' },
+];
+
+export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    target_company: record?.target_company || '',
+    target_contact: record?.target_contact || '',
+    industry: record?.industry || '',
+    country: record?.country || '',
+    status: record?.status || 'contactado',
+    meeting_date: record?.meeting_date ? new Date(record.meeting_date).toISOString() : '',
+    notes: record?.notes || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.target_company.trim()) return;
+    setSaving(true);
+    setError('');
+    try {
+      const payload = { ...form, meeting_date: form.meeting_date ? form.meeting_date.slice(0, 10) : null };
+      if (record) {
+        await api.patch(`/api/b2b/records/${record.id}`, payload);
+      } else {
+        await api.post('/api/b2b/records', { ...payload, client_company_id: clientId });
+      }
+      onSaved();
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar.');
+    }
+    setSaving(false);
+  };
+
+  const remove = async () => {
+    if (!record || !window.confirm(`¿Eliminar "${record.target_company}"?`)) return;
+    await api.delete(`/api/b2b/records/${record.id}`);
+    onSaved();
+  };
+
+  const inputClass = 'w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet';
+  const labelClass = 'block text-xs text-brand-muted mb-1.5';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-brand-panel border border-brand-border rounded-2xl shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
+          <h2 className="font-headline text-lg font-semibold">{record ? 'Editar registro' : 'Agregar registro manual'}</h2>
+          <button onClick={onClose} className="text-brand-muted hover:text-brand-white"><X size={20} /></button>
+        </div>
+
+        <form onSubmit={submit} className="p-6 space-y-3">
+          {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+
+          <div>
+            <label className={labelClass}>Empresa / marca contactada</label>
+            <input autoFocus required value={form.target_company} onChange={set('target_company')} className={inputClass} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Contacto</label>
+              <input value={form.target_contact} onChange={set('target_contact')} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Estado</label>
+              <select value={form.status} onChange={set('status')} className={inputClass}>
+                {STATUS_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Industria</label>
+              <input value={form.industry} onChange={set('industry')} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>País</label>
+              <input value={form.country} onChange={set('country')} className={inputClass} />
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>Fecha de reunión (si aplica)</label>
+            <DateTimePicker value={form.meeting_date} onChange={(v) => setForm({ ...form, meeting_date: v })} className="w-full" />
+          </div>
+          <div>
+            <label className={labelClass}>Notas</label>
+            <textarea value={form.notes} onChange={set('notes')} rows={2} className={inputClass} />
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            {record ? (
+              <button type="button" onClick={remove} className="text-xs text-brand-muted hover:text-red-400">Eliminar</button>
+            ) : <span />}
+            <div className="flex gap-2">
+              <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">Cancelar</button>
+              <button disabled={saving} className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50">
+                {saving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
