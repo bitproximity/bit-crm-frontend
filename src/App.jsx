@@ -35,7 +35,7 @@ function PublicOnlyRoute({ children }) {
 }
 
 function PrivateRoutes() {
-  const { session, profile, loading, signOut } = useAuth();
+  const { session, profile, profileError, loading, signOut } = useAuth();
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-neutral-500">Cargando...</div>;
@@ -52,6 +52,11 @@ function PrivateRoutes() {
             Tu cuenta ({session.user.email}) inició sesión correctamente, pero todavía no está
             habilitada en el equipo de Bit CRM. Pide a un admin que la agregue.
           </p>
+          {profileError && (
+            <p className="text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4 text-left">
+              Detalle técnico: {profileError}
+            </p>
+          )}
           <button onClick={signOut} className="text-sm text-brand-muted hover:text-brand-ice">
             Cerrar sesión
           </button>

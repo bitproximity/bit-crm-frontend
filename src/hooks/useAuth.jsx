@@ -7,6 +7,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(undefined); // undefined = cargando
   const [profile, setProfile] = useState(null);
+  const [profileError, setProfileError] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -18,16 +19,19 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (session) {
-      api.get('/api/team/me').then(setProfile).catch(() => setProfile(null));
+      api.get('/api/team/me')
+        .then((p) => { setProfile(p); setProfileError(''); })
+        .catch((err) => { setProfile(null); setProfileError(err.message || 'Error desconocido consultando tu perfil.'); });
     } else {
       setProfile(null);
+      setProfileError('');
     }
   }, [session]);
 
   const signOut = () => supabase.auth.signOut();
 
   return (
-    <AuthContext.Provider value={{ session, profile, signOut, loading: session === undefined }}>
+    <AuthContext.Provider value={{ session, profile, profileError, signOut, loading: session === undefined }}>
       {children}
     </AuthContext.Provider>
   );
