@@ -90,6 +90,9 @@ export default function DealDetail() {
 
   const [probEditing, setProbEditing] = useState(false);
   const [probValue, setProbValue] = useState(0);
+  const [valueEditing, setValueEditing] = useState(false);
+  const [valueEdit, setValueEdit] = useState(0);
+  const [currencyEdit, setCurrencyEdit] = useState('USD');
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [taskForm, setTaskForm] = useState({ title: '', due_date: '' });
@@ -288,6 +291,12 @@ export default function DealDetail() {
   const saveProbability = async () => {
     await api.patch(`/api/deals/${id}`, { probability: Number(probValue) || 0 });
     setProbEditing(false);
+    load();
+  };
+
+  const saveValue = async () => {
+    await api.patch(`/api/deals/${id}`, { value: Number(valueEdit) || 0, currency: currencyEdit });
+    setValueEditing(false);
     load();
   };
 
@@ -572,9 +581,27 @@ export default function DealDetail() {
             <div className="text-xs font-tech uppercase tracking-wide text-brand-muted mb-3">Resumen</div>
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-brand-ice font-tech font-medium text-base">
-                  {deal.currency} {Number(deal.value).toLocaleString()}
-                </span>
+                {valueEditing ? (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number" min="0" autoFocus value={valueEdit}
+                      onChange={(e) => setValueEdit(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') saveValue(); if (e.key === 'Escape') setValueEditing(false); }}
+                      className={`${inputClass} w-24 font-tech`}
+                    />
+                    <select value={currencyEdit} onChange={(e) => setCurrencyEdit(e.target.value)} className={`${inputClass} font-tech`}>
+                      {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <button onClick={saveValue} className="text-xs text-brand-ice hover:underline">Guardar</button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setValueEditing(true); setValueEdit(deal.value); setCurrencyEdit(deal.currency); }}
+                    className="text-brand-ice font-tech font-medium text-base hover:underline"
+                  >
+                    {deal.currency} {Number(deal.value).toLocaleString()}
+                  </button>
+                )}
                 <button onClick={() => setShowAddProduct(!showAddProduct)} className="text-xs text-brand-ice hover:underline">
                   {lineItems.length} producto{lineItems.length !== 1 ? 's' : ''}
                 </button>
