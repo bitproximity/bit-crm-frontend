@@ -15,7 +15,7 @@ export default function B2bMeetings() {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <h1 className="font-headline text-xl font-semibold">Reuniones B2B</h1>
+        <h1 className="font-headline text-xl font-semibold">Bit Prospect</h1>
       </div>
       <p className="text-brand-muted text-sm mb-6">
         Cada marca/cliente es un proyecto. Ahí adentro cargas su base de contactados, arrastras el estado de cada reunión, y generas el link para compartírselo.
@@ -44,7 +44,7 @@ export default function B2bMeetings() {
       {projects.length === 0 && (
         <div className="text-center py-16 border border-dashed border-brand-border rounded-xl">
           <FolderPlus size={24} className="text-brand-muted mx-auto mb-3" />
-          <p className="text-brand-muted text-sm mb-1">Todavía no hay proyectos de Reuniones B2B.</p>
+          <p className="text-brand-muted text-sm mb-1">Todavía no hay proyectos de Bit Prospect.</p>
           <p className="text-brand-muted text-xs">
             Ve a <span className="text-brand-ice">Proyectos</span> → crea uno para la marca/cliente → dentro, importa su base de contactados. Aparecerá aquí automáticamente.
           </p>

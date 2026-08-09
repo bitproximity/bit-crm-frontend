@@ -17,7 +17,7 @@ const nav = [
   { to: '/projects', label: 'Proyectos', icon: FolderKanban },
   { to: '/documents', label: 'Documentos', icon: FileText },
   { to: '/invoicing', label: 'Facturación', icon: Receipt },
-  { to: '/b2b-meetings', label: 'Reuniones B2B', icon: Handshake },
+  { to: '/b2b-meetings', label: 'Bit Prospect', icon: Handshake },
   { to: '/products', label: 'Productos', icon: Package },
   { to: '/metrics', label: 'Métricas', icon: BarChart3 },
 ];
