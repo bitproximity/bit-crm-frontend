@@ -1,25 +1,31 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import ResetPassword from './pages/ResetPassword';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Deals from './pages/Deals';
-import DealDetail from './pages/DealDetail';
-import Tasks from './pages/Tasks';
-import Contacts from './pages/Contacts';
-import Companies from './pages/Companies';
-import CompanyDetail from './pages/CompanyDetail';
-import Projects from './pages/Projects';
-import Spaces from './pages/Spaces';
-import Documents from './pages/Documents';
-import Invoicing from './pages/Invoicing';
-import ProjectDetail from './pages/ProjectDetail';
-import Products from './pages/Products';
-import Metrics from './pages/Metrics';
-import Activities from './pages/Activities';
-import Settings from './pages/Settings';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Deals = lazy(() => import('./pages/Deals'));
+const DealDetail = lazy(() => import('./pages/DealDetail'));
+const Tasks = lazy(() => import('./pages/Tasks'));
+const Contacts = lazy(() => import('./pages/Contacts'));
+const Companies = lazy(() => import('./pages/Companies'));
+const CompanyDetail = lazy(() => import('./pages/CompanyDetail'));
+const Projects = lazy(() => import('./pages/Projects'));
+const Spaces = lazy(() => import('./pages/Spaces'));
+const Documents = lazy(() => import('./pages/Documents'));
+const Invoicing = lazy(() => import('./pages/Invoicing'));
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
+const Products = lazy(() => import('./pages/Products'));
+const Metrics = lazy(() => import('./pages/Metrics'));
+const Activities = lazy(() => import('./pages/Activities'));
+const Settings = lazy(() => import('./pages/Settings'));
+
+function PageFallback() {
+  return <div className="text-brand-muted p-6">Cargando...</div>;
+}
 
 function PublicOnlyRoute({ children }) {
   const { session, loading } = useAuth();
@@ -68,22 +74,22 @@ export default function App() {
             <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route element={<PrivateRoutes />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/deals" element={<Deals />} />
-              <Route path="/deals/:id" element={<DealDetail />} />
-              <Route path="/tasks" element={<Tasks />} />
-              <Route path="/contacts" element={<Contacts />} />
-              <Route path="/companies" element={<Companies />} />
-              <Route path="/companies/:id" element={<CompanyDetail />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/projects/:id" element={<ProjectDetail />} />
-              <Route path="/spaces" element={<Spaces />} />
-              <Route path="/documents" element={<Documents />} />
-              <Route path="/invoicing" element={<Invoicing />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/metrics" element={<Metrics />} />
-              <Route path="/activities" element={<Activities />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/" element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>} />
+              <Route path="/deals" element={<Suspense fallback={<PageFallback />}><Deals /></Suspense>} />
+              <Route path="/deals/:id" element={<Suspense fallback={<PageFallback />}><DealDetail /></Suspense>} />
+              <Route path="/tasks" element={<Suspense fallback={<PageFallback />}><Tasks /></Suspense>} />
+              <Route path="/contacts" element={<Suspense fallback={<PageFallback />}><Contacts /></Suspense>} />
+              <Route path="/companies" element={<Suspense fallback={<PageFallback />}><Companies /></Suspense>} />
+              <Route path="/companies/:id" element={<Suspense fallback={<PageFallback />}><CompanyDetail /></Suspense>} />
+              <Route path="/projects" element={<Suspense fallback={<PageFallback />}><Projects /></Suspense>} />
+              <Route path="/projects/:id" element={<Suspense fallback={<PageFallback />}><ProjectDetail /></Suspense>} />
+              <Route path="/spaces" element={<Suspense fallback={<PageFallback />}><Spaces /></Suspense>} />
+              <Route path="/documents" element={<Suspense fallback={<PageFallback />}><Documents /></Suspense>} />
+              <Route path="/invoicing" element={<Suspense fallback={<PageFallback />}><Invoicing /></Suspense>} />
+              <Route path="/products" element={<Suspense fallback={<PageFallback />}><Products /></Suspense>} />
+              <Route path="/metrics" element={<Suspense fallback={<PageFallback />}><Metrics /></Suspense>} />
+              <Route path="/activities" element={<Suspense fallback={<PageFallback />}><Activities /></Suspense>} />
+              <Route path="/settings" element={<Suspense fallback={<PageFallback />}><Settings /></Suspense>} />
             </Route>
           </Routes>
         </BrowserRouter>
