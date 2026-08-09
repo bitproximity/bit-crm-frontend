@@ -852,7 +852,7 @@ export default function DealDetail() {
                   {ACTIVITY_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
                 </select>
                 <input value={activityForm.title} onChange={(e) => setActivityForm({ ...activityForm, title: e.target.value })} placeholder="Descripción" className={`${inputClass} flex-1 min-w-[150px]`} />
-                <input type="datetime-local" value={activityForm.due_date} onChange={(e) => setActivityForm({ ...activityForm, due_date: e.target.value })} className={`${inputClass} font-tech`} />
+                <DateTimePicker value={activityForm.due_date} onChange={(v) => setActivityForm({ ...activityForm, due_date: v })} />
                 <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">Registrar</button>
               </form>
               <div className="space-y-2">
