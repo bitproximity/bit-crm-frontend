@@ -529,7 +529,7 @@ function PipelinesAdmin() {
 function TeamAdmin() {
   const [members, setMembers] = useState([]);
   const [showInvite, setShowInvite] = useState(false);
-  const [form, setForm] = useState({ full_name: '', email: '', role: 'vendedor' });
+  const [form, setForm] = useState({ full_name: '', email: '', role: 'operaciones' });
   const [error, setError] = useState('');
   const [inviting, setInviting] = useState(false);
 
@@ -543,7 +543,7 @@ function TeamAdmin() {
     setError('');
     try {
       await api.post('/api/team/invite', form);
-      setForm({ full_name: '', email: '', role: 'vendedor' });
+      setForm({ full_name: '', email: '', role: 'operaciones' });
       setShowInvite(false);
       load();
     } catch (err) {
@@ -596,7 +596,7 @@ function TeamAdmin() {
             <label className="block text-xs text-brand-muted mb-1">Rol</label>
             <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm">
               <option value="admin">Admin</option>
-              <option value="vendedor">Vendedor</option>
+              <option value="outbound">Outbound</option>
               <option value="operaciones">Operaciones</option>
             </select>
           </div>
@@ -626,7 +626,7 @@ function TeamAdmin() {
                 className="px-2 py-1 rounded bg-brand-panel border border-brand-border text-xs disabled:opacity-50"
               >
                 <option value="admin">Admin</option>
-                <option value="vendedor">Vendedor</option>
+                <option value="outbound">Outbound</option>
                 <option value="operaciones">Operaciones</option>
               </select>
               {m.active ? (
