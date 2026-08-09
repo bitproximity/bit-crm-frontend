@@ -23,6 +23,7 @@ const Metrics = lazy(() => import('./pages/Metrics'));
 const Activities = lazy(() => import('./pages/Activities'));
 const Settings = lazy(() => import('./pages/Settings'));
 const B2bMeetings = lazy(() => import('./pages/B2bMeetings'));
+const PublicB2bReport = lazy(() => import('./pages/PublicB2bReport'));
 
 function PageFallback() {
   return <div className="text-brand-muted p-6">Cargando...</div>;
@@ -79,6 +80,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/public/b2b/:token" element={<Suspense fallback={<PageFallback />}><PublicB2bReport /></Suspense>} />
             <Route element={<PrivateRoutes />}>
               <Route path="/" element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>} />
               <Route path="/deals" element={<Suspense fallback={<PageFallback />}><Deals /></Suspense>} />

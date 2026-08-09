@@ -1,10 +1,60 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Flag, Trash2, FileText } from 'lucide-react';
+import { Flag, Trash2, FileText, Upload, Share2, Users, TrendingUp, Percent, CalendarCheck } from 'lucide-react';
 import { STATUSES, PRIORITY_COLORS, Avatar, dueBadge, InlineAddRow, TaskDetailModal } from './Tasks';
 
 const PROJECT_STATUSES = ['activo', 'pausado', 'completado', 'cancelado'];
+const B2B_STATUSES = [
+  { key: 'contactado', label: 'Contactado' },
+  { key: 'reunion_agendada', label: 'Reunión agendada' },
+  { key: 'reunion_realizada', label: 'Reunión realizada' },
+  { key: 'no_interesado', label: 'No interesado' },
+];
+
+function parseCsv(text) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2) return [];
+  const parseLine = (line) => {
+    const out = []; let cur = ''; let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuotes = !inQuotes; continue; }
+      if (ch === ',' && !inQuotes) { out.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    out.push(cur);
+    return out;
+  };
+  const headers = parseLine(lines[0]).map((h) => h.trim().toLowerCase());
+  return lines.slice(1).map((line) => {
+    const values = parseLine(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = values[i] ? values[i].trim() : ''; });
+    return obj;
+  });
+}
+
+const B2B_FIELD_MAP = {
+  empresa: 'target_company', target_company: 'target_company', compañia: 'target_company', marca: 'target_company',
+  contacto: 'target_contact', target_contact: 'target_contact', nombre: 'target_contact',
+  industria: 'industry', industry: 'industry', sector: 'industry',
+  pais: 'country', país: 'country', country: 'country',
+  fecha: 'contacted_at', contacted_at: 'contacted_at', fecha_contacto: 'contacted_at',
+  fecha_reunion: 'meeting_date', meeting_date: 'meeting_date', fecha_reunión: 'meeting_date',
+  notas: 'notes', notes: 'notes',
+};
+
+function mapB2bRows(rows) {
+  return rows.map((row) => {
+    const mapped = {};
+    Object.entries(row).forEach(([key, val]) => {
+      const target = B2B_FIELD_MAP[key];
+      if (target && val) mapped[target] = val;
+    });
+    return mapped;
+  }).filter((r) => r.target_company);
+}
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -17,6 +67,12 @@ export default function ProjectDetail() {
   const [nameEditing, setNameEditing] = useState(false);
   const [nameValue, setNameValue] = useState('');
   const [docs, setDocs] = useState([]);
+  const [b2bRecords, setB2bRecords] = useState([]);
+  const [b2bDashboard, setB2bDashboard] = useState(null);
+  const [b2bImportResult, setB2bImportResult] = useState(null);
+  const [shareLink, setShareLink] = useState('');
+  const contactedInputRef = useRef(null);
+  const meetingsInputRef = useRef(null);
 
   const load = () => {
     setError('');
@@ -27,11 +83,51 @@ export default function ProjectDetail() {
     load();
     api.get('/api/team').then(setTeam).catch(() => setTeam([]));
     api.get(`/api/documents/tree?project_id=${id}`).then(setDocs).catch(() => setDocs([]));
+    api.get(`/api/b2b/records?project_id=${id}`).then(setB2bRecords).catch(() => setB2bRecords([]));
+    api.get(`/api/b2b/dashboard?project_id=${id}`).then(setB2bDashboard).catch(() => setB2bDashboard(null));
   }, [id]);
 
   const createDoc = async () => {
     const created = await api.post('/api/documents', { title: `${project.name} — nuevo documento`, content: '', project_id: id });
     navigate(`/documents?open=${created.id}`);
+  };
+
+  const reloadB2b = () => {
+    api.get(`/api/b2b/records?project_id=${id}`).then(setB2bRecords);
+    api.get(`/api/b2b/dashboard?project_id=${id}`).then(setB2bDashboard);
+  };
+
+  const handleB2bImport = async (e, mode) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const rows = mapB2bRows(parseCsv(text));
+    if (rows.length === 0) {
+      setB2bImportResult({ error: 'No se encontraron filas válidas. Verifica que el CSV tenga una columna de empresa/marca.' });
+      e.target.value = '';
+      return;
+    }
+    try {
+      const result = await api.post('/api/b2b/import', { project_id: id, client_company_id: project.company_id, mode, records: rows });
+      setB2bImportResult(result);
+      reloadB2b();
+    } catch (err) {
+      setB2bImportResult({ error: err.message });
+    }
+    e.target.value = '';
+  };
+
+  const updateB2bStatus = async (recordId, status) => {
+    setB2bRecords((prev) => prev.map((r) => (r.id === recordId ? { ...r, status } : r)));
+    await api.patch(`/api/b2b/records/${recordId}/status`, { status });
+    reloadB2b();
+  };
+
+  const getShareLink = async () => {
+    const { token } = await api.post(`/api/b2b/projects/${id}/share-link`, {});
+    const url = `${window.location.origin}/public/b2b/${token}`;
+    setShareLink(url);
+    navigator.clipboard?.writeText(url).catch(() => {});
   };
 
   const updateStatus = async (taskId, status) => {
@@ -182,6 +278,94 @@ export default function ProjectDetail() {
           onChanged={load}
         />
       )}
+
+      <div className="mt-8 pt-5 border-t border-brand-border">
+        <div className="flex items-center justify-between mb-3">
+          <span className="font-manrope font-medium text-sm">Base de datos B2B</span>
+          <div className="flex items-center gap-2">
+            <label className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-xs cursor-pointer hover:border-brand-violet transition flex items-center gap-1.5">
+              <Upload size={12} /> Importar contactados
+              <input ref={contactedInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => handleB2bImport(e, 'contactados')} />
+            </label>
+            <label className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-xs cursor-pointer hover:border-brand-violet transition flex items-center gap-1.5">
+              <CalendarCheck size={12} /> Importar reuniones
+              <input ref={meetingsInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => handleB2bImport(e, 'reuniones')} />
+            </label>
+            <button onClick={getShareLink} className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-xs flex items-center gap-1.5">
+              <Share2 size={12} /> Compartir con cliente
+            </button>
+          </div>
+        </div>
+
+        {shareLink && (
+          <div className="mb-4 px-4 py-2.5 rounded-lg bg-brand-violet/10 border border-brand-violet/30 text-sm flex items-center justify-between gap-2">
+            <span className="text-brand-ice truncate">{shareLink}</span>
+            <span className="text-xs text-brand-muted flex-shrink-0">Copiado ✓</span>
+          </div>
+        )}
+        {b2bImportResult && (
+          <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm ${b2bImportResult.error ? 'bg-red-500/10 border border-red-500/30 text-red-300' : 'bg-green-500/10 border border-green-500/30 text-green-300'}`}>
+            {b2bImportResult.error || `Importado: ${b2bImportResult.inserted} nuevos${b2bImportResult.updated ? `, ${b2bImportResult.updated} actualizados` : ''}.`}
+          </div>
+        )}
+
+        {b2bDashboard && b2bDashboard.total_contacted > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="bg-brand-panel border border-brand-border rounded-lg p-3">
+              <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><Users size={11} /> Contactados</div>
+              <div className="text-lg font-headline font-semibold">{b2bDashboard.total_contacted}</div>
+            </div>
+            <div className="bg-brand-panel border border-brand-border rounded-lg p-3">
+              <div className="flex items-center gap-1.5 text-brand-ice text-xs mb-1"><CalendarCheck size={11} /> Reuniones</div>
+              <div className="text-lg font-headline font-semibold text-brand-ice">{b2bDashboard.total_meetings}</div>
+            </div>
+            <div className="bg-brand-panel border border-brand-border rounded-lg p-3">
+              <div className="flex items-center gap-1.5 text-green-300 text-xs mb-1"><Percent size={11} /> Conversión</div>
+              <div className="text-lg font-headline font-semibold text-green-300">{b2bDashboard.conversion_rate}%</div>
+            </div>
+            <div className="bg-brand-panel border border-brand-border rounded-lg p-3">
+              <div className="flex items-center gap-1.5 text-yellow-300 text-xs mb-1"><TrendingUp size={11} /> Este mes</div>
+              <div className="text-lg font-headline font-semibold text-yellow-300">{b2bDashboard.meetings_this_month}</div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          {B2B_STATUSES.map((status) => (
+            <div
+              key={status.key}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => updateB2bStatus(e.dataTransfer.getData('recordId'), status.key)}
+              className="bg-brand-panel/60 border border-brand-border rounded-xl p-3"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-manrope font-medium">{status.label}</span>
+                <span className="text-brand-muted font-tech text-xs bg-brand-bg px-1.5 py-0.5 rounded-full">
+                  {b2bRecords.filter((r) => r.status === status.key).length}
+                </span>
+              </div>
+              <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                {b2bRecords.filter((r) => r.status === status.key).map((r) => (
+                  <div
+                    key={r.id}
+                    draggable
+                    onDragStart={(e) => e.dataTransfer.setData('recordId', r.id)}
+                    className="bg-brand-bg border border-brand-border rounded-lg p-2 cursor-move hover:border-brand-violet transition"
+                  >
+                    <div className="text-xs font-medium">{r.target_company}</div>
+                    {r.target_contact && <div className="text-[10px] text-brand-muted">{r.target_contact}</div>}
+                    <div className="flex items-center gap-1.5 mt-1 text-[10px] text-brand-muted">
+                      {r.industry && <span>{r.industry}</span>}
+                      {r.country && <span>· {r.country}</span>}
+                    </div>
+                    {r.meeting_date && <div className="text-[10px] text-brand-ice font-tech mt-0.5">{new Date(r.meeting_date).toLocaleDateString()}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="mt-8 pt-5 border-t border-brand-border">
         <div className="flex items-center justify-between mb-3">
