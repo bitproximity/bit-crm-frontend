@@ -313,7 +313,7 @@ export default function B2bMeetings() {
               </thead>
               <tbody>
                 {records.map((r) => (
-                  <tr key={r.id} className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer" onClick={() => openEdit(r)}>
+                  <tr key={r.id} className="border-t border-brand-border row-hover cursor-pointer" onClick={() => openEdit(r)}>
                     <td className="px-4 py-3">{r.target_company}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.target_contact || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.industry || '—'}</td>

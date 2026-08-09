@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 
 function Card({ icon: Icon, label, value, accent, iconColor }) {
   return (
-    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 hover:border-brand-violet/40 transition group">
+    <div className="card-elevated rounded-xl p-5 group">
       <div className="flex items-center justify-between mb-3">
         <div className="text-brand-muted text-sm font-manrope">{label}</div>
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconColor || 'bg-brand-violet/10'}`}>

@@ -252,7 +252,7 @@ export default function Deals() {
                         draggable
                         onDragStart={(e) => e.dataTransfer.setData('dealId', deal.id)}
                         onClick={() => navigate(`/deals/${deal.id}`)}
-                        className="relative bg-brand-panel border border-brand-border rounded-xl p-3.5 cursor-pointer hover:border-brand-violet hover:shadow-lg hover:shadow-brand-violet/5 transition group overflow-hidden"
+                        className="relative card-elevated rounded-xl p-3.5 cursor-pointer group overflow-hidden"
                       >
                         {deal.probability >= 70 && (
                           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-violet to-brand-magenta" />
@@ -305,7 +305,7 @@ export default function Deals() {
                 <tr
                   key={deal.id}
                   onClick={() => navigate(`/deals/${deal.id}`)}
-                  className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer"
+                  className="border-t border-brand-border row-hover cursor-pointer"
                 >
                   <td className="px-4 py-3">{deal.title}</td>
                   <td className="px-4 py-3 text-brand-muted">{contactName(deal) || '—'}</td>
@@ -361,7 +361,7 @@ export default function Deals() {
                       <tr
                         key={deal.id}
                         onClick={() => navigate(`/deals/${deal.id}`)}
-                        className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer"
+                        className="border-t border-brand-border row-hover cursor-pointer"
                       >
                         <td className="px-4 py-3">{deal.title}</td>
                         <td className="px-4 py-3 text-brand-muted text-xs">{deal.pipeline_stages?.name}</td>
@@ -399,7 +399,7 @@ export default function Deals() {
                 <tr
                   key={deal.id}
                   onClick={() => navigate(`/deals/${deal.id}`)}
-                  className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer"
+                  className="border-t border-brand-border row-hover cursor-pointer"
                 >
                   <td className="px-4 py-3">{deal.title}</td>
                   <td className="px-4 py-3 text-brand-muted">{deal.companies?.name || '—'}</td>

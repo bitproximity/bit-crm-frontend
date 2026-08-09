@@ -42,7 +42,7 @@ export default function Layout() {
                 className={({ isActive }) =>
                   `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-manrope transition ${
                     isActive
-                      ? 'bg-gradient-to-r from-brand-violet/20 to-brand-magenta/20 text-brand-ice border border-brand-violet/40'
+                      ? 'bg-gradient-to-r from-brand-violet/20 to-brand-magenta/20 text-brand-ice border border-brand-violet/40 shadow-[0_0_16px_-4px_rgba(133,0,255,0.5)]'
                       : 'text-brand-muted hover:bg-brand-panel hover:text-brand-white'
                   }`
                 }
@@ -59,7 +59,7 @@ export default function Layout() {
             className={({ isActive }) =>
               `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-manrope transition ${
                 isActive
-                  ? 'bg-gradient-to-r from-brand-violet/20 to-brand-magenta/20 text-brand-ice border border-brand-violet/40'
+                  ? 'bg-gradient-to-r from-brand-violet/20 to-brand-magenta/20 text-brand-ice border border-brand-violet/40 shadow-[0_0_16px_-4px_rgba(133,0,255,0.5)]'
                   : 'text-brand-muted hover:bg-brand-panel hover:text-brand-white'
               }`
             }

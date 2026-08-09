@@ -182,7 +182,7 @@ export default function Contacts() {
                 <tr
                   key={c.id}
                   onClick={() => setSelectedContactId(c.id)}
-                  className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer"
+                  className="border-t border-brand-border row-hover cursor-pointer"
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">

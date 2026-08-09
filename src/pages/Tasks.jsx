@@ -250,7 +250,7 @@ export default function Tasks() {
                       draggable
                       onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
                       onClick={() => setSelectedTaskId(task.id)}
-                      className="bg-brand-bg border border-brand-border rounded-lg p-3 cursor-pointer hover:border-brand-violet hover:shadow-lg hover:shadow-brand-violet/5 transition"
+                      className="card-elevated rounded-lg p-3 cursor-pointer"
                     >
                       <div className="text-sm mb-1.5 flex items-start gap-1.5">
                         {task.priority && task.priority !== 'media' && (

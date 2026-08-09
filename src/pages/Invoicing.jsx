@@ -105,7 +105,7 @@ export default function Invoicing() {
           </thead>
           <tbody>
             {invoices.map((inv) => (
-              <tr key={inv.id} onClick={() => setSelected(inv.id)} className="border-t border-brand-border hover:bg-brand-bg/50 transition cursor-pointer">
+              <tr key={inv.id} onClick={() => setSelected(inv.id)} className="border-t border-brand-border row-hover cursor-pointer">
                 <td className="px-4 py-3">{inv.invoice_number || `#${inv.id.slice(0, 8)}`}</td>
                 <td className="px-4 py-3 text-brand-muted">{inv.companies?.name || contactName(inv.contacts) || '—'}</td>
                 <td className="px-4 py-3 text-brand-muted">{inv.deals?.title || '—'}</td>

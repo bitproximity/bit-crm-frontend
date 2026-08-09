@@ -5,6 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import ResetPassword from './pages/ResetPassword';
 import Layout from './components/Layout';
+import { SkeletonPage } from './components/Skeleton';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Deals = lazy(() => import('./pages/Deals'));
@@ -26,7 +27,7 @@ const B2bMeetings = lazy(() => import('./pages/B2bMeetings'));
 const PublicB2bReport = lazy(() => import('./pages/PublicB2bReport'));
 
 function PageFallback() {
-  return <div className="text-brand-muted p-6">Cargando...</div>;
+  return <div className="page-transition"><SkeletonPage /></div>;
 }
 
 function PublicOnlyRoute({ children }) {

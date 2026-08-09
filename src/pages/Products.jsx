@@ -109,7 +109,7 @@ export default function Products() {
           </thead>
           <tbody>
             {products.map((p) => (
-              <tr key={p.id} className="border-t border-brand-border hover:bg-brand-bg/50 transition">
+              <tr key={p.id} className="border-t border-brand-border row-hover">
                 {editingId === p.id ? (
                   <>
                     <td className="px-4 py-2">

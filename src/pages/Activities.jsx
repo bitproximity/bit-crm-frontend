@@ -157,7 +157,7 @@ export default function Activities() {
               const Icon = TYPE_ICONS[a.type] || StickyNote;
               const isOverdue = tab === 'vencida';
               return (
-                <tr key={a.id} className="border-t border-brand-border hover:bg-brand-bg/50 transition">
+                <tr key={a.id} className="border-t border-brand-border row-hover">
                   <td className="px-4 py-3">
                     {a.done ? (
                       <div className="w-4 h-4 rounded bg-green-500/30 flex items-center justify-center">

@@ -132,7 +132,7 @@ export default function ProjectDetail() {
                   key={task.id}
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
-                  className="bg-brand-bg border border-brand-border rounded-lg p-2.5 cursor-pointer hover:border-brand-violet transition"
+                  className="card-elevated rounded-lg p-2.5 cursor-pointer"
                 >
                   <div className="flex items-center gap-2" onClick={() => setSelectedTaskId(task.id)}>
                     {subtasksByParent[task.id]?.length > 0 && (
