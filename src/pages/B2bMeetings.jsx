@@ -228,19 +228,19 @@ export default function B2bMeetings() {
           {dashboard && (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-4">
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
                   <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><Users size={12} /> Contactados</div>
                   <div className="text-2xl font-headline font-semibold">{dashboard.total_contacted}</div>
                 </div>
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-4">
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
                   <div className="flex items-center gap-1.5 text-brand-ice text-xs mb-1"><CalendarCheck size={12} /> Reuniones agendadas</div>
                   <div className="text-2xl font-headline font-semibold text-brand-ice">{dashboard.total_meetings}</div>
                 </div>
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-4">
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
                   <div className="flex items-center gap-1.5 text-green-300 text-xs mb-1"><Percent size={12} /> Tasa de conversión</div>
                   <div className="text-2xl font-headline font-semibold text-green-300">{dashboard.conversion_rate}%</div>
                 </div>
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-4">
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
                   <div className="flex items-center gap-1.5 text-yellow-300 text-xs mb-1"><TrendingUp size={12} /> Este mes</div>
                   <div className="text-2xl font-headline font-semibold text-yellow-300">{dashboard.meetings_this_month}</div>
                 </div>

@@ -125,6 +125,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .bg-gradient-to-r.from-brand-violet.to-brand-magenta:active {
   transform: scale(0.98);
 }
+/* Sombra sutil de reposo para paneles informativos (sin hover, no son clicables) */
+.panel-depth {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.35), 0 0 0 1px #211D34;
+}
+
 @keyframes shimmer {
   0% { background-position: -400px 0; }
   100% { background-position: 400px 0; }

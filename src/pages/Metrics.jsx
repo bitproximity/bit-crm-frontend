@@ -94,7 +94,7 @@ export default function Metrics() {
       {dashboard && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
           {/* Insights AI Report — valor de deals creados por mes, apilado por pipeline */}
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 lg:col-span-2">
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth lg:col-span-2">
             <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">
               <TrendingUp size={15} className="text-brand-muted" /> Valor de tratos creados por mes
             </div>
@@ -142,7 +142,7 @@ export default function Metrics() {
           </div>
 
           {/* Deal duration */}
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 flex flex-col">
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth flex flex-col">
             <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">
               <Clock size={15} className="text-brand-muted" /> Duración de los tratos
             </div>
@@ -153,7 +153,7 @@ export default function Metrics() {
           </div>
 
           {/* Deals lost by reasons */}
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 lg:col-span-1">
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth lg:col-span-1">
             <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">
               <PieChart size={15} className="text-brand-muted" /> Tratos perdidos por motivo
             </div>
@@ -189,7 +189,7 @@ export default function Metrics() {
           </div>
 
           {/* Average value of won deals */}
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 flex flex-col">
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth flex flex-col">
             <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">
               <DollarSign size={15} className="text-brand-muted" /> Valor promedio de tratos ganados
             </div>
@@ -203,7 +203,7 @@ export default function Metrics() {
           </div>
 
           {/* Deals won over time */}
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 lg:col-span-2">
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth lg:col-span-2">
             <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">
               <TrendingUp size={15} className="text-brand-muted" /> Tratos ganados a lo largo del tiempo
             </div>
@@ -235,7 +235,7 @@ export default function Metrics() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="flex items-center gap-1.5 text-brand-muted text-sm mb-1"><Percent size={13} /> Win rate</div>
           <div className="text-2xl font-headline font-semibold bg-gradient-to-r from-brand-violet to-brand-magenta bg-clip-text text-transparent">
             {metrics.win_rate_pct !== null ? `${metrics.win_rate_pct}%` : '—'}
@@ -244,7 +244,7 @@ export default function Metrics() {
             {metrics.won_count} ganados / {metrics.lost_count} perdidos
           </div>
         </div>
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 md:col-span-2">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth md:col-span-2">
           <div className="flex items-center gap-1.5 text-brand-muted text-sm mb-2"><TrendingUp size={13} /> Forecast (próximos 3 meses, USD)</div>
           <div className="flex gap-4">
             {forecast.months.map((m) => (
@@ -260,7 +260,7 @@ export default function Metrics() {
 
       {/* Embudo de conversión */}
       {funnel && (
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-4">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-4">
           <div className="font-manrope font-medium mb-1 flex items-center gap-2"><Filter size={15} /> Embudo de conversión</div>
           <div className="text-xs text-brand-muted font-tech mb-4">{funnel.total_deals} deals totales en este pipeline</div>
           <div className="flex items-end gap-2 h-40">
@@ -281,7 +281,7 @@ export default function Metrics() {
 
       {/* Velocidad por etapa */}
       {velocity && (
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-4">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-4">
           <div className="font-manrope font-medium mb-4 flex items-center gap-2"><Gauge size={15} /> Velocidad por etapa (días promedio)</div>
           {velocity.velocity.map((v) => (
             <Bar key={v.stage_id} label={`${v.stage} (${v.sample_size} deals)`} value={v.avg_days} max={maxVelocity} suffix="d" />
@@ -290,7 +290,7 @@ export default function Metrics() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="font-manrope font-medium mb-4 flex items-center gap-2"><Package2 size={15} /> Pipeline por etapa (valor)</div>
           {metrics.deals_by_stage.map((s) => (
             <Bar key={s.stage} label={s.stage} value={s.value} max={maxStageValue} />
@@ -300,14 +300,14 @@ export default function Metrics() {
           )}
         </div>
 
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="font-manrope font-medium mb-4 flex items-center gap-2"><ListChecks size={15} /> Tareas por estado</div>
           {Object.entries(metrics.tasks_by_status).map(([status, count]) => (
             <Bar key={status} label={status} value={count} max={maxTaskCount} />
           ))}
         </div>
 
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 md:col-span-2">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth md:col-span-2">
           <div className="font-manrope font-medium mb-4 flex items-center gap-2"><FolderKanban size={15} /> Avance de proyectos activos</div>
           {metrics.project_progress.map((p) => (
             <Bar key={p.project_id} label={p.name} value={p.progress_pct} max={100} suffix="%" />
@@ -320,7 +320,7 @@ export default function Metrics() {
 
       {/* Reuniones agendadas */}
       {meetings && (
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-4">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-4">
           <div className="flex items-center justify-between mb-4">
             <div className="font-manrope font-medium flex items-center gap-2"><Users size={15} /> Reuniones agendadas (últimas 8 semanas)</div>
             <div className="text-2xl font-headline font-semibold bg-gradient-to-r from-brand-violet to-brand-magenta bg-clip-text text-transparent">
@@ -363,7 +363,7 @@ export default function Metrics() {
       )}
 
       {/* Historial / actividad reciente */}
-      <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
+      <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
         <div className="font-manrope font-medium mb-4 flex items-center gap-2"><Activity size={15} /> Actividad reciente</div>
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {feed.map((f) => (

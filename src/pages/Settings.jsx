@@ -102,7 +102,7 @@ export default function Settings() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="font-manrope font-medium mb-1">Cambiar contraseña</div>
           <p className="text-brand-muted text-sm mb-4">
             Define una contraseña nueva para tu cuenta.
@@ -134,7 +134,7 @@ export default function Settings() {
           </form>
         </div>
 
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="font-manrope font-medium mb-1">Gmail + Google Calendar</div>
           <p className="text-brand-muted text-sm mb-4">
             Conecta tu cuenta de Google para sincronizar correos con cada contacto
@@ -163,7 +163,7 @@ export default function Settings() {
           )}
         </div>
 
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="font-manrope font-medium mb-1">Cal.com</div>
           <p className="text-brand-muted text-sm mb-4">
             Conecta tu cuenta de Cal.com para ver tus reuniones agendadas por ese medio.
@@ -248,7 +248,7 @@ function CustomFieldsAdmin() {
   };
 
   return (
-    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mt-4">
+    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mt-4">
       <div className="font-manrope font-medium mb-1">Campos personalizados</div>
       <p className="text-brand-muted text-sm mb-4">
         Define campos extra para cada tipo de registro. Se editan desde el panel de detalle correspondiente.
@@ -391,7 +391,7 @@ function PipelinesAdmin() {
   };
 
   return (
-    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mt-4">
+    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mt-4">
       <div className="flex items-center justify-between mb-1">
         <div className="font-manrope font-medium">Pipelines</div>
         <button onClick={() => setShowForm(!showForm)} className="text-xs text-brand-ice hover:underline">
@@ -568,7 +568,7 @@ function TeamAdmin() {
   };
 
   return (
-    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6">
+    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-6">
       <div className="flex items-center justify-between mb-1">
         <div className="font-manrope font-medium">Equipo y permisos</div>
         <button onClick={() => setShowInvite(!showInvite)} className="text-xs text-brand-ice hover:underline">
@@ -672,7 +672,7 @@ function McpKeysAdmin() {
   const activeKeys = keys.filter((k) => !k.revoked_at);
 
   return (
-    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mt-4">
+    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mt-4">
       <div className="flex items-center justify-between mb-1">
         <div className="font-manrope font-medium">Claude / MCP</div>
         <button onClick={() => setShowForm(!showForm)} className="text-xs text-brand-ice hover:underline">

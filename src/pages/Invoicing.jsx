@@ -59,19 +59,19 @@ export default function Invoicing() {
 
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-4">
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
             <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><Receipt size={12} /> Total facturado</div>
             <div className="text-xl font-headline font-semibold">${summary.total_facturado.toLocaleString()}</div>
           </div>
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-4">
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
             <div className="flex items-center gap-1.5 text-green-300 text-xs mb-1"><CheckCircle2 size={12} /> Cobrado</div>
             <div className="text-xl font-headline font-semibold text-green-300">${summary.total_cobrado.toLocaleString()}</div>
           </div>
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-4">
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
             <div className="flex items-center gap-1.5 text-yellow-300 text-xs mb-1"><Clock size={12} /> Pendiente</div>
             <div className="text-xl font-headline font-semibold text-yellow-300">${summary.total_pendiente.toLocaleString()}</div>
           </div>
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-4">
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
             <div className="flex items-center gap-1.5 text-red-300 text-xs mb-1"><AlertTriangle size={12} /> Vencido</div>
             <div className="text-xl font-headline font-semibold text-red-300">${summary.total_vencido.toLocaleString()}</div>
           </div>

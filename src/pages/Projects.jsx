@@ -27,7 +27,7 @@ export default function Projects() {
           <Link
             to={`/projects/${p.id}`}
             key={p.id}
-            className="bg-brand-panel border border-brand-border rounded-xl p-4 hover:border-brand-violet/40 hover:shadow-lg hover:shadow-brand-violet/5 transition block"
+            className="card-elevated rounded-xl p-4 block"
           >
             <div className="flex items-start gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center flex-shrink-0">

@@ -132,7 +132,7 @@ export default function CompanyDetail() {
               <div
                 key={d.id}
                 onClick={() => navigate(`/deals/${d.id}`)}
-                className="text-sm bg-brand-bg rounded-lg px-3 py-2 cursor-pointer hover:bg-brand-border/40 transition flex items-center justify-between"
+                className="text-sm bg-brand-bg rounded-lg px-3 py-2 cursor-pointer row-hover flex items-center justify-between"
               >
                 <span>{d.title}</span>
                 <span className="text-brand-ice font-tech text-xs">{d.currency} {Number(d.value || 0).toLocaleString()}</span>

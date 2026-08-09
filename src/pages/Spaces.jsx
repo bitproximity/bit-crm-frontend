@@ -117,7 +117,7 @@ export default function Spaces() {
           <div key={s.id} className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
             <div
               onClick={() => toggleExpand(s.id)}
-              className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-brand-bg/40 transition"
+              className="flex items-center justify-between px-4 py-3 cursor-pointer row-hover"
             >
               <div className="flex items-center gap-2.5">
                 {expanded[s.id] ? <ChevronDown size={15} className="text-brand-muted" /> : <ChevronRight size={15} className="text-brand-muted" />}
@@ -141,7 +141,7 @@ export default function Spaces() {
                   <div
                     key={p.id}
                     onClick={() => navigate(`/projects/${p.id}`)}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-brand-bg cursor-pointer transition"
+                    className="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer row-hover"
                   >
                     <div className="flex items-center gap-2.5">
                       <FolderKanban size={14} className="text-brand-muted" />
