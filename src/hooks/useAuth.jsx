@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
 
@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [profileError, setProfileError] = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
+  const lastFetchedUserId = useRef(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -19,17 +20,27 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (session) {
-      setProfileLoading(true);
-      api.get('/api/team/me')
-        .then((p) => { setProfile(p); setProfileError(''); })
-        .catch((err) => { setProfile(null); setProfileError(err.message || 'Error desconocido consultando tu perfil.'); })
-        .finally(() => setProfileLoading(false));
-    } else {
+    if (!session) {
+      lastFetchedUserId.current = null;
       setProfile(null);
       setProfileError('');
       setProfileLoading(false);
+      return;
     }
+
+    // Supabase renueva el token solo cada vez que la pestaña vuelve a estar activa
+    // tras un rato en segundo plano — eso dispara este efecto de nuevo con un
+    // objeto "session" distinto aunque sea el mismo usuario. Si ya tenemos su
+    // perfil cargado, lo reutilizamos en vez de mostrar pantallas de carga y
+    // perder el estado de lo que se estaba viendo.
+    if (lastFetchedUserId.current === session.user.id) return;
+    lastFetchedUserId.current = session.user.id;
+
+    setProfileLoading(true);
+    api.get('/api/team/me')
+      .then((p) => { setProfile(p); setProfileError(''); })
+      .catch((err) => { setProfile(null); setProfileError(err.message || 'Error desconocido consultando tu perfil.'); })
+      .finally(() => setProfileLoading(false));
   }, [session]);
 
   const signOut = () => supabase.auth.signOut();
