@@ -35,9 +35,9 @@ function PublicOnlyRoute({ children }) {
 }
 
 function PrivateRoutes() {
-  const { session, profile, profileError, loading, signOut } = useAuth();
+  const { session, profile, profileError, profileLoading, loading, signOut } = useAuth();
 
-  if (loading) {
+  if (loading || (session && profileLoading)) {
     return <div className="min-h-screen flex items-center justify-center text-neutral-500">Cargando...</div>;
   }
 
