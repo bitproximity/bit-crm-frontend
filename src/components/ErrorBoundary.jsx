@@ -13,6 +13,17 @@ export default class ErrorBoundary extends Component {
   componentDidCatch(error, info) {
     // Deja rastro en la consola del navegador con el stack completo, por si hace falta depurar más a fondo.
     console.error('Error atrapado por ErrorBoundary:', error, info?.componentStack);
+
+    // Cuando se sube una actualización del CRM mientras alguien lo tiene abierto, el navegador
+    // sigue con referencias a archivos JS de la versión anterior que el servidor ya no tiene
+    // ("Failed to fetch dynamically imported module"). No es un error real de la app — solo
+    // hace falta una recarga para tomar la versión nueva. Lo hacemos automático, una sola vez
+    // por sesión para no entrar en bucle si el problema fuera otra cosa.
+    const isStaleChunk = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/i.test(error?.message || '');
+    if (isStaleChunk && !sessionStorage.getItem('bitcrm-chunk-reload')) {
+      sessionStorage.setItem('bitcrm-chunk-reload', '1');
+      window.location.reload();
+    }
   }
 
   render() {
