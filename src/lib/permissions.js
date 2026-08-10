@@ -9,7 +9,12 @@ export function isAdmin(role) {
   return role === 'admin';
 }
 
+// Rutas accesibles para cualquier rol autenticado, sin importar restricciones —
+// datos/ajustes personales de cada quien (conectar su Gmail, cambiar su contraseña, etc.)
+const UNIVERSAL_PATHS = ['/profile'];
+
 export function canAccessPath(role, pathname) {
+  if (UNIVERSAL_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return true;
   if (isAdmin(role)) return true;
   const allowed = ROLE_ALLOWED_PREFIXES[role];
   if (!allowed) return false; // rol desconocido/sin mapear -> denegar por seguridad

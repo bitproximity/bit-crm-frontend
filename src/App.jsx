@@ -25,6 +25,7 @@ const Activities = lazy(() => import('./pages/Activities'));
 const Settings = lazy(() => import('./pages/Settings'));
 const B2bMeetings = lazy(() => import('./pages/B2bMeetings'));
 const PublicB2bReport = lazy(() => import('./pages/PublicB2bReport'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 function PageFallback() {
   return <div className="page-transition"><SkeletonPage /></div>;
@@ -100,6 +101,7 @@ export default function App() {
               <Route path="/activities" element={<Suspense fallback={<PageFallback />}><Activities /></Suspense>} />
               <Route path="/b2b-meetings" element={<Suspense fallback={<PageFallback />}><B2bMeetings /></Suspense>} />
               <Route path="/settings" element={<Suspense fallback={<PageFallback />}><Settings /></Suspense>} />
+              <Route path="/profile" element={<Suspense fallback={<PageFallback />}><Profile /></Suspense>} />
             </Route>
           </Routes>
         </BrowserRouter>
