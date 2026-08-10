@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import DateTimePicker from '../components/DateTimePicker';
-import { LayoutGrid, List, Plus, Flag, Calendar, ChevronRight, ChevronDown, X, Send, Trash2 } from 'lucide-react';
+import { LayoutGrid, List, Plus, Flag, Calendar, ChevronRight, ChevronDown, X, Send, Trash2, FolderKanban } from 'lucide-react';
 
 export const STATUSES = [
   { key: 'pendiente', label: 'Pendiente' },
@@ -111,11 +112,13 @@ function TaskRow({ task, onToggleExpand, expanded, onStatusChange, onOpen, inden
 
 export default function Tasks() {
   const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [team, setTeam] = useState([]);
-  const [view, setView] = useState('board');
+  const [view, setView] = useState('proyecto');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: '', due_date: '', assignee_id: '' });
+  const [form, setForm] = useState({ title: '', due_date: '', assignee_id: '', project_id: '' });
   const [expanded, setExpanded] = useState({});
+  const [collapsedGroups, setCollapsedGroups] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [loadError, setLoadError] = useState('');
 
@@ -124,6 +127,7 @@ export default function Tasks() {
   useEffect(() => {
     load();
     api.get('/api/team').then(setTeam).catch(() => setTeam([]));
+    api.get('/api/projects').then(setProjects).catch(() => setProjects([]));
   }, []);
 
   const updateStatus = async (taskId, status) => {
@@ -137,18 +141,20 @@ export default function Tasks() {
       title: form.title,
       due_date: form.due_date || null,
       assignee_id: form.assignee_id || null,
+      project_id: form.project_id || null,
     });
-    setForm({ title: '', due_date: '', assignee_id: '' });
+    setForm({ title: '', due_date: '', assignee_id: '', project_id: '' });
     setShowForm(false);
     load();
   };
 
-  const quickCreate = async (title, status) => {
-    await api.post('/api/tasks', { title, status: status || 'pendiente' });
+  const quickCreate = async (title, status, projectId) => {
+    await api.post('/api/tasks', { title, status: status || 'pendiente', project_id: projectId || null });
     load();
   };
 
   const toggleExpand = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggleGroup = (key) => setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const rootTasks = tasks.filter((t) => !t.parent_task_id);
   const subtasksByParent = {};
@@ -157,12 +163,29 @@ export default function Tasks() {
     subtasksByParent[t.parent_task_id].push(t);
   });
 
+  // Agrupa por proyecto: cada proyecto que tenga al menos 1 tarea, más un grupo "Sin proyecto".
+  const tasksByProject = {};
+  rootTasks.forEach((t) => {
+    const key = t.project_id || 'none';
+    tasksByProject[key] = tasksByProject[key] || [];
+    tasksByProject[key].push(t);
+  });
+  const projectGroups = Object.entries(tasksByProject)
+    .map(([key, groupTasks]) => ({
+      key,
+      project: key === 'none' ? null : projects.find((p) => p.id === key),
+      tasks: groupTasks,
+      pending: groupTasks.filter((t) => t.status !== 'completada').length,
+    }))
+    .filter((g) => g.key === 'none' || g.project) // por si el proyecto fue borrado
+    .sort((a, b) => b.pending - a.pending);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <h1 className="font-headline text-xl font-semibold">Tareas</h1>
       </div>
-      <p className="text-brand-muted text-sm mb-6">{tasks.filter((t) => t.status !== 'completada').length} tareas pendientes</p>
+      <p className="text-brand-muted text-sm mb-6">{tasks.filter((t) => t.status !== 'completada').length} tareas pendientes, agrupadas por proyecto</p>
 
       {loadError && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{loadError}</div>
@@ -171,16 +194,16 @@ export default function Tasks() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex bg-brand-panel border border-brand-border rounded-xl p-1">
           <button
-            onClick={() => setView('board')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-tech flex items-center gap-1.5 transition ${view === 'board' ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
+            onClick={() => setView('proyecto')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-tech flex items-center gap-1.5 transition ${view === 'proyecto' ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
           >
-            <LayoutGrid size={13} /> Tablero
+            <FolderKanban size={13} /> Por proyecto
           </button>
           <button
-            onClick={() => setView('list')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-tech flex items-center gap-1.5 transition ${view === 'list' ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
+            onClick={() => setView('tablero')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-tech flex items-center gap-1.5 transition ${view === 'tablero' ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
           >
-            <List size={13} /> Lista
+            <LayoutGrid size={13} /> Tablero
           </button>
         </div>
         <button
@@ -202,6 +225,17 @@ export default function Tasks() {
             className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
           />
           <div className="flex flex-wrap gap-3">
+            <div className="flex-1 min-w-[180px]">
+              <label className="block text-xs text-brand-muted mb-1">Proyecto</label>
+              <select
+                value={form.project_id}
+                onChange={(e) => setForm({ ...form, project_id: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
+              >
+                <option value="">Sin proyecto</option>
+                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
             <div className="flex-1 min-w-[220px]">
               <label className="block text-xs text-brand-muted mb-1">Fecha y hora límite</label>
               <DateTimePicker value={form.due_date} onChange={(v) => setForm({ ...form, due_date: v })} className="w-full" />
@@ -226,7 +260,62 @@ export default function Tasks() {
         </form>
       )}
 
-      {view === 'board' ? (
+      {view === 'proyecto' ? (
+        <div className="space-y-3">
+          {projectGroups.map((g) => {
+            const isCollapsed = collapsedGroups[g.key];
+            const doneCount = g.tasks.length - g.pending;
+            return (
+              <div key={g.key} className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
+                <button
+                  onClick={() => toggleGroup(g.key)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-brand-bg/40 hover:bg-brand-bg/60 transition"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {isCollapsed ? <ChevronRight size={14} className="text-brand-muted flex-shrink-0" /> : <ChevronDown size={14} className="text-brand-muted flex-shrink-0" />}
+                    {g.project ? (
+                      <Link to={`/projects/${g.project.id}`} onClick={(e) => e.stopPropagation()} className="text-sm font-manrope font-medium hover:text-brand-ice truncate">
+                        {g.project.name}
+                      </Link>
+                    ) : (
+                      <span className="text-sm font-manrope font-medium text-brand-muted">Sin proyecto</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0 text-xs font-tech text-brand-muted">
+                    <span>{doneCount}/{g.tasks.length} completadas</span>
+                    {g.pending > 0 && <span className="bg-brand-violet/20 text-brand-ice px-2 py-0.5 rounded-full">{g.pending} pendientes</span>}
+                  </div>
+                </button>
+                {!isCollapsed && (
+                  <div className="px-4">
+                    {g.tasks.map((task) => (
+                      <div key={task.id}>
+                        <TaskRow
+                          task={{ ...task, subtasks: subtasksByParent[task.id] }}
+                          onToggleExpand={toggleExpand}
+                          expanded={expanded[task.id]}
+                          onStatusChange={updateStatus}
+                          onOpen={setSelectedTaskId}
+                        />
+                        {expanded[task.id] &&
+                          (subtasksByParent[task.id] || []).map((sub) => (
+                            <TaskRow key={sub.id} task={sub} onStatusChange={updateStatus} onOpen={setSelectedTaskId} indent />
+                          ))}
+                      </div>
+                    ))}
+                    <InlineAddRow onSubmit={(title) => quickCreate(title, 'pendiente', g.key === 'none' ? null : g.key)} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {projectGroups.length === 0 && (
+            <div className="text-center py-16 text-brand-muted text-sm border border-dashed border-brand-border rounded-xl">
+              Sin tareas todavía. Crea una arriba.
+            </div>
+          )}
+        </div>
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {STATUSES.map((status) => (
             <div
@@ -275,38 +364,6 @@ export default function Tasks() {
               </div>
             </div>
           ))}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {STATUSES.map((status) => {
-            const group = rootTasks.filter((t) => t.status === status.key);
-            return (
-              <div key={status.key} className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5 bg-brand-bg/40 border-b border-brand-border">
-                  <span className="text-sm font-manrope font-medium">{status.label}</span>
-                  <span className="text-brand-muted font-tech text-xs bg-brand-bg px-2 py-0.5 rounded-full">{group.length}</span>
-                </div>
-                <div className="px-4">
-                  {group.map((task) => (
-                    <div key={task.id}>
-                      <TaskRow
-                        task={{ ...task, subtasks: subtasksByParent[task.id] }}
-                        onToggleExpand={toggleExpand}
-                        expanded={expanded[task.id]}
-                        onStatusChange={updateStatus}
-                        onOpen={setSelectedTaskId}
-                      />
-                      {expanded[task.id] &&
-                        (subtasksByParent[task.id] || []).map((sub) => (
-                          <TaskRow key={sub.id} task={sub} onStatusChange={updateStatus} onOpen={setSelectedTaskId} indent />
-                        ))}
-                    </div>
-                  ))}
-                  <InlineAddRow onSubmit={(title) => quickCreate(title, status.key)} />
-                </div>
-              </div>
-            );
-          })}
         </div>
       )}
 
