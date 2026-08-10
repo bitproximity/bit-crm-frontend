@@ -138,8 +138,10 @@ export default function Settings() {
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="font-manrope font-medium mb-1">Gmail + Google Calendar</div>
           <p className="text-brand-muted text-sm mb-4">
-            Conecta tu cuenta de Google para sincronizar correos con cada contacto
-            y ver tus próximos eventos de calendario, todo con una sola conexión.
+            Conecta tu cuenta de Google para sincronizar correos con cada contacto,
+            ver tus próximos eventos, y que tus tareas con fecha límite se creen
+            automáticamente en tu Google Calendar con recordatorio (30 min antes por
+            notificación, 1 hora antes por correo).
           </p>
 
           {gmail === null ? (
