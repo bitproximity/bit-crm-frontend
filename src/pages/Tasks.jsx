@@ -382,6 +382,21 @@ export default function Tasks() {
 export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
   const [task, setTask] = useState(null);
   const [comment, setComment] = useState('');
+  const [calSyncResult, setCalSyncResult] = useState(null);
+  const [calSyncing, setCalSyncing] = useState(false);
+
+  const syncCalendar = async () => {
+    setCalSyncing(true);
+    setCalSyncResult(null);
+    try {
+      const result = await api.post(`/api/tasks/${taskId}/sync-calendar`, {});
+      setCalSyncResult(result);
+    } catch (err) {
+      setCalSyncResult({ ok: false, reason: err.message });
+    }
+    setCalSyncing(false);
+  };
+
   const [error, setError] = useState('');
   const [mentionQuery, setMentionQuery] = useState(null); // null = cerrado, '' o texto = filtro activo
 
@@ -471,6 +486,21 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
               value={task.due_date || ''}
               onChange={(v) => update({ due_date: v || null })}
             />
+          </div>
+
+          <div>
+            <button
+              onClick={syncCalendar}
+              disabled={calSyncing}
+              className="text-xs text-brand-ice hover:underline disabled:opacity-50"
+            >
+              {calSyncing ? 'Sincronizando...' : '📅 Sincronizar con Google Calendar ahora'}
+            </button>
+            {calSyncResult && (
+              <div className={`mt-1.5 px-3 py-2 rounded-lg text-xs ${calSyncResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-300' : 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-300'}`}>
+                {calSyncResult.ok ? 'Sincronizada. Ya debería verse en el Google Calendar del responsable, con recordatorio.' : calSyncResult.reason}
+              </div>
+            )}
           </div>
 
           {task.projects?.name && (
