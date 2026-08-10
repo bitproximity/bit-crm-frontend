@@ -391,6 +391,36 @@ function PipelinesAdmin() {
     }
   };
 
+  const moveStage = async (pipelineId, stageId, direction) => {
+    const pipeline = pipelines.find((p) => p.id === pipelineId);
+    const sorted = [...(pipeline?.pipeline_stages || [])].sort((a, b) => a.position - b.position);
+    const index = sorted.findIndex((s) => s.id === stageId);
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= sorted.length) return;
+
+    const current = sorted[index];
+    const swapWith = sorted[swapIndex];
+
+    // Actualiza el estado local al toque para que se sienta instantáneo, y confirma con el backend
+    setPipelines((prev) => prev.map((p) => {
+      if (p.id !== pipelineId) return p;
+      return {
+        ...p,
+        pipeline_stages: p.pipeline_stages.map((s) => {
+          if (s.id === current.id) return { ...s, position: swapWith.position };
+          if (s.id === swapWith.id) return { ...s, position: current.position };
+          return s;
+        }),
+      };
+    }));
+
+    await Promise.all([
+      api.patch(`/api/pipelines/stages/${current.id}`, { position: swapWith.position }),
+      api.patch(`/api/pipelines/stages/${swapWith.id}`, { position: current.position }),
+    ]);
+    load();
+  };
+
   return (
     <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mt-4">
       <div className="flex items-center justify-between mb-1">
@@ -494,6 +524,12 @@ function PipelinesAdmin() {
                         <>
                           <span className="text-xs text-brand-muted font-tech">{s.position}. {s.name}</span>
                           <div className="flex items-center gap-2">
+                            <button onClick={() => moveStage(p.id, s.id, 'up')} className="text-xs text-brand-muted hover:text-brand-ice disabled:opacity-20" disabled={s === (p.pipeline_stages || []).slice().sort((a, b) => a.position - b.position)[0]}>
+                              ↑
+                            </button>
+                            <button onClick={() => moveStage(p.id, s.id, 'down')} className="text-xs text-brand-muted hover:text-brand-ice disabled:opacity-20" disabled={s === (p.pipeline_stages || []).slice().sort((a, b) => a.position - b.position).slice(-1)[0]}>
+                              ↓
+                            </button>
                             <button onClick={() => startEditStage(s)} className="text-xs text-brand-muted hover:text-brand-ice">
                               Editar
                             </button>
