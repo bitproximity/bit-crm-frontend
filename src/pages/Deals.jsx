@@ -111,24 +111,24 @@ export default function Deals() {
   return (
     <div>
       {/* Header superior: título + búsqueda + nuevo */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <div className="flex items-center gap-2">
           <h1 className="font-headline text-xl font-semibold">Pipeline</h1>
           <Info size={15} className="text-brand-muted" />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap">
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar en el pipeline..."
-              className="pl-9 pr-3 py-2 w-64 rounded-full bg-brand-panel border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
+              className="pl-9 pr-3 py-2 w-40 sm:w-64 rounded-full bg-brand-panel border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
             />
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="w-9 h-9 rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta flex items-center justify-center hover:opacity-90 transition"
+            className="w-9 h-9 rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta flex items-center justify-center hover:opacity-90 transition flex-shrink-0"
           >
             <Plus size={18} />
           </button>
@@ -136,9 +136,9 @@ export default function Deals() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
-            className="px-3 py-2 rounded-full bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3 py-2 rounded-full bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition flex items-center gap-1.5 disabled:opacity-50 flex-shrink-0"
           >
-            <Upload size={13} /> {importing ? 'Importando...' : 'Importar CSV'}
+            <Upload size={13} /> <span className="hidden sm:inline">{importing ? 'Importando...' : 'Importar CSV'}</span>
           </button>
         </div>
       </div>
@@ -156,7 +156,7 @@ export default function Deals() {
       )}
 
       {/* Toolbar: vistas + nuevo trato + conteo + selector de pipeline */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
         <div className="flex items-center gap-2">
           <div className="flex bg-brand-panel border border-brand-border rounded-xl p-1">
             {VIEW_TABS.map((tab) => (
@@ -224,7 +224,7 @@ export default function Deals() {
 
       {/* ── VISTA TABLERO (kanban) ── */}
       {view === 'board' && (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-3 md:gap-4 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
           {pipeline.pipeline_stages.sort((a, b) => a.position - b.position).map((stage) => {
             const stageDeals = filteredDeals.filter((d) => d.stage_id === stage.id);
             return (
@@ -232,7 +232,7 @@ export default function Deals() {
                 key={stage.id}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => onDrop(stage.id, e.dataTransfer.getData('dealId'))}
-                className="w-72 flex-shrink-0"
+                className="w-64 md:w-72 flex-shrink-0"
               >
                 <div className="flex items-center justify-between mb-1 px-1">
                   <span className="text-sm font-manrope font-semibold">{stage.name}</span>
