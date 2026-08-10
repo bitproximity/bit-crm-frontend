@@ -568,6 +568,22 @@ function TeamAdmin() {
     load();
   };
 
+  const [resendingId, setResendingId] = useState(null);
+  const [resentId, setResentId] = useState(null);
+
+  const resendAccess = async (id) => {
+    setResendingId(id);
+    setError('');
+    try {
+      await api.post(`/api/team/${id}/resend-access`, {});
+      setResentId(id);
+      setTimeout(() => setResentId(null), 3000);
+    } catch (err) {
+      setError(err.message || 'No se pudo reenviar el acceso.');
+    }
+    setResendingId(null);
+  };
+
   return (
     <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-6">
       <div className="flex items-center justify-between mb-1">
@@ -630,7 +646,12 @@ function TeamAdmin() {
                 <option value="operaciones">Operaciones</option>
               </select>
               {m.active ? (
-                <button onClick={() => deactivate(m.id, m.full_name)} className="text-xs text-brand-muted hover:text-red-400">Quitar acceso</button>
+                <>
+                  <button onClick={() => resendAccess(m.id)} disabled={resendingId === m.id} className="text-xs text-brand-ice hover:underline disabled:opacity-50">
+                    {resendingId === m.id ? 'Enviando...' : resentId === m.id ? 'Enviado ✓' : 'Reenviar acceso'}
+                  </button>
+                  <button onClick={() => deactivate(m.id, m.full_name)} className="text-xs text-brand-muted hover:text-red-400">Quitar acceso</button>
+                </>
               ) : (
                 <button onClick={() => reactivate(m.id)} className="text-xs text-brand-ice hover:underline">Reactivar</button>
               )}
