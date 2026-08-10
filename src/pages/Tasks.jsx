@@ -383,6 +383,7 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
   const [task, setTask] = useState(null);
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
+  const [mentionQuery, setMentionQuery] = useState(null); // null = cerrado, '' o texto = filtro activo
 
   const load = () => api.get(`/api/tasks/${taskId}`).then(setTask).catch((err) => setError(err.message));
 
@@ -393,6 +394,26 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
     load();
     onChanged?.();
   };
+
+  const onCommentChange = (e) => {
+    const value = e.target.value;
+    setComment(value);
+    const cursor = e.target.selectionStart;
+    const beforeCursor = value.slice(0, cursor);
+    const match = beforeCursor.match(/@([a-zA-ZÀ-ÿ]*)$/);
+    setMentionQuery(match ? match[1] : null);
+  };
+
+  const insertMention = (member) => {
+    const cursor = comment.length; // aproximación simple: siempre al final del texto escrito hasta ahora
+    const beforeMention = comment.replace(/@([a-zA-ZÀ-ÿ]*)$/, '');
+    setComment(`${beforeMention}@${member.full_name} `);
+    setMentionQuery(null);
+  };
+
+  const mentionResults = mentionQuery !== null
+    ? (team || []).filter((m) => m.full_name.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 5)
+    : [];
 
   const addComment = async (e) => {
     e.preventDefault();
@@ -484,10 +505,25 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
               ))}
               {(task.comments || []).length === 0 && <div className="text-brand-muted text-xs">Sin comentarios todavía.</div>}
             </div>
-            <form onSubmit={addComment} className="flex gap-2">
+            <form onSubmit={addComment} className="relative flex gap-2">
+              {mentionResults.length > 0 && (
+                <div className="absolute bottom-full mb-1 left-0 w-56 bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden z-10">
+                  {mentionResults.map((m) => (
+                    <button
+                      type="button"
+                      key={m.id}
+                      onClick={() => insertMention(m)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center gap-2"
+                    >
+                      <Avatar name={m.full_name} />
+                      {m.full_name}
+                    </button>
+                  ))}
+                </div>
+              )}
               <input
-                value={comment} onChange={(e) => setComment(e.target.value)}
-                placeholder="Escribe un comentario..."
+                value={comment} onChange={onCommentChange}
+                placeholder="Escribe un comentario... usa @ para mencionar"
                 className="flex-1 px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
               />
               <button className="px-3 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg"><Send size={14} /></button>
