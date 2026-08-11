@@ -2,6 +2,8 @@ import { SkeletonLine } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 
+const MCP_URL = `${import.meta.env.VITE_API_URL || 'https://bit-crm-backend-production.up.railway.app'}/mcp`;
+
 export default function Settings() {
   return (
     <div>
@@ -546,6 +548,11 @@ function McpKeysAdmin() {
         modificar datos en lenguaje natural. Ver el README del servidor MCP para
         la instalación completa.
       </p>
+
+      <div className="mb-4 px-4 py-3 bg-brand-bg border border-brand-border rounded-lg">
+        <div className="text-xs text-brand-muted mb-1">URL del servidor MCP:</div>
+        <div className="font-tech text-sm text-brand-ice break-all select-all">{MCP_URL}</div>
+      </div>
 
       {newKey && (
         <div className="mb-4 px-4 py-3 bg-brand-violet/10 border border-brand-violet/30 rounded-lg">
