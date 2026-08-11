@@ -498,7 +498,16 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
             </button>
             {calSyncResult && (
               <div className={`mt-1.5 px-3 py-2 rounded-lg text-xs ${calSyncResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-300' : 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-300'}`}>
-                {calSyncResult.ok ? 'Sincronizada. Ya debería verse en el Google Calendar del responsable, con recordatorio.' : calSyncResult.reason}
+                {calSyncResult.ok ? (
+                  <>
+                    Sincronizada con <span className="font-tech">{calSyncResult.connectedEmail}</span>, con recordatorio.{' '}
+                    {calSyncResult.eventLink && (
+                      <a href={calSyncResult.eventLink} target="_blank" rel="noreferrer" className="underline">
+                        Ver el evento directo en Google Calendar →
+                      </a>
+                    )}
+                  </>
+                ) : calSyncResult.reason}
               </div>
             )}
           </div>
