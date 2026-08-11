@@ -239,7 +239,7 @@ export default function Deals() {
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-brand-muted mb-3 px-1">
                   <DollarSign size={12} />
-                  <span className="font-tech">${stageTotal(stage.id).toLocaleString()}</span>
+                  <span className="font-tech">${stageTotal(stage.id).toLocaleString('es-CO')}</span>
                   <span>· {stageDeals.length} tratos</span>
                 </div>
 
@@ -263,7 +263,7 @@ export default function Deals() {
                         {deal.companies?.name && <div className="text-xs text-brand-muted mb-2">{deal.companies.name}</div>}
                         {Number(deal.value) > 0 && (
                           <div className="text-sm text-brand-ice font-tech font-medium mb-2">
-                            {deal.currency} {Number(deal.value).toLocaleString()}
+                            {deal.currency} {Number(deal.value).toLocaleString('es-CO')}
                           </div>
                         )}
                         <div className="flex items-center justify-between mt-2">
@@ -317,7 +317,7 @@ export default function Deals() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-brand-ice font-tech">
-                    {Number(deal.value) > 0 ? `${deal.currency} ${Number(deal.value).toLocaleString()}` : '—'}
+                    {Number(deal.value) > 0 ? `${deal.currency} ${Number(deal.value).toLocaleString('es-CO')}` : '—'}
                   </td>
                   <td className="px-4 py-3 text-brand-muted font-tech">{deal.probability}%</td>
                 </tr>
@@ -340,7 +340,7 @@ export default function Deals() {
             <div className="mb-4 bg-brand-panel border border-brand-border rounded-xl p-4 flex items-center justify-between">
               <span className="text-sm text-brand-muted">Valor total del pipeline (mezcla de monedas)</span>
               <span className="text-xl font-headline font-semibold bg-gradient-to-r from-brand-violet to-brand-magenta bg-clip-text text-transparent">
-                ${total.toLocaleString()}
+                ${total.toLocaleString('es-CO')}
               </span>
             </div>
             <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
@@ -366,9 +366,9 @@ export default function Deals() {
                       >
                         <td className="px-4 py-3">{deal.title}</td>
                         <td className="px-4 py-3 text-brand-muted text-xs">{deal.pipeline_stages?.name}</td>
-                        <td className="px-4 py-3 text-brand-ice font-tech">{deal.currency} {Number(deal.value).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-brand-ice font-tech">{deal.currency} {Number(deal.value).toLocaleString('es-CO')}</td>
                         <td className="px-4 py-3 text-brand-muted font-tech">{pct}%</td>
-                        <td className="px-4 py-3 text-brand-muted font-tech">${running.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-brand-muted font-tech">${running.toLocaleString('es-CO')}</td>
                       </tr>
                     );
                   })}
@@ -405,7 +405,7 @@ export default function Deals() {
                   <td className="px-4 py-3">{deal.title}</td>
                   <td className="px-4 py-3 text-brand-muted">{deal.companies?.name || '—'}</td>
                   <td className="px-4 py-3 text-brand-ice font-tech">
-                    {Number(deal.value) > 0 ? `${deal.currency} ${Number(deal.value).toLocaleString()}` : '—'}
+                    {Number(deal.value) > 0 ? `${deal.currency} ${Number(deal.value).toLocaleString('es-CO')}` : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${deal.status === 'ganado' ? 'bg-green-500/15 text-green-300' : 'bg-red-500/15 text-red-300'}`}>
