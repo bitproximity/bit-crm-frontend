@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import AddDealModal from '../components/AddDealModal';
+import PipelineSelector from '../components/PipelineSelector';
 import { csvToDeals } from '../lib/csv';
 import {
   LayoutGrid, List, DollarSign, Archive, Plus, Search,
@@ -22,7 +23,7 @@ export default function Deals() {
   const navigate = useNavigate();
   const [pipelines, setPipelines] = useState([]);
   const [pipelineId, setPipelineId] = useState(null);
-  const [pipelineMenuOpen, setPipelineMenuOpen] = useState(false);
+  const [cardFields, setCardFields] = useState({ company: true, contact: true, value: true, due_date_warning: true, avatar: true });
   const [deals, setDeals] = useState([]);
   const [archivedDeals, setArchivedDeals] = useState([]);
   const [view, setView] = useState('board'); // board | list | value | archive
@@ -54,6 +55,7 @@ export default function Deals() {
 
   useEffect(() => {
     loadPipelines().catch(console.error);
+    api.get('/api/settings/deal_card_fields').then(setCardFields).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -183,33 +185,13 @@ export default function Deals() {
             <Info size={13} />
           </div>
 
-          <div className="relative">
-            <button
-              onClick={() => setPipelineMenuOpen(!pipelineMenuOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-panel border border-brand-border text-sm hover:border-brand-violet transition"
-            >
-              <LayoutGrid size={14} className="text-brand-muted" />
-              <span>{pipeline.name}</span>
-              <ChevronDown size={14} className="text-brand-muted" />
-            </button>
-            {pipelineMenuOpen && (
-              <div className="absolute right-0 mt-1 w-64 bg-brand-panel border border-brand-border rounded-xl shadow-xl z-20 overflow-hidden">
-                {pipelines.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => { setPipelineId(p.id); setPipelineMenuOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-brand-bg transition flex items-center justify-between ${p.id === pipelineId ? 'text-brand-ice' : 'text-brand-white'}`}
-                  >
-                    {p.name}
-                    {p.id === pipelineId && <span className="text-brand-violet">✓</span>}
-                  </button>
-                ))}
-                <a href="/settings" className="block px-4 py-2.5 text-xs text-brand-muted hover:bg-brand-bg border-t border-brand-border transition">
-                  Administrar pipelines
-                </a>
-              </div>
-            )}
-          </div>
+          <PipelineSelector
+            pipelines={pipelines}
+            pipelineId={pipelineId}
+            onSelect={(id) => setPipelineId(id)}
+            onPipelinesChanged={(updated) => setPipelines(updated)}
+            onCreateClick={() => navigate('/settings')}
+          />
         </div>
       </div>
 
@@ -234,8 +216,11 @@ export default function Deals() {
                 onDrop={(e) => onDrop(stage.id, e.dataTransfer.getData('dealId'))}
                 className="w-64 md:w-72 flex-shrink-0"
               >
-                <div className="flex items-center justify-between mb-1 px-1">
-                  <span className="text-sm font-manrope font-semibold">{stage.name}</span>
+                <div className="flex items-center gap-2 justify-between mb-1 px-1">
+                  <span className="flex items-center gap-2">
+                    {stage.color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />}
+                    <span className="text-sm font-manrope font-semibold">{stage.name}</span>
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-brand-muted mb-3 px-1">
                   <DollarSign size={12} />
@@ -259,18 +244,20 @@ export default function Deals() {
                           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-violet to-brand-magenta" />
                         )}
                         <div className="text-sm font-manrope font-medium mb-0.5">{deal.title}</div>
-                        {cName && <div className="text-xs text-brand-muted mb-0.5">{cName}</div>}
-                        {deal.companies?.name && <div className="text-xs text-brand-muted mb-2">{deal.companies.name}</div>}
-                        {Number(deal.value) > 0 && (
+                        {cardFields.contact && cName && <div className="text-xs text-brand-muted mb-0.5">{cName}</div>}
+                        {cardFields.company && deal.companies?.name && <div className="text-xs text-brand-muted mb-2">{deal.companies.name}</div>}
+                        {cardFields.value && Number(deal.value) > 0 && (
                           <div className="text-sm text-brand-ice font-tech font-medium mb-2">
                             {deal.currency} {Number(deal.value).toLocaleString('es-CO')}
                           </div>
                         )}
                         <div className="flex items-center justify-between mt-2">
-                          <div className="w-6 h-6 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-[10px] text-brand-muted font-tech">
-                            {cName ? initials(cName) : <User size={12} />}
-                          </div>
-                          {overdue && <AlertTriangle size={14} className="text-yellow-400" />}
+                          {cardFields.avatar && (
+                            <div className="w-6 h-6 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-[10px] text-brand-muted font-tech">
+                              {cName ? initials(cName) : <User size={12} />}
+                            </div>
+                          )}
+                          {cardFields.due_date_warning && overdue && <AlertTriangle size={14} className="text-yellow-400" />}
                         </div>
                       </div>
                     );
