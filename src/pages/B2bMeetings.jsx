@@ -295,6 +295,35 @@ export default function B2bMeetings() {
                   )}
                 </div>
               </div>
+
+              {dashboard.by_person && dashboard.by_person.length > 0 && (
+                <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden mb-6">
+                  <div className="px-5 py-4 border-b border-brand-border flex items-center gap-2">
+                    <Users size={15} className="text-brand-ice" />
+                    <div className="text-sm font-manrope font-medium">Rendimiento por persona</div>
+                  </div>
+                  <table className="w-full text-sm">
+                    <thead className="bg-brand-panel/80 text-brand-muted text-left">
+                      <tr>
+                        <th className="px-5 py-2.5 font-manrope font-normal">Quién</th>
+                        <th className="px-5 py-2.5 font-manrope font-normal">Contactados</th>
+                        <th className="px-5 py-2.5 font-manrope font-normal">Reuniones</th>
+                        <th className="px-5 py-2.5 font-manrope font-normal">Conversión</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashboard.by_person.map((p, i) => (
+                        <tr key={i} className="border-t border-brand-border">
+                          <td className="px-5 py-2.5">{p.name}</td>
+                          <td className="px-5 py-2.5 text-brand-muted font-tech">{p.contacted}</td>
+                          <td className="px-5 py-2.5 text-brand-ice font-tech">{p.meetings}</td>
+                          <td className="px-5 py-2.5 text-green-300 font-tech">{p.conversion}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>
           )}
 
