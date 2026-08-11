@@ -167,8 +167,8 @@ export default function ProductsModal({ open, onClose, dealId, dealTitle, dealCu
           </div>
 
           {/* Tabla de productos */}
-          <div className="border border-brand-border rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[1fr_110px_80px_100px_110px_40px] gap-2 px-3 py-2 bg-brand-bg/60 text-[11px] uppercase tracking-wide text-brand-muted font-tech">
+          <div className="border border-brand-border rounded-xl">
+            <div className="grid grid-cols-[1fr_110px_80px_100px_110px_40px] gap-2 px-3 py-2 bg-brand-bg/60 text-[11px] uppercase tracking-wide text-brand-muted font-tech rounded-t-xl">
               <span>Producto</span>
               <span>Precio</span>
               <span>Cant.</span>
@@ -258,7 +258,7 @@ export default function ProductsModal({ open, onClose, dealId, dealTitle, dealCu
 
             <button
               onClick={addRow}
-              className="w-full flex items-center gap-1.5 px-3 py-2.5 text-sm text-brand-ice hover:bg-brand-bg/60 transition border-t border-brand-border"
+              className="w-full flex items-center gap-1.5 px-3 py-2.5 text-sm text-brand-ice hover:bg-brand-bg/60 transition border-t border-brand-border rounded-b-xl"
             >
               <Plus size={14} /> Producto
             </button>
