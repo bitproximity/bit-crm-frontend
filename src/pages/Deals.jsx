@@ -224,7 +224,7 @@ export default function Deals() {
 
       {/* ── VISTA TABLERO (kanban) ── */}
       {view === 'board' && (
-        <div className="flex gap-3 md:gap-4 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="board-scroll flex gap-3 md:gap-4 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
           {pipeline.pipeline_stages.sort((a, b) => a.position - b.position).map((stage) => {
             const stageDeals = filteredDeals.filter((d) => d.stage_id === stage.id);
             return (
