@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { InvoiceDetailModal } from './Invoicing';
 import DateTimePicker from '../components/DateTimePicker';
+import ProductsModal from '../components/ProductsModal';
 import {
   ChevronLeft, ChevronDown, MoreHorizontal, Tag, Calendar, Building2, User,
   Plus, X, Mail, Phone, Video, StickyNote, FileText as FileTextIcon, Paperclip,
@@ -85,9 +86,6 @@ export default function DealDetail() {
   const [activityForm, setActivityForm] = useState({ type: 'llamada', title: '', due_date: '' });
 
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [productForm, setProductForm] = useState({ product_id: '', quantity: 1, unit_price: '', currency: 'USD' });
-  const [showNewProduct, setShowNewProduct] = useState(false);
-  const [newProductForm, setNewProductForm] = useState({ name: '', type: 'producto', price: '' });
 
   const [probEditing, setProbEditing] = useState(false);
   const [probValue, setProbValue] = useState(0);
@@ -261,33 +259,6 @@ export default function DealDetail() {
     }
     setGmailSyncing(false);
   };
-
-  const addProduct = async (e) => {
-    e.preventDefault();
-    await api.post(`/api/deals/${id}/line-items`, {
-      product_id: productForm.product_id || null,
-      quantity: Number(productForm.quantity),
-      unit_price: Number(productForm.unit_price),
-      currency: productForm.currency,
-    });
-    setProductForm({ product_id: '', quantity: 1, unit_price: '', currency: 'USD' });
-    setShowAddProduct(false);
-    load();
-  };
-
-  const createProduct = async (e) => {
-    e.preventDefault();
-    const newProduct = await api.post('/api/products', {
-      name: newProductForm.name, type: newProductForm.type,
-      price: Number(newProductForm.price) || 0, currency: 'USD',
-    });
-    setProductForm({ product_id: newProduct.id, quantity: 1, unit_price: newProduct.price, currency: newProduct.currency });
-    setNewProductForm({ name: '', type: 'producto', price: '' });
-    setShowNewProduct(false);
-    setProducts(await api.get('/api/products?active=true'));
-  };
-
-  const removeProduct = async (itemId) => { await api.delete(`/api/deals/${id}/line-items/${itemId}`); load(); };
 
   const saveProbability = async () => {
     await api.patch(`/api/deals/${id}`, { probability: Number(probValue) || 0 });
@@ -603,7 +574,7 @@ export default function DealDetail() {
                     {deal.currency} {Number(deal.value).toLocaleString()}
                   </button>
                 )}
-                <button onClick={() => setShowAddProduct(!showAddProduct)} className="text-xs text-brand-ice hover:underline">
+                <button onClick={() => setShowAddProduct(true)} className="text-xs text-brand-ice hover:underline">
                   {lineItems.length} producto{lineItems.length !== 1 ? 's' : ''}
                 </button>
               </div>
@@ -742,44 +713,14 @@ export default function DealDetail() {
               </div>
             </div>
 
-            {showAddProduct && (
-              <div className="mt-3 bg-brand-bg border border-brand-border rounded-lg p-3 space-y-2">
-                {lineItems.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center text-xs">
-                    <span>{item.products?.name || item.description || 'Ítem'} <span className="text-brand-muted">x{item.quantity}</span></span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-brand-ice font-tech">{item.currency} {Number(item.unit_price * item.quantity).toLocaleString()}</span>
-                      <button onClick={() => removeProduct(item.id)} className="text-brand-muted hover:text-red-400">×</button>
-                    </div>
-                  </div>
-                ))}
-                <form onSubmit={addProduct} className="flex flex-wrap gap-1.5 pt-2 border-t border-brand-border">
-                  <select
-                    value={productForm.product_id}
-                    onChange={(e) => {
-                      if (e.target.value === '__new__') { setShowNewProduct(true); return; }
-                      const p = products.find((pr) => pr.id === e.target.value);
-                      setProductForm({ ...productForm, product_id: e.target.value, unit_price: p?.price || '', currency: p?.currency || 'USD' });
-                    }}
-                    className="flex-1 min-w-[100px] px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs"
-                  >
-                    <option value="">Personalizado</option>
-                    {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    <option value="__new__">+ Crear producto...</option>
-                  </select>
-                  <input type="number" placeholder="Cant." value={productForm.quantity} onChange={(e) => setProductForm({ ...productForm, quantity: e.target.value })} className="w-14 px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs" />
-                  <input type="number" placeholder="Precio" value={productForm.unit_price} onChange={(e) => setProductForm({ ...productForm, unit_price: e.target.value })} className="w-16 px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs" />
-                  <button className="px-3 py-1.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded text-xs font-medium">Agregar</button>
-                </form>
-                {showNewProduct && (
-                  <form onSubmit={createProduct} className="flex flex-wrap gap-1.5 pt-2 border-t border-brand-border">
-                    <input autoFocus placeholder="Nombre" value={newProductForm.name} onChange={(e) => setNewProductForm({ ...newProductForm, name: e.target.value })} required className="flex-1 min-w-[100px] px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs" />
-                    <input type="number" placeholder="Precio" value={newProductForm.price} onChange={(e) => setNewProductForm({ ...newProductForm, price: e.target.value })} className="w-16 px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs" />
-                    <button className="px-3 py-1.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded text-xs font-medium">Crear</button>
-                  </form>
-                )}
-              </div>
-            )}
+            <ProductsModal
+              open={showAddProduct}
+              onClose={() => setShowAddProduct(false)}
+              dealId={id}
+              dealTitle={deal.title}
+              dealCurrency={deal.currency}
+              onSaved={load}
+            />
           </div>
 
           {customFields.length > 0 && (
