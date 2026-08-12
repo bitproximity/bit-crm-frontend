@@ -395,19 +395,34 @@ function TeamAdmin() {
   };
 
   const changeRole = async (id, role) => {
-    await api.patch(`/api/team/${id}`, { role });
-    load();
+    setError('');
+    try {
+      await api.patch(`/api/team/${id}`, { role });
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo actualizar el rol.');
+    }
   };
 
   const deactivate = async (id, name) => {
     if (!window.confirm(`¿Quitar el acceso de ${name}? Ya no va a poder iniciar sesión en el CRM.`)) return;
-    await api.delete(`/api/team/${id}`);
-    load();
+    setError('');
+    try {
+      await api.delete(`/api/team/${id}`);
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo quitar el acceso.');
+    }
   };
 
   const reactivate = async (id) => {
-    await api.patch(`/api/team/${id}`, { active: true });
-    load();
+    setError('');
+    try {
+      await api.patch(`/api/team/${id}`, { active: true });
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo reactivar el acceso.');
+    }
   };
 
   const [resendingId, setResendingId] = useState(null);
