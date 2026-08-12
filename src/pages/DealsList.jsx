@@ -8,8 +8,16 @@ const TITLES = {
   ganado_mes: 'Ganados este mes',
   ganado: 'Tratos ganados',
   perdido: 'Tratos perdidos',
-  'ganado,perdido': 'Tratos ganados y perdidos',
+  'ganado,perdido': 'Tratos cerrados (ganados y perdidos)',
 };
+
+const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+function monthLabel(key) {
+  if (!key) return '';
+  const [y, m] = key.split('-');
+  return `${MONTH_NAMES[Number(m) - 1]} ${y}`;
+}
 
 export default function DealsList() {
   const [params] = useSearchParams();
@@ -18,12 +26,24 @@ export default function DealsList() {
   const [error, setError] = useState('');
 
   const status = params.get('status') || 'abierto';
-  const period = params.get('period'); // 'this_month' opcional
+  const period = params.get('period'); // 'this_month' opcional (retrocompatibilidad)
+  const pipelineId = params.get('pipeline_id');
+  const createdMonth = params.get('created_month');
+  const closedMonth = params.get('closed_month');
+  const closedYear = params.get('closed_year');
+  const lostReason = params.get('lost_reason');
 
   useEffect(() => {
     setDeals(null);
+    const qs = new URLSearchParams({ status });
+    if (pipelineId) qs.set('pipeline_id', pipelineId);
+    if (createdMonth) qs.set('created_month', createdMonth);
+    if (closedMonth) qs.set('closed_month', closedMonth);
+    if (closedYear) qs.set('closed_year', closedYear);
+    if (lostReason) qs.set('lost_reason', lostReason);
+
     api
-      .get(`/api/deals?status=${status}`)
+      .get(`/api/deals?${qs.toString()}`)
       .then((data) => {
         let filtered = data;
         if (period === 'this_month') {
@@ -37,16 +57,23 @@ export default function DealsList() {
         setDeals(filtered);
       })
       .catch((err) => setError(err.message || 'No se pudieron cargar los tratos.'));
-  }, [status, period]);
+  }, [status, period, pipelineId, createdMonth, closedMonth, closedYear, lostReason]);
 
   const key = period === 'this_month' && status === 'ganado' ? 'ganado_mes' : status;
-  const title = TITLES[key] || 'Tratos';
+  let title = TITLES[key] || 'Tratos';
+  const subParts = [];
+  if (createdMonth) subParts.push(`creados en ${monthLabel(createdMonth)}`);
+  if (closedMonth) subParts.push(`cerrados en ${monthLabel(closedMonth)}`);
+  if (closedYear) subParts.push(`cerrados en ${closedYear}`);
+  if (lostReason) subParts.push(`motivo: "${lostReason === '(sin motivo)' ? 'sin motivo especificado' : lostReason}"`);
+  if (subParts.length) title += ` — ${subParts.join(', ')}`;
+
   const totalValue = (deals || []).reduce((sum, d) => sum + (Number(d.value) || 0), 0);
 
   return (
     <div>
-      <button onClick={() => navigate('/')} className="flex items-center gap-1.5 text-brand-muted text-sm hover:text-brand-white mb-4 transition">
-        <ArrowLeft size={14} /> Volver al Dashboard
+      <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-brand-muted text-sm hover:text-brand-white mb-4 transition">
+        <ArrowLeft size={14} /> Volver
       </button>
       <h1 className="font-headline text-xl font-semibold mb-1">{title}</h1>
       <p className="text-brand-muted text-sm mb-6">

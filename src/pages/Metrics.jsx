@@ -1,5 +1,6 @@
 import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Percent, TrendingUp, Filter, Gauge, Package2, ListChecks, FolderKanban, Activity, Users, Clock, PieChart, DollarSign } from 'lucide-react';
 
@@ -36,6 +37,7 @@ const ENTITY_LABELS = {
 };
 
 export default function Metrics() {
+  const navigate = useNavigate();
   const [metrics, setMetrics] = useState(null);
   const [forecast, setForecast] = useState(null);
   const [pipelines, setPipelines] = useState([]);
@@ -78,6 +80,12 @@ export default function Metrics() {
   const maxTaskCount = Math.max(...Object.values(metrics.tasks_by_status), 1);
   const maxVelocity = velocity ? Math.max(...velocity.velocity.map((v) => v.avg_days), 1) : 1;
 
+  const dealsListUrl = (extraParams) => {
+    const qs = new URLSearchParams(extraParams);
+    if (pipelineId) qs.set('pipeline_id', pipelineId);
+    return `/deals-list?${qs.toString()}`;
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -108,11 +116,15 @@ export default function Metrics() {
                 <>
                   <div className="flex items-end gap-2 h-48">
                     {dashboard.deals_by_month.map((m) => (
-                      <div key={m.month} className="flex-1 flex flex-col items-center justify-end h-full group relative">
+                      <div
+                        key={m.month}
+                        onClick={() => m.total > 0 && navigate(dealsListUrl({ status: 'abierto,ganado,perdido', created_month: m.month }))}
+                        className={`flex-1 flex flex-col items-center justify-end h-full group relative ${m.total > 0 ? 'cursor-pointer' : ''}`}
+                      >
                         {m.total > 0 && (
-                          <div className="text-[10px] text-brand-muted font-tech mb-1">${(m.total / 1000).toFixed(1)}K</div>
+                          <div className="text-[10px] text-brand-muted font-tech mb-1 group-hover:text-brand-ice transition">${(m.total / 1000).toFixed(1)}K</div>
                         )}
-                        <div className="w-full flex flex-col-reverse rounded-t-md overflow-hidden" style={{ height: `${Math.max((m.total / max) * 100, m.total > 0 ? 3 : 0)}%` }}>
+                        <div className={`w-full flex flex-col-reverse rounded-t-md overflow-hidden transition ${m.total > 0 ? 'group-hover:opacity-80' : ''}`} style={{ height: `${Math.max((m.total / max) * 100, m.total > 0 ? 3 : 0)}%` }}>
                           {Object.entries(m.by_pipeline).map(([pName, val]) => (
                             <div
                               key={pName}
@@ -143,7 +155,10 @@ export default function Metrics() {
           </div>
 
           {/* Deal duration */}
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth flex flex-col">
+          <div
+            onClick={() => navigate(dealsListUrl({ status: 'ganado,perdido' }))}
+            className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth flex flex-col cursor-pointer hover:border-brand-violet transition"
+          >
             <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">
               <Clock size={15} className="text-brand-muted" /> Duración de los tratos
             </div>
@@ -176,7 +191,11 @@ export default function Metrics() {
                   />
                   <div className="space-y-1.5 min-w-0">
                     {dashboard.deals_lost_by_reason.map((r, i) => (
-                      <div key={r.reason} className="flex items-center gap-1.5 text-xs">
+                      <div
+                        key={r.reason}
+                        onClick={() => navigate(dealsListUrl({ status: 'perdido', lost_reason: r.reason }))}
+                        className="flex items-center gap-1.5 text-xs cursor-pointer hover:bg-brand-bg rounded px-1 -mx-1 py-0.5 transition"
+                      >
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                         <span className="text-brand-muted truncate">{r.reason}</span>
                         <span className="text-brand-white font-tech flex-shrink-0">{r.count}</span>
@@ -190,7 +209,10 @@ export default function Metrics() {
           </div>
 
           {/* Average value of won deals */}
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth flex flex-col">
+          <div
+            onClick={() => navigate(dealsListUrl({ status: 'ganado', closed_year: String(new Date().getFullYear()) }))}
+            className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth flex flex-col cursor-pointer hover:border-brand-violet transition"
+          >
             <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">
               <DollarSign size={15} className="text-brand-muted" /> Valor promedio de tratos ganados
             </div>
@@ -214,10 +236,14 @@ export default function Metrics() {
                 <>
                   <div className="flex items-end gap-2 h-40">
                     {dashboard.deals_won_by_month.map((m) => (
-                      <div key={m.month} className="flex-1 flex flex-col items-center justify-end h-full">
-                        {m.value > 0 && <div className="text-[10px] text-brand-muted font-tech mb-1">${(m.value / 1000).toFixed(1)}K</div>}
+                      <div
+                        key={m.month}
+                        onClick={() => m.value > 0 && navigate(dealsListUrl({ status: 'ganado', closed_month: m.month }))}
+                        className={`flex-1 flex flex-col items-center justify-end h-full group ${m.value > 0 ? 'cursor-pointer' : ''}`}
+                      >
+                        {m.value > 0 && <div className="text-[10px] text-brand-muted font-tech mb-1 group-hover:text-brand-ice transition">${(m.value / 1000).toFixed(1)}K</div>}
                         <div
-                          className="w-full bg-gradient-to-t from-brand-violet to-brand-magenta rounded-t-md"
+                          className="w-full bg-gradient-to-t from-brand-violet to-brand-magenta rounded-t-md group-hover:opacity-80 transition"
                           style={{ height: `${Math.max((m.value / max) * 100, m.value > 0 ? 3 : 0)}%` }}
                         />
                       </div>
