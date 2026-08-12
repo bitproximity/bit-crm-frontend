@@ -2,7 +2,7 @@ import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Percent, TrendingUp, Filter, Gauge, Package2, ListChecks, FolderKanban, Activity, Users, Clock, PieChart, DollarSign } from 'lucide-react';
+import { Percent, TrendingUp, Filter, Gauge, Package2, ListChecks, FolderKanban, Activity, Users, Clock, PieChart, DollarSign, Trophy, Globe, Briefcase } from 'lucide-react';
 
 function Bar({ label, value, max, suffix = '' }) {
   const pct = max ? Math.round((value / max) * 100) : 0;
@@ -48,6 +48,8 @@ export default function Metrics() {
   const [meetings, setMeetings] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [loadError, setLoadError] = useState('');
+  const [productMetrics, setProductMetrics] = useState(null);
+  const [expandedProduct, setExpandedProduct] = useState(null);
 
   useEffect(() => {
     const onErr = (label) => (err) => setLoadError((prev) => prev || `${label}: ${err.message}`);
@@ -55,6 +57,7 @@ export default function Metrics() {
     api.get('/api/forecast?months=3').then(setForecast).catch(onErr('Forecast'));
     api.get('/api/insights/feed?limit=30').then(setFeed).catch(onErr('Feed'));
     api.get('/api/metrics/meetings?weeks=8').then(setMeetings).catch(onErr('Reuniones'));
+    api.get('/api/metrics/products').then(setProductMetrics).catch(onErr('Productos'));
     api.get('/api/pipelines').then((list) => {
       setPipelines(list);
       if (list.length) setPipelineId(list[0].id);
@@ -386,6 +389,101 @@ export default function Metrics() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Producto que más se vende — ingresos reales (tratos ganados), por país e industria */}
+      {productMetrics && (
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-4">
+          <div className="font-manrope font-medium mb-1 flex items-center gap-2"><Trophy size={15} className="text-yellow-400" /> Producto que más se vende</div>
+          <div className="text-xs text-brand-muted font-tech mb-4">Ingresos en USD de tratos ganados con productos asociados</div>
+
+          {productMetrics.products.length === 0 ? (
+            <div className="text-brand-muted text-sm">Todavía no hay tratos ganados con productos agregados en su detalle.</div>
+          ) : (
+            <>
+              {productMetrics.top && (
+                <div className="flex items-center gap-4 mb-5 p-4 rounded-xl bg-gradient-to-r from-brand-violet/15 to-brand-magenta/15 border border-brand-violet/30">
+                  <div className="text-3xl">🏆</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-brand-muted uppercase tracking-wide">Top #1</div>
+                    <div className="font-headline text-lg font-semibold truncate">{productMetrics.top.name}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-brand-ice font-tech text-lg">${productMetrics.top.revenue_usd.toLocaleString()}</div>
+                    <div className="text-brand-muted text-xs">{productMetrics.top.quantity} unidades</div>
+                  </div>
+                </div>
+              )}
+
+              <table className="w-full text-sm">
+                <thead className="bg-brand-panel/80 text-brand-muted text-left">
+                  <tr>
+                    <th className="py-2 font-manrope font-normal">Producto</th>
+                    <th className="py-2 font-manrope font-normal">Unidades</th>
+                    <th className="py-2 font-manrope font-normal">Ingresos (USD)</th>
+                    <th className="py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {productMetrics.products.map((p, i) => {
+                    const isOpen = expandedProduct === p.name;
+                    return (
+                      <>
+                        <tr
+                          key={p.product_id || p.name}
+                          onClick={() => setExpandedProduct(isOpen ? null : p.name)}
+                          className="border-t border-brand-border cursor-pointer row-hover"
+                        >
+                          <td className="py-2.5 flex items-center gap-2">
+                            {i === 0 && <span className="text-yellow-400 text-xs">🏆</span>}
+                            {p.name}
+                          </td>
+                          <td className="py-2.5 text-brand-muted font-tech">{p.quantity}</td>
+                          <td className="py-2.5 text-brand-ice font-tech">${p.revenue_usd.toLocaleString()}</td>
+                          <td className="py-2.5 text-brand-muted text-xs text-right">{isOpen ? '▲' : '▼'} país / industria</td>
+                        </tr>
+                        {isOpen && (
+                          <tr key={`${p.name}-detail`} className="bg-brand-bg/40">
+                            <td colSpan={4} className="py-4 px-2">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                  <div className="flex items-center gap-1.5 text-xs text-brand-muted uppercase tracking-wide mb-2">
+                                    <Globe size={12} /> Por país
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    {p.by_country.map((c) => (
+                                      <div key={c.name} className="flex justify-between text-xs">
+                                        <span className="text-brand-muted">{c.name}</span>
+                                        <span className="text-brand-white font-tech">${c.revenue_usd.toLocaleString()} · {c.quantity}u</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-1.5 text-xs text-brand-muted uppercase tracking-wide mb-2">
+                                    <Briefcase size={12} /> Por industria
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    {p.by_industry.map((c) => (
+                                      <div key={c.name} className="flex justify-between text-xs">
+                                        <span className="text-brand-muted">{c.name}</span>
+                                        <span className="text-brand-white font-tech">${c.revenue_usd.toLocaleString()} · {c.quantity}u</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
+          )}
         </div>
       )}
 
