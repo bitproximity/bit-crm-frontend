@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { ConfirmProvider } from './components/ConfirmModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import ResetPassword from './pages/ResetPassword';
@@ -79,6 +80,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
+        <ConfirmProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
@@ -107,6 +109,7 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        </ConfirmProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

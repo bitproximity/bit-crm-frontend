@@ -2,6 +2,7 @@ import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useConfirm } from '../components/ConfirmModal';
 import { InvoiceDetailModal } from './Invoicing';
 import DateTimePicker from '../components/DateTimePicker';
 import ProductsModal from '../components/ProductsModal';
@@ -50,6 +51,7 @@ function computeStageDays(deal) {
 export default function DealDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const confirm = useConfirm();
 
   const [deal, setDeal] = useState(null);
   const [pipelines, setPipelines] = useState([]);
@@ -220,13 +222,24 @@ export default function DealDetail() {
   };
 
   const reopenDeal = async () => {
-    if (!window.confirm('¿Reabrir este trato? Vuelve a "abierto" en la misma etapa donde estaba.')) return;
+    const ok = await confirm({
+      title: 'Reabrir trato',
+      message: '¿Reabrir este trato? Vuelve a "abierto" en la misma etapa donde estaba.',
+      confirmLabel: 'Reabrir',
+      danger: false,
+    });
+    if (!ok) return;
     await api.post(`/api/deals/${id}/reopen`, {});
     load();
   };
 
   const deleteDeal = async () => {
-    if (!window.confirm(`¿Eliminar el trato "${deal.title}"? Esta acción no se puede deshacer.`)) return;
+    const ok = await confirm({
+      title: 'Eliminar trato',
+      message: `¿Eliminar el trato "${deal.title}"? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
     await api.delete(`/api/deals/${id}`);
     navigate('/deals');
   };
@@ -394,7 +407,8 @@ export default function DealDetail() {
   };
 
   const removeFile = async (fileId) => {
-    if (!window.confirm('¿Eliminar este archivo?')) return;
+    const ok = await confirm({ title: 'Eliminar archivo', message: '¿Eliminar este archivo?', confirmLabel: 'Eliminar' });
+    if (!ok) return;
     await api.delete(`/api/deal-files/${fileId}`);
     setDealFiles((prev) => prev.filter((f) => f.id !== fileId));
   };

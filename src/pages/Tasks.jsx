@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useConfirm } from '../components/ConfirmModal';
 import DateTimePicker from '../components/DateTimePicker';
 import { LayoutGrid, List, Plus, Flag, Calendar, ChevronRight, ChevronDown, X, Send, Trash2, FolderKanban } from 'lucide-react';
 
@@ -111,6 +112,7 @@ function TaskRow({ task, onToggleExpand, expanded, onStatusChange, onOpen, inden
 }
 
 export default function Tasks() {
+  const confirm = useConfirm();
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [team, setTeam] = useState([]);
@@ -380,6 +382,7 @@ export default function Tasks() {
 }
 
 export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
+  const confirm = useConfirm();
   const [task, setTask] = useState(null);
   const [comment, setComment] = useState('');
   const [calSyncResult, setCalSyncResult] = useState(null);
@@ -439,7 +442,8 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
   };
 
   const deleteTask = async () => {
-    if (!window.confirm('¿Eliminar esta tarea?')) return;
+    const ok = await confirm({ title: 'Eliminar tarea', message: '¿Eliminar esta tarea?', confirmLabel: 'Eliminar' });
+    if (!ok) return;
     await api.delete(`/api/tasks/${taskId}`);
     onChanged?.();
     onClose();

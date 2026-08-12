@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useConfirm } from '../components/ConfirmModal';
 import {
   FileText, Plus, ChevronRight, ChevronDown, Trash2, Bold, Italic, Underline,
   List, ListOrdered, Link as LinkIcon, Paperclip, X,
@@ -85,6 +86,7 @@ const COLORS = ['#FBFAFF', '#D9F6FF', '#8500FF', '#E000FF', '#22c55e', '#f59e0b'
 const SIZES = [{ label: 'Pequeño', value: '2' }, { label: 'Normal', value: '3' }, { label: 'Grande', value: '5' }, { label: 'Enorme', value: '7' }];
 
 export default function Documents() {
+  const confirm = useConfirm();
   const [tree, setTree] = useState([]);
   const [expanded, setExpanded] = useState({});
   const [activeId, setActiveId] = useState(null);
@@ -142,7 +144,12 @@ export default function Documents() {
   };
 
   const deleteDoc = async (id) => {
-    if (!window.confirm('¿Eliminar esta página y todas sus subpáginas?')) return;
+    const ok = await confirm({
+      title: 'Eliminar página',
+      message: '¿Eliminar esta página y todas sus subpáginas?',
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
     try {
       await api.delete(`/api/documents/${id}`);
       if (activeId === id) { setActiveId(null); setDoc(null); }
@@ -213,7 +220,8 @@ export default function Documents() {
   };
 
   const removeFile = async (fileId) => {
-    if (!window.confirm('¿Eliminar este archivo?')) return;
+    const ok = await confirm({ title: 'Eliminar archivo', message: '¿Eliminar este archivo?', confirmLabel: 'Eliminar' });
+    if (!ok) return;
     await api.delete(`/api/document-files/${fileId}`);
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
   };

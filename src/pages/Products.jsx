@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { useConfirm } from '../components/ConfirmModal';
 import { Package, Plus, Wrench, Pencil, Trash2, Wifi, Music2, Monitor, Mail, MessageCircle, Bell, Heart, ShoppingCart, Radio, Users, Receipt } from 'lucide-react';
 
 // Ícono específico según palabras clave del nombre del producto; si no matchea nada, cae a Producto/Servicio genérico.
@@ -21,6 +22,7 @@ function productIcon(name, type) {
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
 export default function Products() {
+  const confirm = useConfirm();
   const [products, setProducts] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'producto', price: '', currency: 'USD', sku: '' });
@@ -53,7 +55,8 @@ export default function Products() {
   };
 
   const remove = async (id) => {
-    if (!window.confirm('¿Borrar este producto?')) return;
+    const ok = await confirm({ title: 'Borrar producto', message: '¿Borrar este producto?', confirmLabel: 'Borrar' });
+    if (!ok) return;
     await api.delete(`/api/products/${id}`);
     load();
   };

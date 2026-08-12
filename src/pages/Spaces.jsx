@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useConfirm } from '../components/ConfirmModal';
 import { Boxes, ChevronRight, ChevronDown, FolderKanban, Plus } from 'lucide-react';
 
 const COLORS = ['#8500FF', '#E000FF', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6', '#ef4444'];
 
 export default function Spaces() {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [spaces, setSpaces] = useState([]);
   const [expanded, setExpanded] = useState({});
   const [projectsBySpace, setProjectsBySpace] = useState({});
@@ -53,7 +55,12 @@ export default function Spaces() {
   };
 
   const deleteSpace = async (spaceId) => {
-    if (!window.confirm('¿Eliminar este espacio? Los proyectos que contiene quedarán sin espacio asignado.')) return;
+    const ok = await confirm({
+      title: 'Eliminar espacio',
+      message: '¿Eliminar este espacio? Los proyectos que contiene quedarán sin espacio asignado.',
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
     await api.delete(`/api/spaces/${spaceId}`);
     load();
   };

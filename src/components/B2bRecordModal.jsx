@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
+import { useConfirm } from './ConfirmModal';
 import { X } from 'lucide-react';
 import DateTimePicker from './DateTimePicker';
 
@@ -11,6 +12,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
+  const confirm = useConfirm();
   const [form, setForm] = useState({
     target_company: record?.target_company || '',
     target_contact: record?.target_contact || '',
@@ -45,7 +47,9 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
   };
 
   const remove = async () => {
-    if (!record || !window.confirm(`¿Eliminar "${record.target_company}"?`)) return;
+    if (!record) return;
+    const ok = await confirm({ title: 'Eliminar registro', message: `¿Eliminar "${record.target_company}"?`, confirmLabel: 'Eliminar' });
+    if (!ok) return;
     await api.delete(`/api/b2b/records/${record.id}`);
     onSaved();
   };

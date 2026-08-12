@@ -2,6 +2,7 @@ import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { useConfirm } from '../components/ConfirmModal';
 import { Flag, Trash2, FileText } from 'lucide-react';
 import { STATUSES, PRIORITY_COLORS, Avatar, dueBadge, InlineAddRow, TaskDetailModal } from './Tasks';
 
@@ -10,6 +11,7 @@ const PROJECT_STATUSES = ['activo', 'pausado', 'completado', 'cancelado'];
 export default function ProjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [project, setProject] = useState(null);
   const [team, setTeam] = useState([]);
   const [error, setError] = useState('');
@@ -62,7 +64,12 @@ export default function ProjectDetail() {
   };
 
   const deleteProject = async () => {
-    if (!window.confirm(`¿Eliminar el proyecto "${project.name}" y todas sus tareas? Esta acción no se puede deshacer.`)) return;
+    const ok = await confirm({
+      title: 'Eliminar proyecto',
+      message: `¿Eliminar el proyecto "${project.name}" y todas sus tareas? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
     await api.delete(`/api/projects/${id}`);
     navigate('/projects');
   };

@@ -1,6 +1,7 @@
 import { SkeletonLine } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { useConfirm } from '../components/ConfirmModal';
 
 const MCP_URL = `${import.meta.env.VITE_API_URL || 'https://bit-crm-backend-production.up.railway.app'}/mcp`;
 
@@ -119,6 +120,7 @@ function CustomFieldsAdmin() {
 }
 
 function PipelinesAdmin() {
+  const confirm = useConfirm();
   const [pipelines, setPipelines] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
@@ -165,7 +167,12 @@ function PipelinesAdmin() {
   };
 
   const deletePipeline = async (pipelineId) => {
-    if (!window.confirm('¿Borrar este pipeline? Solo se puede si no tiene deals asociados.')) return;
+    const ok = await confirm({
+      title: 'Borrar pipeline',
+      message: '¿Borrar este pipeline? Solo se puede si no tiene deals asociados.',
+      confirmLabel: 'Borrar',
+    });
+    if (!ok) return;
     setError('');
     try {
       await api.delete(`/api/pipelines/${pipelineId}`);
@@ -187,7 +194,12 @@ function PipelinesAdmin() {
   };
 
   const deleteStage = async (stageId) => {
-    if (!window.confirm('¿Borrar esta etapa? Solo se puede si no tiene deals en ella.')) return;
+    const ok = await confirm({
+      title: 'Borrar etapa',
+      message: '¿Borrar esta etapa? Solo se puede si no tiene deals en ella.',
+      confirmLabel: 'Borrar',
+    });
+    if (!ok) return;
     setError('');
     try {
       await api.delete(`/api/pipelines/stages/${stageId}`);
@@ -369,6 +381,7 @@ function PipelinesAdmin() {
   );
 }
 function TeamAdmin() {
+  const confirm = useConfirm();
   const [members, setMembers] = useState([]);
   const [showInvite, setShowInvite] = useState(false);
   const [form, setForm] = useState({ full_name: '', email: '', role: 'operaciones' });
@@ -405,7 +418,12 @@ function TeamAdmin() {
   };
 
   const deactivate = async (id, name) => {
-    if (!window.confirm(`¿Quitar el acceso de ${name}? Ya no va a poder iniciar sesión en el CRM.`)) return;
+    const ok = await confirm({
+      title: 'Quitar acceso',
+      message: `¿Quitar el acceso de ${name}? Ya no va a poder iniciar sesión en el CRM.`,
+      confirmLabel: 'Quitar acceso',
+    });
+    if (!ok) return;
     setError('');
     try {
       await api.delete(`/api/team/${id}`);
@@ -522,6 +540,7 @@ function TeamAdmin() {
 }
 
 function McpKeysAdmin() {
+  const confirm = useConfirm();
   const [keys, setKeys] = useState([]);
   const [newKey, setNewKey] = useState(null); // se muestra una sola vez tras crearla
   const [label, setLabel] = useState('Claude Desktop');
@@ -543,7 +562,12 @@ function McpKeysAdmin() {
   };
 
   const revoke = async (id) => {
-    if (!window.confirm('¿Revocar esta API key? Cualquier integración que la use dejará de funcionar.')) return;
+    const ok = await confirm({
+      title: 'Revocar API key',
+      message: '¿Revocar esta API key? Cualquier integración que la use dejará de funcionar.',
+      confirmLabel: 'Revocar',
+    });
+    if (!ok) return;
     await api.delete(`/api/mcp-keys/${id}`);
     load();
   };
