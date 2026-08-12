@@ -62,6 +62,7 @@ const STATUS_LABEL = {
 };
 
 export default function B2bMeetings() {
+  const [tab, setTab] = useState('client'); // client | team
   const [clients, setClients] = useState([]);
   const [clientId, setClientId] = useState(null);
   const [dashboard, setDashboard] = useState(null);
@@ -74,6 +75,8 @@ export default function B2bMeetings() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [leaderboard, setLeaderboard] = useState(null);
+  const [expandedPerson, setExpandedPerson] = useState(null);
 
   const loadClients = () => api.get('/api/b2b/clients').then((list) => {
     setClients(list);
@@ -81,6 +84,11 @@ export default function B2bMeetings() {
   }).catch((err) => setError(err.message));
 
   useEffect(() => { loadClients(); }, []);
+
+  useEffect(() => {
+    if (tab !== 'team') return;
+    api.get('/api/b2b/leaderboard').then(setLeaderboard).catch((err) => setError(err.message));
+  }, [tab]);
 
   const loadClientData = () => {
     if (!clientId) return;
@@ -150,10 +158,119 @@ export default function B2bMeetings() {
       <div className="flex items-center justify-between mb-1">
         <h1 className="font-headline text-xl font-semibold">Bit Prospect</h1>
       </div>
-      <p className="text-brand-muted text-sm mb-6">Panel por marca/cliente: base de datos, reuniones y reporte compartible</p>
+      <p className="text-brand-muted text-sm mb-4">Panel por marca/cliente: base de datos, reuniones y reporte compartible</p>
+
+      <div className="flex gap-1 mb-6 bg-brand-panel border border-brand-border rounded-lg p-1 w-fit">
+        <button
+          onClick={() => setTab('client')}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${tab === 'client' ? 'bg-brand-violet text-white' : 'text-brand-muted hover:text-brand-white'}`}
+        >
+          Por marca/cliente
+        </button>
+        <button
+          onClick={() => setTab('team')}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${tab === 'team' ? 'bg-brand-violet text-white' : 'text-brand-muted hover:text-brand-white'}`}
+        >
+          Equipo (todos los clientes)
+        </button>
+      </div>
 
       {error && <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
 
+      {tab === 'team' && (
+        <>
+          <p className="text-brand-muted text-xs mb-4">
+            Cruza todo lo que cada persona ha cargado en cualquier marca — cada base o reunión que importás o agregás
+            queda atribuida automáticamente a tu usuario logueado.
+          </p>
+          {!leaderboard ? (
+            <div className="text-brand-muted text-sm">Cargando...</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+                  <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><Users size={12} /> Contactados (total)</div>
+                  <div className="text-2xl font-headline font-semibold">{leaderboard.total_contacted}</div>
+                </div>
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+                  <div className="flex items-center gap-1.5 text-brand-ice text-xs mb-1"><CalendarCheck size={12} /> Reuniones (total)</div>
+                  <div className="text-2xl font-headline font-semibold text-brand-ice">{leaderboard.total_meetings}</div>
+                </div>
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+                  <div className="flex items-center gap-1.5 text-green-300 text-xs mb-1"><Percent size={12} /> Conversión general</div>
+                  <div className="text-2xl font-headline font-semibold text-green-300">{leaderboard.conversion_rate}%</div>
+                </div>
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+                  <div className="flex items-center gap-1.5 text-yellow-300 text-xs mb-1"><TrendingUp size={12} /> Este mes</div>
+                  <div className="text-2xl font-headline font-semibold text-yellow-300">{leaderboard.meetings_this_month}</div>
+                </div>
+              </div>
+
+              <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-brand-border flex items-center gap-2">
+                  <Users size={15} className="text-brand-ice" />
+                  <div className="text-sm font-manrope font-medium">Ranking del equipo — todos los clientes</div>
+                </div>
+                <table className="w-full text-sm">
+                  <thead className="bg-brand-panel/80 text-brand-muted text-left">
+                    <tr>
+                      <th className="px-5 py-2.5 font-manrope font-normal">Quién</th>
+                      <th className="px-5 py-2.5 font-manrope font-normal">Contactados</th>
+                      <th className="px-5 py-2.5 font-manrope font-normal">Reuniones</th>
+                      <th className="px-5 py-2.5 font-manrope font-normal">Conversión</th>
+                      <th className="px-5 py-2.5"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaderboard.by_person.map((p, i) => {
+                      const detail = leaderboard.by_person_by_client.find((d) => d.name === p.name);
+                      const isOpen = expandedPerson === p.name;
+                      return (
+                        <>
+                          <tr
+                            key={i}
+                            onClick={() => setExpandedPerson(isOpen ? null : p.name)}
+                            className="border-t border-brand-border cursor-pointer row-hover"
+                          >
+                            <td className="px-5 py-2.5 flex items-center gap-2">
+                              {i === 0 && p.meetings > 0 && <span className="text-yellow-400">🏆</span>}
+                              {p.name}
+                            </td>
+                            <td className="px-5 py-2.5 text-brand-muted font-tech">{p.contacted}</td>
+                            <td className="px-5 py-2.5 text-brand-ice font-tech">{p.meetings}</td>
+                            <td className="px-5 py-2.5 text-green-300 font-tech">{p.conversion}%</td>
+                            <td className="px-5 py-2.5 text-brand-muted text-xs">{isOpen ? '▲' : '▼'} por cliente</td>
+                          </tr>
+                          {isOpen && detail && (
+                            <tr key={`${i}-detail`} className="bg-brand-bg/40">
+                              <td colSpan={5} className="px-5 py-3">
+                                <div className="flex flex-wrap gap-2">
+                                  {detail.clients.map((c) => (
+                                    <div key={c.client} className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-xs">
+                                      <span className="text-brand-white">{c.client}</span>
+                                      <span className="text-brand-muted ml-2">{c.contacted} contactados · {c.meetings} reuniones</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })}
+                    {leaderboard.by_person.length === 0 && (
+                      <tr><td colSpan={5} className="px-5 py-10 text-center text-brand-muted text-sm">Sin datos cargados todavía por nadie del equipo.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {tab === 'client' && (
+      <>
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         <select
           value={clientId || ''}
@@ -363,6 +480,8 @@ export default function B2bMeetings() {
             </table>
           </div>
         </>
+      )}
+      </>
       )}
 
       {modalOpen && (
