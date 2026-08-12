@@ -1,0 +1,104 @@
+import { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import { api } from '../lib/api';
+
+const TITLES = {
+  abierto: 'Deals abiertos',
+  ganado_mes: 'Ganados este mes',
+  ganado: 'Tratos ganados',
+  perdido: 'Tratos perdidos',
+  'ganado,perdido': 'Tratos ganados y perdidos',
+};
+
+export default function DealsList() {
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const [deals, setDeals] = useState(null);
+  const [error, setError] = useState('');
+
+  const status = params.get('status') || 'abierto';
+  const period = params.get('period'); // 'this_month' opcional
+
+  useEffect(() => {
+    setDeals(null);
+    api
+      .get(`/api/deals?status=${status}`)
+      .then((data) => {
+        let filtered = data;
+        if (period === 'this_month') {
+          const now = new Date();
+          filtered = data.filter((d) => {
+            if (!d.closed_at) return false;
+            const c = new Date(d.closed_at);
+            return c.getMonth() === now.getMonth() && c.getFullYear() === now.getFullYear();
+          });
+        }
+        setDeals(filtered);
+      })
+      .catch((err) => setError(err.message || 'No se pudieron cargar los tratos.'));
+  }, [status, period]);
+
+  const key = period === 'this_month' && status === 'ganado' ? 'ganado_mes' : status;
+  const title = TITLES[key] || 'Tratos';
+  const totalValue = (deals || []).reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+
+  return (
+    <div>
+      <button onClick={() => navigate('/')} className="flex items-center gap-1.5 text-brand-muted text-sm hover:text-brand-white mb-4 transition">
+        <ArrowLeft size={14} /> Volver al Dashboard
+      </button>
+      <h1 className="font-headline text-xl font-semibold mb-1">{title}</h1>
+      <p className="text-brand-muted text-sm mb-6">
+        {deals ? `${deals.length} trato${deals.length === 1 ? '' : 's'}` : 'Cargando...'}
+        {deals && totalValue > 0 && ` · $${totalValue.toLocaleString('es-CO')} en total`}
+      </p>
+
+      {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">{error}</div>}
+
+      <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-brand-panel/80 text-brand-muted text-left">
+            <tr>
+              <th className="px-4 py-3 font-manrope font-normal">Trato</th>
+              <th className="px-4 py-3 font-manrope font-normal">Empresa</th>
+              <th className="px-4 py-3 font-manrope font-normal">Pipeline</th>
+              <th className="px-4 py-3 font-manrope font-normal">Etapa</th>
+              <th className="px-4 py-3 font-manrope font-normal">Valor</th>
+              <th className="px-4 py-3 font-manrope font-normal">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(deals || []).map((deal) => (
+              <tr
+                key={deal.id}
+                onClick={() => navigate(`/deals/${deal.id}`)}
+                className="border-t border-brand-border row-hover cursor-pointer"
+              >
+                <td className="px-4 py-3">{deal.title}</td>
+                <td className="px-4 py-3 text-brand-muted">{deal.companies?.name || '—'}</td>
+                <td className="px-4 py-3 text-brand-muted text-xs">{deal.pipelines?.name || '—'}</td>
+                <td className="px-4 py-3 text-brand-muted text-xs">{deal.pipeline_stages?.name || '—'}</td>
+                <td className="px-4 py-3 text-brand-ice font-tech">
+                  {Number(deal.value) > 0 ? `${deal.currency} ${Number(deal.value).toLocaleString('es-CO')}` : '—'}
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${
+                    deal.status === 'ganado' ? 'bg-green-500/15 text-green-300' :
+                    deal.status === 'perdido' ? 'bg-red-500/15 text-red-300' :
+                    'bg-blue-500/15 text-blue-300'
+                  }`}>
+                    {deal.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+            {deals && deals.length === 0 && (
+              <tr><td colSpan={6} className="px-4 py-10 text-center text-brand-muted text-sm">Sin tratos para este filtro.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

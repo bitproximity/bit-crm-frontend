@@ -219,6 +219,12 @@ export default function DealDetail() {
     load();
   };
 
+  const reopenDeal = async () => {
+    if (!window.confirm('¿Reabrir este trato? Vuelve a "abierto" en la misma etapa donde estaba.')) return;
+    await api.post(`/api/deals/${id}/reopen`, {});
+    load();
+  };
+
   const deleteDeal = async () => {
     if (!window.confirm(`¿Eliminar el trato "${deal.title}"? Esta acción no se puede deshacer.`)) return;
     await api.delete(`/api/deals/${id}`);
@@ -501,9 +507,14 @@ export default function DealDetail() {
                 </button>
               </>
             ) : (
-              <span className={`px-3 py-1.5 rounded-full text-xs font-tech ${deal.status === 'ganado' ? 'bg-green-500/15 text-green-300' : 'bg-red-500/15 text-red-300'}`}>
-                {deal.status === 'ganado' ? 'Ganado' : `Perdido${deal.lost_reason ? ` — ${deal.lost_reason}` : ''}`}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1.5 rounded-full text-xs font-tech ${deal.status === 'ganado' ? 'bg-green-500/15 text-green-300' : 'bg-red-500/15 text-red-300'}`}>
+                  {deal.status === 'ganado' ? 'Ganado' : `Perdido${deal.lost_reason ? ` — ${deal.lost_reason}` : ''}`}
+                </span>
+                <button onClick={reopenDeal} className="px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted text-xs font-medium hover:text-brand-white hover:border-brand-violet transition">
+                  Reabrir
+                </button>
+              </div>
             )}
             <div className="relative">
               <button onClick={() => setOptionsOpen(!optionsOpen)} className="w-9 h-9 rounded-lg border border-brand-border flex items-center justify-center text-brand-muted hover:text-brand-white transition">
