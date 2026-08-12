@@ -2,7 +2,7 @@ import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Percent, TrendingUp, Filter, Gauge, Package2, ListChecks, FolderKanban, Activity, Users, Clock, PieChart, DollarSign, Trophy, Globe, Briefcase } from 'lucide-react';
+import { Percent, TrendingUp, Filter, Gauge, Package2, ListChecks, Activity, Users, Clock, PieChart, DollarSign, Trophy, Globe, Briefcase } from 'lucide-react';
 
 function Bar({ label, value, max, suffix = '' }) {
   const pct = max ? Math.round((value / max) * 100) : 0;
@@ -335,16 +335,6 @@ export default function Metrics() {
           {Object.entries(metrics.tasks_by_status).map(([status, count]) => (
             <Bar key={status} label={status} value={count} max={maxTaskCount} />
           ))}
-        </div>
-
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth md:col-span-2">
-          <div className="font-manrope font-medium mb-4 flex items-center gap-2"><FolderKanban size={15} /> Avance de proyectos activos</div>
-          {metrics.project_progress.map((p) => (
-            <Bar key={p.project_id} label={p.name} value={p.progress_pct} max={100} suffix="%" />
-          ))}
-          {metrics.project_progress.length === 0 && (
-            <div className="text-brand-muted text-sm">Sin proyectos activos.</div>
-          )}
         </div>
       </div>
 
