@@ -2,7 +2,8 @@ import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ChevronLeft, Building2, MapPin, Users, DollarSign } from 'lucide-react';
+import { ChevronLeft, Building2, MapPin, Users, DollarSign, Phone, Linkedin, FileText } from 'lucide-react';
+import EnrichButtons from '../components/EnrichButtons';
 
 const TYPES = ['restaurante', 'retail', 'hotel', 'espacio_comercial', 'otro'];
 const TYPE_LABELS = {
@@ -70,12 +71,15 @@ export default function CompanyDetail() {
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setEditing(!editing)}
-          className="px-4 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm hover:border-brand-violet transition"
-        >
-          {editing ? 'Cancelar' : 'Editar'}
-        </button>
+        <div className="flex items-center gap-2">
+          <EnrichButtons entityType="companies" entityId={company.id} onEnriched={(updated) => setCompany((c) => ({ ...c, ...updated }))} />
+          <button
+            onClick={() => setEditing(!editing)}
+            className="px-4 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm hover:border-brand-violet transition"
+          >
+            {editing ? 'Cancelar' : 'Editar'}
+          </button>
+        </div>
       </div>
 
       {editing && (
@@ -107,6 +111,32 @@ export default function CompanyDetail() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {(company.phone || company.linkedin_url || company.description || company.employee_count || company.enriched_at) && (
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 md:col-span-2">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <FileText size={15} className="text-brand-muted" />
+                <span className="font-manrope font-medium text-sm">Datos enriquecidos</span>
+              </div>
+              {company.enriched_at && (
+                <span className="text-xs text-brand-muted font-tech">
+                  vía {company.enrichment_source === 'lusha' ? 'Lusha' : 'Apollo'} · {new Date(company.enriched_at).toLocaleDateString('es-CO')}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-4 text-sm">
+              {company.phone && <span className="flex items-center gap-1.5 text-brand-muted"><Phone size={13} /> {company.phone}</span>}
+              {company.employee_count && <span className="flex items-center gap-1.5 text-brand-muted"><Users size={13} /> {company.employee_count} empleados</span>}
+              {company.linkedin_url && (
+                <a href={company.linkedin_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-brand-ice hover:underline">
+                  <Linkedin size={13} /> LinkedIn
+                </a>
+              )}
+            </div>
+            {company.description && <p className="text-brand-muted text-xs mt-3">{company.description}</p>}
+          </div>
+        )}
+
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
           <div className="flex items-center gap-2 mb-3">
             <Users size={15} className="text-brand-muted" />

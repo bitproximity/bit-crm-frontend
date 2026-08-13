@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Mail, RefreshCw, Phone, Building2, X, Pencil, MapPin, Briefcase } from 'lucide-react';
+import EnrichButtons from './EnrichButtons';
 
 export default function ContactDetailPanel({ contactId, onClose }) {
   const [contact, setContact] = useState(null);
@@ -194,6 +195,9 @@ export default function ContactDetailPanel({ contactId, onClose }) {
                     <MapPin size={13} /> {contact.country}
                   </div>
                 )}
+                <div className="mt-3">
+                  <EnrichButtons entityType="contacts" entityId={contact.id} onEnriched={(updated) => setContact((c) => ({ ...c, ...updated }))} />
+                </div>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <button onClick={startEdit} className="text-brand-muted hover:text-brand-ice" title="Editar">
