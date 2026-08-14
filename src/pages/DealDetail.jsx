@@ -577,9 +577,9 @@ export default function DealDetail() {
           <div>
             <div className="text-xs font-tech uppercase tracking-wide text-brand-muted mb-3">Resumen</div>
             <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
+              <div className={valueEditing ? 'space-y-2' : 'flex items-center justify-between'}>
                 {valueEditing ? (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <input
                       type="number" min="0" autoFocus value={valueEdit}
                       onChange={(e) => setValueEdit(e.target.value)}
@@ -589,11 +589,11 @@ export default function DealDetail() {
                     <select value={currencyEdit} onChange={(e) => setCurrencyEdit(e.target.value)} className={`${inputClass} font-tech`}>
                       {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <button onClick={saveValue} className="text-xs text-brand-ice hover:underline">Guardar</button>
+                    <button onClick={saveValue} className="text-xs text-brand-ice hover:underline whitespace-nowrap">Guardar</button>
                   </div>
                 ) : (
                   <button
-                    onClick={() => { setValueEditing(true); setValueEdit(deal.value); setCurrencyEdit(deal.currency); }}
+                    onClick={() => { setValueEditing(true); setValueEdit(Number(deal.value) || 0); setCurrencyEdit(deal.currency); }}
                     className="text-brand-ice font-tech font-medium text-base hover:underline"
                   >
                     {deal.currency} {Number(deal.value).toLocaleString()}
