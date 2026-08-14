@@ -1,21 +1,24 @@
 import { useEffect, useState } from 'react';
-import { List, Users, ChevronLeft, Plus, X, Sparkles } from 'lucide-react';
+import { List, Users, ChevronLeft, Plus, X, Sparkles, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { useConfirm } from '../components/ConfirmModal';
 import ContactDetailPanel from '../components/ContactDetailPanel';
 
 const LIST_COLORS = ['#8500FF', '#E000FF', '#D9F6FF', '#22C55E', '#F59E0B', '#EF4444'];
 const QUICK_SUGGESTIONS = ['Apollo', 'Lusha', 'Prioritarios', 'Fríos'];
 
 export default function Lists() {
+  const confirm = useConfirm();
   const [tags, setTags] = useState(null);
   const [openTagId, setOpenTagId] = useState(null);
   const [contacts, setContacts] = useState(null);
   const [selectedContactId, setSelectedContactId] = useState(null);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newColor, setNewColor] = useState(LIST_COLORS[0]);
+  const [editingTag, setEditingTag] = useState(null); // null = cerrado, {} = crear, {id,...} = editar
+  const [formName, setFormName] = useState('');
+  const [formColor, setFormColor] = useState(LIST_COLORS[0]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [menuOpenId, setMenuOpenId] = useState(null);
 
   const loadTags = () => api.get('/api/tags/with-contact-counts').then(setTags).catch((err) => setError(err.message));
 
@@ -32,12 +35,20 @@ export default function Lists() {
     }
   };
 
-  const createList = async () => {
-    if (!newName.trim()) return;
+  const openCreateModal = () => { setEditingTag({}); setFormName(''); setFormColor(LIST_COLORS[0]); };
+  const openEditModal = (tag) => { setEditingTag(tag); setFormName(tag.name); setFormColor(tag.color || LIST_COLORS[0]); setMenuOpenId(null); };
+  const closeModal = () => { setEditingTag(null); setSaving(false); };
+
+  const saveList = async () => {
+    if (!formName.trim()) return;
     setSaving(true);
     try {
-      await api.post('/api/tags', { name: newName.trim(), color: newColor });
-      closeCreateModal();
+      if (editingTag.id) {
+        await api.patch(`/api/tags/${editingTag.id}`, { name: formName.trim(), color: formColor });
+      } else {
+        await api.post('/api/tags', { name: formName.trim(), color: formColor });
+      }
+      closeModal();
       loadTags();
     } catch (err) {
       setError(err.message);
@@ -45,11 +56,17 @@ export default function Lists() {
     }
   };
 
-  const closeCreateModal = () => {
-    setCreating(false);
-    setNewName('');
-    setNewColor(LIST_COLORS[0]);
-    setSaving(false);
+  const deleteList = async (tag) => {
+    setMenuOpenId(null);
+    const ok = await confirm({
+      title: 'Eliminar lista',
+      message: `¿Eliminar la lista "${tag.name}"? Los ${tag.contact_count} contacto(s) no se borran, solo pierden esta etiqueta.`,
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
+    await api.delete(`/api/tags/${tag.id}`);
+    if (openTagId === tag.id) setOpenTagId(null);
+    loadTags();
   };
 
   const openTag = tags?.find((t) => t.id === openTagId);
@@ -60,7 +77,19 @@ export default function Lists() {
         <button onClick={() => setOpenTagId(null)} className="flex items-center gap-1.5 text-brand-muted text-sm hover:text-brand-white mb-4 transition">
           <ChevronLeft size={14} /> Volver a Listas
         </button>
-        <h1 className="font-headline text-xl font-semibold mb-1">{openTag?.name}</h1>
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="font-headline text-xl font-semibold">{openTag?.name}</h1>
+          {openTag && (
+            <div className="flex items-center gap-3">
+              <button onClick={() => openEditModal(openTag)} className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-ice transition">
+                <Pencil size={12} /> Editar
+              </button>
+              <button onClick={() => deleteList(openTag)} className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-red-300 transition">
+                <Trash2 size={12} /> Eliminar
+              </button>
+            </div>
+          )}
+        </div>
         <p className="text-brand-muted text-sm mb-6">{contacts ? contacts.length : '…'} contacto{contacts?.length === 1 ? '' : 's'} en esta lista</p>
 
         <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
@@ -92,6 +121,13 @@ export default function Lists() {
         {selectedContactId && (
           <ContactDetailPanel contactId={selectedContactId} onClose={() => setSelectedContactId(null)} />
         )}
+        {editingTag && (
+          <ListFormModal
+            editingTag={editingTag} formName={formName} setFormName={setFormName}
+            formColor={formColor} setFormColor={setFormColor} saving={saving}
+            onClose={closeModal} onSave={saveList}
+          />
+        )}
       </div>
     );
   }
@@ -100,7 +136,7 @@ export default function Lists() {
     <div>
       <div className="flex items-center justify-between mb-1">
         <h1 className="font-headline text-xl font-semibold">Listas</h1>
-        <button onClick={() => setCreating(true)} className="flex items-center gap-1.5 text-sm text-brand-ice hover:underline">
+        <button onClick={openCreateModal} className="flex items-center gap-1.5 text-sm text-brand-ice hover:underline">
           <Plus size={14} /> Nueva lista
         </button>
       </div>
@@ -115,7 +151,7 @@ export default function Lists() {
           <div
             key={tag.id}
             onClick={() => openList(tag)}
-            className="card-elevated rounded-xl p-4 cursor-pointer stagger-item"
+            className="relative card-elevated rounded-xl p-4 cursor-pointer stagger-item group"
             style={{ animationDelay: `${Math.min(i, 20) * 25}ms` }}
           >
             <div className="flex items-center gap-3">
@@ -131,84 +167,116 @@ export default function Lists() {
                   <Users size={11} /> {tag.contact_count} contacto{tag.contact_count === 1 ? '' : 's'}
                 </div>
               </div>
+
+              <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setMenuOpenId(menuOpenId === tag.id ? null : tag.id)}
+                  className="icon-btn p-1 rounded-md text-brand-muted opacity-0 group-hover:opacity-100 hover:text-brand-white hover:bg-brand-bg transition"
+                >
+                  <MoreHorizontal size={16} />
+                </button>
+                {menuOpenId === tag.id && (
+                  <div className="absolute right-0 mt-1 w-36 bg-brand-panel border border-brand-border rounded-lg shadow-xl z-20 overflow-hidden dropdown-in">
+                    <button onClick={() => openEditModal(tag)} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-brand-white hover:bg-brand-bg transition">
+                      <Pencil size={12} /> Editar
+                    </button>
+                    <button onClick={() => deleteList(tag)} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-300 hover:bg-brand-bg transition">
+                      <Trash2 size={12} /> Eliminar
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         ))}
-        {tags && tags.length === 0 && !creating && (
+        {tags && tags.length === 0 && !editingTag && (
           <div className="col-span-full text-brand-muted text-sm py-10 text-center">
             Todavía no hay listas. Créala aquí o importa contactos desde Prospección con un nombre de lista.
           </div>
         )}
       </div>
 
-      {creating && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 overlay-in" onClick={closeCreateModal} />
-          <div className="relative w-full max-w-sm bg-brand-panel border border-brand-border rounded-2xl shadow-2xl overflow-hidden modal-in">
-            <div className="p-5 border-b border-brand-border flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center">
-                  <Sparkles size={16} />
-                </div>
-                <span className="font-headline text-base font-semibold">Nueva lista</span>
-              </div>
-              <button onClick={closeCreateModal} className="icon-btn text-brand-muted hover:text-brand-white">
-                <X size={18} />
-              </button>
-            </div>
+      {editingTag && (
+        <ListFormModal
+          editingTag={editingTag} formName={formName} setFormName={setFormName}
+          formColor={formColor} setFormColor={setFormColor} saving={saving}
+          onClose={closeModal} onSave={saveList}
+        />
+      )}
+    </div>
+  );
+}
 
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs text-brand-muted mb-1.5">Nombre</label>
-                <input
-                  autoFocus value={newName} onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && createList()}
-                  placeholder="Ej. Apollo, Lusha, Prioritarios..."
-                  className="w-full px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet transition"
+function ListFormModal({ editingTag, formName, setFormName, formColor, setFormColor, saving, onClose, onSave }) {
+  const isEditing = !!editingTag.id;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 overlay-in" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-brand-panel border border-brand-border rounded-2xl shadow-2xl overflow-hidden modal-in">
+        <div className="p-5 border-b border-brand-border flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center">
+              <Sparkles size={16} />
+            </div>
+            <span className="font-headline text-base font-semibold">{isEditing ? 'Editar lista' : 'Nueva lista'}</span>
+          </div>
+          <button onClick={onClose} className="icon-btn text-brand-muted hover:text-brand-white">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-xs text-brand-muted mb-1.5">Nombre</label>
+            <input
+              autoFocus value={formName} onChange={(e) => setFormName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onSave()}
+              placeholder="Ej. Apollo, Lusha, Prioritarios..."
+              className="w-full px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet transition"
+            />
+            {!isEditing && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {QUICK_SUGGESTIONS.filter((s) => s.toLowerCase() !== formName.trim().toLowerCase()).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setFormName(s)}
+                    className="px-2.5 py-1 rounded-full text-xs text-brand-muted bg-brand-bg border border-brand-border hover:border-brand-violet hover:text-brand-white transition"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs text-brand-muted mb-1.5">Color</label>
+            <div className="flex items-center gap-2">
+              {LIST_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setFormColor(c)}
+                  className="w-7 h-7 rounded-full icon-btn"
+                  style={{ backgroundColor: c, outline: formColor === c ? '2px solid white' : 'none', outlineOffset: '2px' }}
                 />
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {QUICK_SUGGESTIONS.filter((s) => s.toLowerCase() !== newName.trim().toLowerCase()).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setNewName(s)}
-                      className="px-2.5 py-1 rounded-full text-xs text-brand-muted bg-brand-bg border border-brand-border hover:border-brand-violet hover:text-brand-white transition"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs text-brand-muted mb-1.5">Color</label>
-                <div className="flex items-center gap-2">
-                  {LIST_COLORS.map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => setNewColor(c)}
-                      className="w-7 h-7 rounded-full icon-btn"
-                      style={{ backgroundColor: c, outline: newColor === c ? '2px solid white' : 'none', outlineOffset: '2px' }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-brand-border flex justify-end gap-2">
-              <button onClick={closeCreateModal} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">
-                Cancelar
-              </button>
-              <button
-                onClick={createList}
-                disabled={!newName.trim() || saving}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50"
-              >
-                {saving ? 'Creando...' : 'Crear lista'}
-              </button>
+              ))}
             </div>
           </div>
         </div>
-      )}
+
+        <div className="p-4 border-t border-brand-border flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">
+            Cancelar
+          </button>
+          <button
+            onClick={onSave}
+            disabled={!formName.trim() || saving}
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50"
+          >
+            {saving ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear lista'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
