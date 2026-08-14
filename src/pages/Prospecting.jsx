@@ -9,6 +9,7 @@ export default function Prospecting() {
   const [title, setTitle] = useState('');
   const [department, setDepartment] = useState('');
   const [country, setCountry] = useState('');
+  const [listName, setListName] = useState('');
   const [candidates, setCandidates] = useState(null);
   const [selected, setSelected] = useState({});
   const [searching, setSearching] = useState(false);
@@ -47,7 +48,7 @@ export default function Prospecting() {
     setImporting(true);
     setError('');
     try {
-      const res = await api.post('/api/prospecting/import', { candidates: chosen });
+      const res = await api.post('/api/prospecting/import', { candidates: chosen, listName: listName.trim() || (provider === 'apollo' ? 'Apollo' : 'Lusha') });
       setImportResult(res);
       setCandidates((prev) => prev.filter((c) => !selected[c.key]));
       setSelected({});
@@ -133,25 +134,34 @@ export default function Prospecting() {
 
       {importResult && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-300 text-sm">
-          Se importaron {importResult.imported} contacto(s) a Bit CRM.
+          Se importaron {importResult.imported} contacto(s) a Bit CRM en la lista "{importResult.list_name || (provider === 'apollo' ? 'Apollo' : 'Lusha')}".
           {importResult.skipped > 0 && ` ${importResult.skipped} se omitieron (probablemente ya existían).`}
         </div>
       )}
 
       {candidates && (
         <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-brand-border flex items-center justify-between">
+          <div className="px-5 py-3 border-b border-brand-border flex items-center justify-between flex-wrap gap-2">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input type="checkbox" checked={candidates.length > 0 && candidates.every((c) => selected[c.key])} onChange={toggleAll} />
               {candidates.length} resultado{candidates.length === 1 ? '' : 's'}
             </label>
-            <button
-              onClick={importSelected}
-              disabled={selectedCount === 0 || importing}
-              className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-brand-violet text-sm font-medium disabled:opacity-40"
-            >
-              <Check size={14} /> {importing ? 'Importando...' : `Importar seleccionados (${selectedCount})`}
-            </button>
+            <div className="flex items-center gap-2">
+              <input
+                value={listName}
+                onChange={(e) => setListName(e.target.value)}
+                placeholder={provider === 'apollo' ? 'Apollo' : 'Lusha'}
+                className="w-32 px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet"
+                title="Nombre de la lista donde quedan agrupados los contactos importados"
+              />
+              <button
+                onClick={importSelected}
+                disabled={selectedCount === 0 || importing}
+                className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-brand-violet text-sm font-medium disabled:opacity-40"
+              >
+                <Check size={14} /> {importing ? 'Importando...' : `Importar seleccionados (${selectedCount})`}
+              </button>
+            </div>
           </div>
           <table className="w-full text-sm">
             <thead className="bg-brand-panel/80 text-brand-muted text-left">

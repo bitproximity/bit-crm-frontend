@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Mail, RefreshCw, Phone, Building2, X, Pencil, MapPin, Briefcase } from 'lucide-react';
+import { Mail, RefreshCw, Phone, Building2, X, Pencil, MapPin, Briefcase, Tag as TagIcon } from 'lucide-react';
 import EnrichButtons from './EnrichButtons';
 
 export default function ContactDetailPanel({ contactId, onClose }) {
@@ -15,15 +15,23 @@ export default function ContactDetailPanel({ contactId, onClose }) {
   const [saveError, setSaveError] = useState('');
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyResults, setCompanyResults] = useState([]);
+  const [contactTags, setContactTags] = useState([]);
+  const [allTags, setAllTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  const [tagPickerOpen, setTagPickerOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const [contactData, gs] = await Promise.all([
+    const [contactData, gs, tags, allTagsList] = await Promise.all([
       api.get(`/api/contacts/${contactId}`),
       api.get('/api/gmail/status'),
+      api.get(`/api/tags/for/contact/${contactId}`),
+      api.get('/api/tags'),
     ]);
     setContact(contactData);
     setGmailStatus(gs);
+    setContactTags(tags);
+    setAllTags(allTagsList);
     const msgs = await api.get(`/api/gmail/messages/contact/${contactId}`).catch(() => []);
     setEmails(msgs);
     setLoading(false);
@@ -85,6 +93,27 @@ export default function ContactDetailPanel({ contactId, onClose }) {
       alert(err.message || 'Error sincronizando correos');
     }
     setSyncing(false);
+  };
+
+  const toggleTag = async (tag) => {
+    const has = contactTags.some((t) => t.id === tag.id);
+    if (has) {
+      await api.delete(`/api/tags/${tag.id}/detach`, { entity_type: 'contact', entity_id: contactId });
+      setContactTags((prev) => prev.filter((t) => t.id !== tag.id));
+    } else {
+      await api.post(`/api/tags/${tag.id}/attach`, { entity_type: 'contact', entity_id: contactId });
+      setContactTags((prev) => [...prev, tag]);
+    }
+  };
+
+  const createAndAttachTag = async (name) => {
+    const existing = allTags.find((t) => t.name.toLowerCase() === name.toLowerCase());
+    const tag = existing || await api.post('/api/tags', { name });
+    if (!existing) setAllTags((prev) => [...prev, tag]);
+    await api.post(`/api/tags/${tag.id}/attach`, { entity_type: 'contact', entity_id: contactId });
+    setContactTags((prev) => [...prev, tag]);
+    setTagInput('');
+    setTagPickerOpen(false);
   };
 
   if (!contactId) return null;
@@ -197,6 +226,48 @@ export default function ContactDetailPanel({ contactId, onClose }) {
                 )}
                 <div className="mt-3">
                   <EnrichButtons entityType="contacts" entityId={contact.id} onEnriched={(updated) => setContact((c) => ({ ...c, ...updated }))} />
+                </div>
+                <div className="mt-3 relative">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {contactTags.map((tag) => (
+                      <span key={tag.id} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-brand-violet/15 text-brand-ice">
+                        <TagIcon size={10} /> {tag.name}
+                      </span>
+                    ))}
+                    <button onClick={() => setTagPickerOpen((v) => !v)} className="text-xs text-brand-muted hover:text-brand-ice transition">
+                      + Añadir a lista
+                    </button>
+                  </div>
+                  {tagPickerOpen && (
+                    <div className="absolute z-20 mt-1.5 w-56 bg-brand-bg border border-brand-border rounded-lg shadow-xl dropdown-in overflow-hidden">
+                      <input
+                        autoFocus value={tagInput} onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && tagInput.trim()) createAndAttachTag(tagInput.trim()); }}
+                        placeholder="Buscar o crear lista..."
+                        className="w-full px-3 py-2 text-sm bg-transparent border-b border-brand-border focus:outline-none"
+                      />
+                      <div className="max-h-40 overflow-y-auto">
+                        {allTags.filter((t) => t.name.toLowerCase().includes(tagInput.toLowerCase())).map((t) => (
+                          <button
+                            key={t.id}
+                            onClick={() => toggleTag(t)}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center justify-between"
+                          >
+                            {t.name}
+                            {contactTags.some((ct) => ct.id === t.id) && <span className="text-brand-violet">✓</span>}
+                          </button>
+                        ))}
+                        {tagInput.trim() && !allTags.some((t) => t.name.toLowerCase() === tagInput.trim().toLowerCase()) && (
+                          <button
+                            onClick={() => createAndAttachTag(tagInput.trim())}
+                            className="w-full text-left px-3 py-2 text-sm text-brand-ice hover:bg-brand-panel transition border-t border-brand-border"
+                          >
+                            + Crear lista "{tagInput.trim()}"
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">

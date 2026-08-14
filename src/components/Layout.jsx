@@ -5,7 +5,7 @@ import { canAccessPath, firstAllowedPath, isAdmin } from '../lib/permissions';
 import {
   LayoutDashboard, GitBranch, CheckSquare, Users, Building2,
   FolderKanban, Package, BarChart3, Settings as SettingsIcon, LogOut, Clock3, UserCircle,
-  Boxes, FileText, Receipt, CircleDollarSign, Handshake, Menu, X, Search,
+  Boxes, FileText, Receipt, CircleDollarSign, Handshake, Menu, X, Search, List,
 } from 'lucide-react';
 
 const nav = [
@@ -15,6 +15,7 @@ const nav = [
   { to: '/tasks', label: 'Tareas', icon: CheckSquare },
   { to: '/contacts', label: 'Contactos', icon: Users },
   { to: '/prospecting', label: 'Prospección', icon: Search },
+  { to: '/lists', label: 'Listas', icon: List },
   { to: '/companies', label: 'Empresas', icon: Building2 },
   { to: '/spaces', label: 'Espacios', icon: Boxes },
   { to: '/projects', label: 'Proyectos', icon: FolderKanban },
