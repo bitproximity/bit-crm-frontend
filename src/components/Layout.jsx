@@ -41,10 +41,10 @@ export default function Layout() {
   const hasAccess = canAccessPath(role, location.pathname);
 
   const navLinkClass = ({ isActive }) =>
-    `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-manrope transition ${
+    `group flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-manrope transition-all duration-200 ${
       isActive
         ? 'bg-gradient-to-r from-brand-violet/20 to-brand-magenta/20 text-brand-ice border border-brand-violet/40 shadow-[0_0_16px_-4px_rgba(133,0,255,0.5)]'
-        : 'text-brand-muted hover:bg-brand-panel hover:text-brand-white'
+        : 'text-brand-muted hover:bg-brand-panel hover:text-brand-white hover:translate-x-0.5'
     }`;
 
   const sidebarContent = (
@@ -60,7 +60,7 @@ export default function Layout() {
           const Icon = item.icon;
           return (
             <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setMobileOpen(false)} className={navLinkClass}>
-              <Icon size={16} strokeWidth={2} />
+              <Icon size={16} strokeWidth={2} className="transition-transform duration-200 group-hover:scale-110" />
               {item.label}
             </NavLink>
           );

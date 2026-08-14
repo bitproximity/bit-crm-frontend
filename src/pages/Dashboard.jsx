@@ -3,15 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { TrendingUp, DollarSign, Trophy, AlertCircle, ListTodo } from 'lucide-react';
 import { api } from '../lib/api';
 
-function Card({ icon: Icon, label, value, accent, iconColor, onClick }) {
+function Card({ icon: Icon, label, value, accent, iconColor, onClick, index = 0 }) {
   return (
     <div
       onClick={onClick}
-      className={`card-elevated rounded-xl p-5 group ${onClick ? 'cursor-pointer hover:border-brand-violet transition' : ''}`}
+      style={{ animationDelay: `${index * 60}ms` }}
+      className={`card-elevated rounded-xl p-5 group stagger-item ${onClick ? 'cursor-pointer' : ''}`}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="text-brand-muted text-sm font-manrope">{label}</div>
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconColor || 'bg-brand-violet/10'}`}>
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-110 ${iconColor || 'bg-brand-violet/10'}`}>
           <Icon size={15} className="text-brand-ice" />
         </div>
       </div>
@@ -52,7 +53,7 @@ export default function Dashboard() {
           Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)
         ) : (
           <>
-            <Card icon={TrendingUp} label="Deals abiertos" value={data.open_deals} iconColor="bg-blue-500/10" onClick={() => navigate('/deals-list?status=abierto')} />
+            <Card icon={TrendingUp} label="Deals abiertos" value={data.open_deals} iconColor="bg-blue-500/10" onClick={() => navigate('/deals-list?status=abierto')} index={0} />
             <Card
               icon={DollarSign}
               label="Pipeline abierto (USD)"
@@ -60,10 +61,11 @@ export default function Dashboard() {
               accent
               iconColor="bg-brand-violet/10"
               onClick={() => navigate('/deals-list?status=abierto')}
+              index={1}
             />
-            <Card icon={Trophy} label="Ganados este mes" value={data.won_this_month} iconColor="bg-green-500/10" onClick={() => navigate('/deals-list?status=ganado&period=this_month')} />
-            <Card icon={AlertCircle} label="Tareas vencidas" value={data.overdue_tasks} iconColor="bg-red-500/10" onClick={() => navigate('/tasks')} />
-            <Card icon={ListTodo} label="Mis tareas pendientes" value={data.my_open_tasks} iconColor="bg-yellow-500/10" onClick={() => navigate('/tasks')} />
+            <Card icon={Trophy} label="Ganados este mes" value={data.won_this_month} iconColor="bg-green-500/10" onClick={() => navigate('/deals-list?status=ganado&period=this_month')} index={2} />
+            <Card icon={AlertCircle} label="Tareas vencidas" value={data.overdue_tasks} iconColor="bg-red-500/10" onClick={() => navigate('/tasks')} index={3} />
+            <Card icon={ListTodo} label="Mis tareas pendientes" value={data.my_open_tasks} iconColor="bg-yellow-500/10" onClick={() => navigate('/tasks')} index={4} />
           </>
         )}
       </div>

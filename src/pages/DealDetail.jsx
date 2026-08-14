@@ -526,7 +526,7 @@ export default function DealDetail() {
                 </div>
               </button>
               {ownerEditing && (
-                <div className="absolute left-0 mt-1 w-56 bg-brand-panel border border-brand-border rounded-xl shadow-xl z-30 overflow-hidden">
+                <div className="absolute left-0 mt-1 w-56 bg-brand-panel border border-brand-border rounded-xl shadow-xl z-30 overflow-hidden dropdown-in">
                   <div className="max-h-64 overflow-y-auto py-1">
                     {team.map((m) => (
                       <button

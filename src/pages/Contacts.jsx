@@ -175,14 +175,15 @@ export default function Contacts() {
             </tr>
           </thead>
           <tbody>
-            {contacts.map((c) => {
+            {contacts.map((c, i) => {
               const fullName = `${c.first_name} ${c.last_name || ''}`.trim();
               const initials = fullName.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
               return (
                 <tr
                   key={c.id}
                   onClick={() => setSelectedContactId(c.id)}
-                  className="border-t border-brand-border row-hover cursor-pointer"
+                  className="border-t border-brand-border row-hover cursor-pointer stagger-item"
+                  style={{ animationDelay: `${Math.min(i, 25) * 15}ms` }}
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">

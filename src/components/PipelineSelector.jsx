@@ -226,11 +226,11 @@ export default function PipelineSelector({ pipelines, pipelineId, onSelect, onPi
       >
         <LayoutGrid size={14} className="text-brand-muted" />
         <span>{pipeline?.name}</span>
-        <ChevronDown size={14} className="text-brand-muted" />
+        <ChevronDown size={14} className={`text-brand-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1 w-72 bg-brand-panel border border-brand-border rounded-xl shadow-xl z-20 overflow-hidden">
+        <div className="absolute right-0 mt-1 w-72 bg-brand-panel border border-brand-border rounded-xl shadow-xl z-20 overflow-hidden dropdown-in">
           {panel === 'reorder' && (
             <ReorderPanel
               pipelines={visiblePipelines}

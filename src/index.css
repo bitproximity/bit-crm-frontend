@@ -162,3 +162,73 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   animation: shimmer 1.4s ease-in-out infinite;
   border-radius: 8px;
 }
+
+/* ── Microinteracciones y animaciones de entrada ─────────────────────── */
+
+/* Entrada escalonada para listas: tarjetas del kanban, filas de tabla, tarjetas del dashboard.
+   Se usa junto con un style={{ animationDelay: `${i * 25}ms` }} por ítem para el efecto cascada. */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stagger-item {
+  animation: riseIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* Modales: entran con fade + escala sutil en vez de aparecer de golpe */
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.overlay-in {
+  animation: overlayIn 0.15s ease-out;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-in {
+  animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Dropdowns/menús contextuales: entrada rápida con origen arriba */
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.dropdown-in {
+  animation: dropIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top;
+}
+
+/* Botones de ícono: respuesta táctil al pasar el mouse y al hacer clic */
+.icon-btn {
+  transition: transform 0.15s cubic-bezier(0.4,0,0.2,1), color 0.15s ease, background-color 0.15s ease;
+}
+.icon-btn:hover {
+  transform: scale(1.1);
+}
+.icon-btn:active {
+  transform: scale(0.9);
+}
+
+/* Ítem de navegación del sidebar: indicador y color se deslizan suavemente */
+.nav-item {
+  position: relative;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+.nav-item::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 3px;
+  height: 60%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #8500FF, #E000FF);
+  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+.nav-item.active::before {
+  transform: translateY(-50%) scaleY(1);
+}

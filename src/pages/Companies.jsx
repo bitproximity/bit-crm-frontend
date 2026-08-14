@@ -88,8 +88,13 @@ export default function Companies() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {companies.map((c) => (
-          <div key={c.id} onClick={() => navigate(`/companies/${c.id}`)} className="card-elevated rounded-xl p-4 cursor-pointer">
+        {companies.map((c, i) => (
+          <div
+            key={c.id}
+            onClick={() => navigate(`/companies/${c.id}`)}
+            className="card-elevated rounded-xl p-4 cursor-pointer stagger-item"
+            style={{ animationDelay: `${Math.min(i, 20) * 25}ms` }}
+          >
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center flex-shrink-0">
                 <Building2 size={18} />

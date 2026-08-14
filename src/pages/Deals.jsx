@@ -233,7 +233,7 @@ export default function Deals() {
                 </div>
 
                 <div className="space-y-2 min-h-[40px]">
-                  {stageDeals.slice(0, visibleCount[stage.id] || 40).map((deal) => {
+                  {stageDeals.slice(0, visibleCount[stage.id] || 40).map((deal, i) => {
                     const cName = contactName(deal);
                     const overdue = isOverdue(deal);
                     return (
@@ -242,7 +242,8 @@ export default function Deals() {
                         draggable
                         onDragStart={(e) => e.dataTransfer.setData('dealId', deal.id)}
                         onClick={() => navigate(`/deals/${deal.id}`)}
-                        className="relative card-elevated rounded-xl p-3.5 cursor-pointer group overflow-hidden"
+                        className="relative card-elevated rounded-xl p-3.5 cursor-pointer group overflow-hidden stagger-item"
+                        style={{ animationDelay: `${Math.min(i, 20) * 20}ms` }}
                       >
                         {deal.probability >= 70 && (
                           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-violet to-brand-magenta" />
@@ -301,11 +302,12 @@ export default function Deals() {
               </tr>
             </thead>
             <tbody>
-              {filteredDeals.slice(0, flatVisibleCount).map((deal) => (
+              {filteredDeals.slice(0, flatVisibleCount).map((deal, i) => (
                 <tr
                   key={deal.id}
                   onClick={() => navigate(`/deals/${deal.id}`)}
-                  className="border-t border-brand-border row-hover cursor-pointer"
+                  className="border-t border-brand-border row-hover cursor-pointer stagger-item"
+                  style={{ animationDelay: `${Math.min(i, 25) * 15}ms` }}
                 >
                   <td className="px-4 py-3">{deal.title}</td>
                   <td className="px-4 py-3 text-brand-muted">{contactName(deal) || '—'}</td>
@@ -369,11 +371,12 @@ export default function Deals() {
                   </tr>
                 </thead>
                 <tbody>
-                  {visible.map(({ deal, running, pct }) => (
+                  {visible.map(({ deal, running, pct }, i) => (
                     <tr
                       key={deal.id}
                       onClick={() => navigate(`/deals/${deal.id}`)}
-                      className="border-t border-brand-border row-hover cursor-pointer"
+                      className="border-t border-brand-border row-hover cursor-pointer stagger-item"
+                      style={{ animationDelay: `${Math.min(i, 25) * 15}ms` }}
                     >
                       <td className="px-4 py-3">{deal.title}</td>
                       <td className="px-4 py-3 text-brand-muted text-xs">{deal.pipeline_stages?.name}</td>
@@ -414,11 +417,12 @@ export default function Deals() {
               </tr>
             </thead>
             <tbody>
-              {archivedDeals.slice(0, flatVisibleCount).map((deal) => (
+              {archivedDeals.slice(0, flatVisibleCount).map((deal, i) => (
                 <tr
                   key={deal.id}
                   onClick={() => navigate(`/deals/${deal.id}`)}
-                  className="border-t border-brand-border row-hover cursor-pointer"
+                  className="border-t border-brand-border row-hover cursor-pointer stagger-item"
+                  style={{ animationDelay: `${Math.min(i, 25) * 15}ms` }}
                 >
                   <td className="px-4 py-3">{deal.title}</td>
                   <td className="px-4 py-3 text-brand-muted">{deal.companies?.name || '—'}</td>
