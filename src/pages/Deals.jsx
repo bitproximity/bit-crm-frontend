@@ -24,6 +24,8 @@ export default function Deals() {
   const [pipelines, setPipelines] = useState([]);
   const [pipelineId, setPipelineId] = useState(null);
   const [cardFields, setCardFields] = useState({ company: true, contact: true, value: true, due_date_warning: true, avatar: true });
+  const [visibleCount, setVisibleCount] = useState({}); // { [stageId]: n } — cuántas tarjetas renderizar por columna
+  const [flatVisibleCount, setFlatVisibleCount] = useState(100); // límite compartido para las vistas Lista y Archivo
   const [deals, setDeals] = useState([]);
   const [archivedDeals, setArchivedDeals] = useState([]);
   const [view, setView] = useState('board'); // board | list | value | archive
@@ -60,6 +62,8 @@ export default function Deals() {
 
   useEffect(() => {
     loadDeals(pipelineId).catch(console.error);
+    setVisibleCount({});
+    setFlatVisibleCount(100);
   }, [pipelineId]);
 
   useEffect(() => {
@@ -229,7 +233,7 @@ export default function Deals() {
                 </div>
 
                 <div className="space-y-2 min-h-[40px]">
-                  {stageDeals.map((deal) => {
+                  {stageDeals.slice(0, visibleCount[stage.id] || 40).map((deal) => {
                     const cName = contactName(deal);
                     const overdue = isOverdue(deal);
                     return (
@@ -267,6 +271,14 @@ export default function Deals() {
                       Sin tratos
                     </div>
                   )}
+                  {stageDeals.length > (visibleCount[stage.id] || 40) && (
+                    <button
+                      onClick={() => setVisibleCount((v) => ({ ...v, [stage.id]: (v[stage.id] || 40) + 40 }))}
+                      className="w-full py-2 rounded-lg text-xs text-brand-muted hover:text-brand-ice hover:bg-brand-panel/60 transition border border-dashed border-brand-border"
+                    >
+                      Cargar {Math.min(40, stageDeals.length - (visibleCount[stage.id] || 40))} más ({stageDeals.length - (visibleCount[stage.id] || 40)} restantes)
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -289,7 +301,7 @@ export default function Deals() {
               </tr>
             </thead>
             <tbody>
-              {filteredDeals.map((deal) => (
+              {filteredDeals.slice(0, flatVisibleCount).map((deal) => (
                 <tr
                   key={deal.id}
                   onClick={() => navigate(`/deals/${deal.id}`)}
@@ -314,6 +326,14 @@ export default function Deals() {
               )}
             </tbody>
           </table>
+          {filteredDeals.length > flatVisibleCount && (
+            <button
+              onClick={() => setFlatVisibleCount((n) => n + 100)}
+              className="w-full py-2.5 text-xs text-brand-muted hover:text-brand-ice hover:bg-brand-bg/60 transition border-t border-brand-border"
+            >
+              Cargar 100 más ({filteredDeals.length - flatVisibleCount} restantes)
+            </button>
+          )}
         </div>
       )}
 
@@ -322,6 +342,13 @@ export default function Deals() {
         const sorted = [...filteredDeals].sort((a, b) => Number(b.value || 0) - Number(a.value || 0));
         const total = sorted.reduce((sum, d) => sum + Number(d.value || 0), 0);
         let running = 0;
+        // El acumulado depende del orden completo, así que se calcula sobre TODO antes de recortar para renderizar.
+        const withRunning = sorted.map((deal) => {
+          running += Number(deal.value || 0);
+          const pct = total ? Math.round((Number(deal.value || 0) / total) * 100) : 0;
+          return { deal, running, pct };
+        });
+        const visible = withRunning.slice(0, flatVisibleCount);
         return (
           <div>
             <div className="mb-4 bg-brand-panel border border-brand-border rounded-xl p-4 flex items-center justify-between">
@@ -342,28 +369,32 @@ export default function Deals() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map((deal) => {
-                    running += Number(deal.value || 0);
-                    const pct = total ? Math.round((Number(deal.value || 0) / total) * 100) : 0;
-                    return (
-                      <tr
-                        key={deal.id}
-                        onClick={() => navigate(`/deals/${deal.id}`)}
-                        className="border-t border-brand-border row-hover cursor-pointer"
-                      >
-                        <td className="px-4 py-3">{deal.title}</td>
-                        <td className="px-4 py-3 text-brand-muted text-xs">{deal.pipeline_stages?.name}</td>
-                        <td className="px-4 py-3 text-brand-ice font-tech">{deal.currency} {Number(deal.value).toLocaleString('es-CO')}</td>
-                        <td className="px-4 py-3 text-brand-muted font-tech">{pct}%</td>
-                        <td className="px-4 py-3 text-brand-muted font-tech">${running.toLocaleString('es-CO')}</td>
-                      </tr>
-                    );
-                  })}
+                  {visible.map(({ deal, running, pct }) => (
+                    <tr
+                      key={deal.id}
+                      onClick={() => navigate(`/deals/${deal.id}`)}
+                      className="border-t border-brand-border row-hover cursor-pointer"
+                    >
+                      <td className="px-4 py-3">{deal.title}</td>
+                      <td className="px-4 py-3 text-brand-muted text-xs">{deal.pipeline_stages?.name}</td>
+                      <td className="px-4 py-3 text-brand-ice font-tech">{deal.currency} {Number(deal.value).toLocaleString('es-CO')}</td>
+                      <td className="px-4 py-3 text-brand-muted font-tech">{pct}%</td>
+                      <td className="px-4 py-3 text-brand-muted font-tech">${running.toLocaleString('es-CO')}</td>
+                    </tr>
+                  ))}
                   {sorted.length === 0 && (
                     <tr><td colSpan={5} className="px-4 py-10 text-center text-brand-muted text-sm">Sin tratos abiertos.</td></tr>
                   )}
                 </tbody>
               </table>
+              {sorted.length > flatVisibleCount && (
+                <button
+                  onClick={() => setFlatVisibleCount((n) => n + 100)}
+                  className="w-full py-2.5 text-xs text-brand-muted hover:text-brand-ice hover:bg-brand-bg/60 transition border-t border-brand-border"
+                >
+                  Cargar 100 más ({sorted.length - flatVisibleCount} restantes)
+                </button>
+              )}
             </div>
           </div>
         );
@@ -383,7 +414,7 @@ export default function Deals() {
               </tr>
             </thead>
             <tbody>
-              {archivedDeals.map((deal) => (
+              {archivedDeals.slice(0, flatVisibleCount).map((deal) => (
                 <tr
                   key={deal.id}
                   onClick={() => navigate(`/deals/${deal.id}`)}
@@ -409,6 +440,14 @@ export default function Deals() {
               )}
             </tbody>
           </table>
+          {archivedDeals.length > flatVisibleCount && (
+            <button
+              onClick={() => setFlatVisibleCount((n) => n + 100)}
+              className="w-full py-2.5 text-xs text-brand-muted hover:text-brand-ice hover:bg-brand-bg/60 transition border-t border-brand-border"
+            >
+              Cargar 100 más ({archivedDeals.length - flatVisibleCount} restantes)
+            </button>
+          )}
         </div>
       )}
     </div>
