@@ -60,6 +60,8 @@ export default function DealDetail() {
   const [customFields, setCustomFields] = useState([]);
   const [products, setProducts] = useState([]);
   const [allTags, setAllTags] = useState([]);
+  const [team, setTeam] = useState([]);
+  const [ownerEditing, setOwnerEditing] = useState(false);
   const [gmailStatus, setGmailStatus] = useState(null);
   const [gmailMessages, setGmailMessages] = useState([]);
   const [gmailSyncing, setGmailSyncing] = useState(false);
@@ -110,7 +112,7 @@ export default function DealDetail() {
 
   const load = async () => {
     setLoading(true);
-    const [dealData, items, acts, values, defs, prods, pls, tags] = await Promise.all([
+    const [dealData, items, acts, values, defs, prods, pls, tags, teamList] = await Promise.all([
       api.get(`/api/deals/${id}`),
       api.get(`/api/deals/${id}/line-items`),
       api.get(`/api/activities/for/deal/${id}`),
@@ -119,6 +121,7 @@ export default function DealDetail() {
       api.get('/api/products?active=true'),
       api.get('/api/pipelines'),
       api.get('/api/tags'),
+      api.get('/api/team').catch(() => []),
     ]);
     setDeal(dealData);
     setLineItems(items);
@@ -130,6 +133,7 @@ export default function DealDetail() {
     setProducts(prods);
     setPipelines(pls);
     setAllTags(tags);
+    setTeam(teamList);
     setProbValue(dealData.probability || 0);
     setLoading(false);
 
@@ -288,6 +292,12 @@ export default function DealDetail() {
   const saveValue = async () => {
     await api.patch(`/api/deals/${id}`, { value: Number(valueEdit) || 0, currency: currencyEdit });
     setValueEditing(false);
+    load();
+  };
+
+  const saveOwner = async (ownerId) => {
+    setOwnerEditing(false);
+    await api.patch(`/api/deals/${id}`, { owner_id: ownerId });
     load();
   };
 
@@ -502,14 +512,36 @@ export default function DealDetail() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-7 h-7 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-[10px] font-tech">
-                {initials(deal.team_members?.full_name)}
-              </div>
-              <div>
-                <div className="text-brand-white leading-tight">{deal.team_members?.full_name || '—'}</div>
-                <div className="text-brand-muted text-xs leading-tight">Propietario</div>
-              </div>
+            <div className="relative">
+              <button
+                onClick={() => setOwnerEditing((v) => !v)}
+                className="flex items-center gap-2 text-sm hover:bg-brand-bg rounded-lg px-1.5 py-1 -mx-1.5 transition"
+              >
+                <div className="w-7 h-7 rounded-full bg-brand-bg border border-brand-border flex items-center justify-center text-[10px] font-tech">
+                  {initials(deal.team_members?.full_name)}
+                </div>
+                <div className="text-left">
+                  <div className="text-brand-white leading-tight">{deal.team_members?.full_name || 'Sin asignar'}</div>
+                  <div className="text-brand-muted text-xs leading-tight">Propietario</div>
+                </div>
+              </button>
+              {ownerEditing && (
+                <div className="absolute left-0 mt-1 w-56 bg-brand-panel border border-brand-border rounded-xl shadow-xl z-30 overflow-hidden">
+                  <div className="max-h-64 overflow-y-auto py-1">
+                    {team.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => saveOwner(m.id)}
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-brand-bg transition flex items-center justify-between ${m.id === deal.owner_id ? 'text-brand-ice' : 'text-brand-white'}`}
+                      >
+                        {m.full_name}
+                        {m.id === deal.owner_id && <span className="text-brand-violet">✓</span>}
+                      </button>
+                    ))}
+                    {team.length === 0 && <div className="px-3 py-3 text-xs text-brand-muted">Cargando equipo...</div>}
+                  </div>
+                </div>
+              )}
             </div>
             {deal.status === 'abierto' ? (
               <>
