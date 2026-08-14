@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
-import { List, Users, ChevronLeft, Plus } from 'lucide-react';
+import { List, Users, ChevronLeft, Plus, X, Sparkles } from 'lucide-react';
 import { api } from '../lib/api';
 import ContactDetailPanel from '../components/ContactDetailPanel';
+
+const LIST_COLORS = ['#8500FF', '#E000FF', '#D9F6FF', '#22C55E', '#F59E0B', '#EF4444'];
+const QUICK_SUGGESTIONS = ['Apollo', 'Lusha', 'Prioritarios', 'Fríos'];
 
 export default function Lists() {
   const [tags, setTags] = useState(null);
@@ -10,6 +13,8 @@ export default function Lists() {
   const [selectedContactId, setSelectedContactId] = useState(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newColor, setNewColor] = useState(LIST_COLORS[0]);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const loadTags = () => api.get('/api/tags/with-contact-counts').then(setTags).catch((err) => setError(err.message));
@@ -29,14 +34,22 @@ export default function Lists() {
 
   const createList = async () => {
     if (!newName.trim()) return;
+    setSaving(true);
     try {
-      await api.post('/api/tags', { name: newName.trim() });
-      setNewName('');
-      setCreating(false);
+      await api.post('/api/tags', { name: newName.trim(), color: newColor });
+      closeCreateModal();
       loadTags();
     } catch (err) {
       setError(err.message);
+      setSaving(false);
     }
+  };
+
+  const closeCreateModal = () => {
+    setCreating(false);
+    setNewName('');
+    setNewColor(LIST_COLORS[0]);
+    setSaving(false);
   };
 
   const openTag = tags?.find((t) => t.id === openTagId);
@@ -95,19 +108,6 @@ export default function Lists() {
         Agrupa contactos — por ejemplo "Apollo", "Lusha", o cualquier segmento propio. Las listas creadas al importar desde Prospección aparecen automáticamente aquí.
       </p>
 
-      {creating && (
-        <div className="flex items-center gap-2 mb-4">
-          <input
-            autoFocus value={newName} onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && createList()}
-            placeholder="Nombre de la lista"
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
-          />
-          <button onClick={createList} className="px-3 py-2 rounded-lg bg-brand-violet text-sm font-medium">Crear</button>
-          <button onClick={() => setCreating(false)} className="px-3 py-2 text-sm text-brand-muted hover:text-brand-white">Cancelar</button>
-        </div>
-      )}
-
       {error && <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -119,7 +119,10 @@ export default function Lists() {
             style={{ animationDelay: `${Math.min(i, 20) * 25}ms` }}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center flex-shrink-0">
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: `linear-gradient(135deg, ${tag.color || '#8500FF'}, ${tag.color || '#E000FF'}99)` }}
+              >
                 <List size={18} />
               </div>
               <div className="min-w-0 flex-1">
@@ -137,6 +140,75 @@ export default function Lists() {
           </div>
         )}
       </div>
+
+      {creating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 overlay-in" onClick={closeCreateModal} />
+          <div className="relative w-full max-w-sm bg-brand-panel border border-brand-border rounded-2xl shadow-2xl overflow-hidden modal-in">
+            <div className="p-5 border-b border-brand-border flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center">
+                  <Sparkles size={16} />
+                </div>
+                <span className="font-headline text-base font-semibold">Nueva lista</span>
+              </div>
+              <button onClick={closeCreateModal} className="icon-btn text-brand-muted hover:text-brand-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs text-brand-muted mb-1.5">Nombre</label>
+                <input
+                  autoFocus value={newName} onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && createList()}
+                  placeholder="Ej. Apollo, Lusha, Prioritarios..."
+                  className="w-full px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet transition"
+                />
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {QUICK_SUGGESTIONS.filter((s) => s.toLowerCase() !== newName.trim().toLowerCase()).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setNewName(s)}
+                      className="px-2.5 py-1 rounded-full text-xs text-brand-muted bg-brand-bg border border-brand-border hover:border-brand-violet hover:text-brand-white transition"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-brand-muted mb-1.5">Color</label>
+                <div className="flex items-center gap-2">
+                  {LIST_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setNewColor(c)}
+                      className="w-7 h-7 rounded-full icon-btn"
+                      style={{ backgroundColor: c, outline: newColor === c ? '2px solid white' : 'none', outlineOffset: '2px' }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-brand-border flex justify-end gap-2">
+              <button onClick={closeCreateModal} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">
+                Cancelar
+              </button>
+              <button
+                onClick={createList}
+                disabled={!newName.trim() || saving}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50"
+              >
+                {saving ? 'Creando...' : 'Crear lista'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
