@@ -2,8 +2,9 @@ import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ChevronLeft, Building2, MapPin, Users, DollarSign, Phone, Linkedin, FileText } from 'lucide-react';
+import { ChevronLeft, Building2, MapPin, Users, DollarSign, Phone, Linkedin, FileText, Trash2 } from 'lucide-react';
 import EnrichButtons from '../components/EnrichButtons';
+import { useConfirm } from '../components/ConfirmModal';
 
 const TYPES = ['restaurante', 'retail', 'hotel', 'espacio_comercial', 'otro'];
 const TYPE_LABELS = {
@@ -14,6 +15,7 @@ const TYPE_LABELS = {
 export default function CompanyDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [company, setCompany] = useState(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: '', industry: '', country: '', company_type: 'otro' });
@@ -41,6 +43,21 @@ export default function CompanyDetail() {
     setSaving(false);
     setEditing(false);
     load();
+  };
+
+  const deleteCompany = async () => {
+    const ok = await confirm({
+      title: 'Eliminar empresa',
+      message: `¿Eliminar "${company.name}"? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/api/companies/${id}`);
+      navigate('/companies');
+    } catch (err) {
+      alert(err.message || 'No se pudo eliminar la empresa (puede tener contactos o tratos vinculados).');
+    }
   };
 
   if (error) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{error}</div>;
@@ -78,6 +95,13 @@ export default function CompanyDetail() {
             className="px-4 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm hover:border-brand-violet transition"
           >
             {editing ? 'Cancelar' : 'Editar'}
+          </button>
+          <button
+            onClick={deleteCompany}
+            className="icon-btn p-2 rounded-lg bg-brand-panel border border-brand-border text-brand-muted hover:text-red-300 hover:border-red-500/40 transition"
+            title="Eliminar empresa"
+          >
+            <Trash2 size={16} />
           </button>
         </div>
       </div>

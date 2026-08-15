@@ -242,7 +242,7 @@ export default function Contacts() {
         </div>
       )}
 
-      <ContactDetailPanel contactId={selectedContactId} onClose={() => setSelectedContactId(null)} />
+      <ContactDetailPanel contactId={selectedContactId} onClose={() => setSelectedContactId(null)} onDeleted={() => { setSelectedContactId(null); load(); }} />
     </div>
   );
 }

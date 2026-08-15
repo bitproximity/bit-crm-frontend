@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Mail, RefreshCw, Phone, Building2, X, Pencil, MapPin, Briefcase, Tag as TagIcon } from 'lucide-react';
+import { Mail, RefreshCw, Phone, Building2, X, Pencil, MapPin, Briefcase, Tag as TagIcon, Trash2 } from 'lucide-react';
 import EnrichButtons from './EnrichButtons';
+import { useConfirm } from './ConfirmModal';
 
-export default function ContactDetailPanel({ contactId, onClose }) {
+export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
+  const confirm = useConfirm();
   const [contact, setContact] = useState(null);
   const [emails, setEmails] = useState([]);
   const [gmailStatus, setGmailStatus] = useState(null);
@@ -93,6 +95,22 @@ export default function ContactDetailPanel({ contactId, onClose }) {
       alert(err.message || 'Error sincronizando correos');
     }
     setSyncing(false);
+  };
+
+  const deleteContact = async () => {
+    const name = `${contact.first_name} ${contact.last_name || ''}`.trim();
+    const ok = await confirm({
+      title: 'Eliminar contacto',
+      message: `¿Eliminar a "${name}"? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/api/contacts/${contactId}`);
+      (onDeleted || onClose)();
+    } catch (err) {
+      alert(err.message || 'No se pudo eliminar el contacto (puede tener tratos vinculados).');
+    }
   };
 
   const toggleTag = async (tag) => {
@@ -271,8 +289,11 @@ export default function ContactDetailPanel({ contactId, onClose }) {
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
-                <button onClick={startEdit} className="text-brand-muted hover:text-brand-ice" title="Editar">
+                <button onClick={startEdit} className="icon-btn text-brand-muted hover:text-brand-ice" title="Editar">
                   <Pencil size={16} />
+                </button>
+                <button onClick={deleteContact} className="icon-btn text-brand-muted hover:text-red-300" title="Eliminar">
+                  <Trash2 size={16} />
                 </button>
                 <button onClick={onClose} className="text-brand-muted hover:text-brand-white">
                   <X size={18} />

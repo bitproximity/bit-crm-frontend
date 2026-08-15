@@ -119,7 +119,7 @@ export default function Lists() {
         </div>
 
         {selectedContactId && (
-          <ContactDetailPanel contactId={selectedContactId} onClose={() => setSelectedContactId(null)} />
+          <ContactDetailPanel contactId={selectedContactId} onClose={() => setSelectedContactId(null)} onDeleted={() => { setSelectedContactId(null); openList(openTag); loadTags(); }} />
         )}
         {editingTag && (
           <ListFormModal
