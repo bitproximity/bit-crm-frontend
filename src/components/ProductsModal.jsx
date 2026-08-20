@@ -102,12 +102,20 @@ export default function ProductsModal({ open, onClose, dealId, dealTitle, dealCu
   const handleSave = async () => {
     setSaving(true);
     setError('');
+    const rowErrors = [];
     try {
-      await Promise.all(removedIds.map((itemId) => api.delete(`/api/deals/${dealId}/line-items/${itemId}`)));
+      // Cada ítem se guarda de forma independiente: si uno falla, no debe tumbar a los demás
+      // ni impedir que se actualice el valor del trato — antes un solo ítem con error dejaba
+      // todo sin guardar (incluido el valor) sin ningún aviso claro.
+      await Promise.all(removedIds.map((itemId) =>
+        api.delete(`/api/deals/${dealId}/line-items/${itemId}`).catch((err) => {
+          rowErrors.push(`No se pudo borrar un ítem: ${err.message}`);
+        })
+      ));
 
       const validRows = rows.filter((r) => r.name.trim() && Number(r.price) >= 0 && Number(r.quantity) > 0);
 
-      await Promise.all(validRows.map((r) => {
+      await Promise.all(validRows.map(async (r) => {
         const effectiveUnitPrice = Number(r.price) * (1 - (Number(r.discountPct) || 0) / 100);
         const payload = {
           product_id: r.product_id || null,
@@ -116,15 +124,28 @@ export default function ProductsModal({ open, onClose, dealId, dealTitle, dealCu
           unit_price: effectiveUnitPrice,
           currency,
         };
-        if (r.existingId) {
-          // No hay endpoint de edición: se recrea el ítem (borrar + crear) para reflejar el cambio.
-          return api.delete(`/api/deals/${dealId}/line-items/${r.existingId}`).then(() => api.post(`/api/deals/${dealId}/line-items`, payload));
+        try {
+          if (r.existingId) {
+            // No hay endpoint de edición: se recrea el ítem (borrar + crear) para reflejar el cambio.
+            await api.delete(`/api/deals/${dealId}/line-items/${r.existingId}`);
+            await api.post(`/api/deals/${dealId}/line-items`, payload);
+          } else {
+            await api.post(`/api/deals/${dealId}/line-items`, payload);
+          }
+        } catch (err) {
+          rowErrors.push(`"${r.name}": ${err.message}`);
         }
-        return api.post(`/api/deals/${dealId}/line-items`, payload);
       }));
 
-      // Sincroniza el valor del trato con el total de productos, como en Pipedrive.
+      // El valor del trato se actualiza SIEMPRE con el total ya calculado en pantalla,
+      // sin importar si algún ítem individual falló arriba.
       await api.patch(`/api/deals/${dealId}`, { value: total, currency });
+
+      if (rowErrors.length > 0) {
+        setError(`El valor se guardó, pero hubo problemas con algunos ítems: ${rowErrors.join(' · ')}`);
+        setSaving(false);
+        return; // deja el modal abierto para que puedas reintentar el/los ítems fallidos
+      }
 
       onSaved?.();
       onClose();
