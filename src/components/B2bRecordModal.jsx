@@ -13,6 +13,14 @@ const STATUS_OPTIONS = [
 
 export const INDUSTRY_OPTIONS = ['Restaurantes', 'Retail', 'Salud', 'Banca', 'Centros Comerciales'];
 
+export const COUNTRY_OPTIONS = [
+  'Argentina', 'Bolivia', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Ecuador',
+  'El Salvador', 'Estados Unidos', 'Guatemala', 'Honduras', 'México', 'Nicaragua',
+  'Panamá', 'Paraguay', 'Perú', 'Puerto Rico', 'República Dominicana', 'Uruguay', 'Venezuela',
+];
+
+export const POSITION_OPTIONS = ['Gerente de Marketing', 'CEO', 'Gerente de IT', 'Trade Marketing', 'Gerente de Operaciones'];
+
 export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
   const confirm = useConfirm();
   const [team, setTeam] = useState([]);
@@ -91,7 +99,10 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
             </div>
             <div>
               <label className={labelClass}>Cargo</label>
-              <input value={form.target_position} onChange={set('target_position')} className={inputClass} />
+              <select value={form.target_position} onChange={set('target_position')} className={inputClass}>
+                <option value="">Sin especificar</option>
+                {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -148,7 +159,10 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
             </div>
             <div>
               <label className={labelClass}>País</label>
-              <input value={form.country} onChange={set('country')} className={inputClass} />
+              <select value={form.country} onChange={set('country')} className={inputClass}>
+                <option value="">Sin especificar</option>
+                {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
           </div>
           <div>

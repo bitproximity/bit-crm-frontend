@@ -4,7 +4,7 @@ import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck,
   Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus,
 } from 'lucide-react';
-import B2bRecordModal, { INDUSTRY_OPTIONS } from '../components/B2bRecordModal';
+import B2bRecordModal, { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
 import DateTimePicker from '../components/DateTimePicker';
 import { useConfirm } from '../components/ConfirmModal';
 
@@ -189,16 +189,6 @@ export default function B2bMeetings() {
   const client = clients.find((c) => c.id === clientId);
 
   const normalizeCountry = (c) => (c || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const countryDisplay = {}; // normalizado -> primera versión "bonita" (con mayúscula/acento) que aparezca
-  records.forEach((r) => {
-    if (!r.country) return;
-    const key = normalizeCountry(r.country);
-    if (!countryDisplay[key] || (r.country[0] === r.country[0].toUpperCase() && countryDisplay[key][0] !== countryDisplay[key][0].toUpperCase())) {
-      countryDisplay[key] = r.country.trim();
-    }
-  });
-  const distinctCountries = Object.entries(countryDisplay).sort((a, b) => a[1].localeCompare(b[1]));
-
   const distinctExecutives = [...new Set(records.map((r) => r.executive).filter(Boolean))].sort();
   const hasActiveFilters = Object.values(filters).some((v) => v !== '');
   const filteredRecords = records.filter((r) => {
@@ -207,7 +197,7 @@ export default function B2bMeetings() {
       if (!r.target_company?.toLowerCase().includes(q) && !r.target_contact?.toLowerCase().includes(q)) return false;
     }
     if (filters.status && r.status !== filters.status) return false;
-    if (filters.country && normalizeCountry(r.country) !== filters.country) return false;
+    if (filters.country && normalizeCountry(r.country) !== normalizeCountry(filters.country)) return false;
     if (filters.executive && r.executive !== filters.executive) return false;
     if (filters.industry && r.industry !== filters.industry) return false;
     if (filters.dateFrom && (!r.meeting_date || r.meeting_date < filters.dateFrom)) return false;
@@ -553,7 +543,7 @@ export default function B2bMeetings() {
               <label className="block text-[10px] text-brand-muted mb-1">País</label>
               <select value={filters.country} onChange={(e) => setFilters({ ...filters, country: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
                 <option value="">Todos</option>
-                {distinctCountries.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
