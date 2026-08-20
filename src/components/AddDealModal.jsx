@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import DateTimePicker from './DateTimePicker';
 import { User, Building2, X, Plus } from 'lucide-react';
+import { POSITION_OPTIONS, COUNTRY_OPTIONS } from './B2bRecordModal';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
@@ -19,6 +20,8 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
   const [selectedContact, setSelectedContact] = useState(null);
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [contactPosition, setContactPosition] = useState('');
+  const [contactCountry, setContactCountry] = useState('');
 
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyResults, setCompanyResults] = useState([]);
@@ -52,7 +55,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
     setPipelineIdSel(pipelineId);
     setProbability(50); setExpectedCloseDate('');
     setContactQuery(''); setContactResults([]); setSelectedContact(null);
-    setContactPhone(''); setContactEmail('');
+    setContactPhone(''); setContactEmail(''); setContactPosition(''); setContactCountry('');
     setCompanyQuery(''); setCompanyResults([]); setSelectedCompany(null);
     setIndustry('');
     setSelectedTagIds([]); setTagInput(''); setTagMenuOpen(false);
@@ -110,6 +113,8 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
     setContactQuery(`${c.first_name || ''} ${c.last_name || ''}`.trim());
     setContactPhone(c.phone || '');
     setContactEmail(c.email || '');
+    setContactPosition(c.position || '');
+    setContactCountry(c.country || '');
     setContactResults([]);
     if (c.companies?.name && !selectedCompany) setCompanyQuery(c.companies.name);
   };
@@ -172,8 +177,14 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
       // 1. Contacto
       let contactId = selectedContact?.id || null;
       if (contactId) {
-        if (contactPhone !== (selectedContact.phone || '') || contactEmail !== (selectedContact.email || '')) {
-          await api.patch(`/api/contacts/${contactId}`, { phone: contactPhone || null, email: contactEmail || null });
+        if (
+          contactPhone !== (selectedContact.phone || '') || contactEmail !== (selectedContact.email || '') ||
+          contactPosition !== (selectedContact.position || '') || contactCountry !== (selectedContact.country || '')
+        ) {
+          await api.patch(`/api/contacts/${contactId}`, {
+            phone: contactPhone || null, email: contactEmail || null,
+            position: contactPosition || null, country: contactCountry || null,
+          });
         }
       } else if (contactQuery.trim()) {
         const parts = contactQuery.trim().split(/\s+/);
@@ -182,6 +193,8 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
           last_name: parts.slice(1).join(' ') || null,
           phone: contactPhone || null,
           email: contactEmail || null,
+          position: contactPosition || null,
+          country: contactCountry || null,
         });
         contactId = created.id;
       }
@@ -567,6 +580,20 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
                       placeholder="nombre@empresa.com"
                       className={plainInputClass}
                     />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Cargo</label>
+                    <select value={contactPosition} onChange={(e) => setContactPosition(e.target.value)} className={plainInputClass}>
+                      <option value="">Sin especificar</option>
+                      {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>País</label>
+                    <select value={contactCountry} onChange={(e) => setContactCountry(e.target.value)} className={plainInputClass}>
+                      <option value="">Sin especificar</option>
+                      {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
                   </div>
                 </div>
               </div>

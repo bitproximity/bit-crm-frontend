@@ -14,8 +14,8 @@ const STATUS_OPTIONS = [
 export const INDUSTRY_OPTIONS = ['Restaurantes', 'Retail', 'Salud', 'Banca', 'Centros Comerciales', 'Educación', 'Entretenimiento'];
 
 export const COUNTRY_OPTIONS = [
-  'Argentina', 'Bolivia', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Ecuador',
-  'El Salvador', 'Estados Unidos', 'Guatemala', 'Honduras', 'México', 'Nicaragua',
+  'Argentina', 'Chile', 'Colombia', 'Costa Rica', 'Ecuador',
+  'El Salvador', 'Estados Unidos', 'Guatemala', 'Honduras', 'México',
   'Panamá', 'Paraguay', 'Perú', 'Puerto Rico', 'República Dominicana', 'Uruguay', 'Venezuela',
 ];
 
