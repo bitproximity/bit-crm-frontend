@@ -5,6 +5,7 @@ import {
   Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus,
 } from 'lucide-react';
 import B2bRecordModal from '../components/B2bRecordModal';
+import DateTimePicker from '../components/DateTimePicker';
 import { useConfirm } from '../components/ConfirmModal';
 
 function parseCsv(text) {
@@ -187,7 +188,17 @@ export default function B2bMeetings() {
 
   const client = clients.find((c) => c.id === clientId);
 
-  const distinctCountries = [...new Set(records.map((r) => r.country).filter(Boolean))].sort();
+  const normalizeCountry = (c) => (c || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const countryDisplay = {}; // normalizado -> primera versión "bonita" (con mayúscula/acento) que aparezca
+  records.forEach((r) => {
+    if (!r.country) return;
+    const key = normalizeCountry(r.country);
+    if (!countryDisplay[key] || (r.country[0] === r.country[0].toUpperCase() && countryDisplay[key][0] !== countryDisplay[key][0].toUpperCase())) {
+      countryDisplay[key] = r.country.trim();
+    }
+  });
+  const distinctCountries = Object.entries(countryDisplay).sort((a, b) => a[1].localeCompare(b[1]));
+
   const distinctExecutives = [...new Set(records.map((r) => r.executive).filter(Boolean))].sort();
   const hasActiveFilters = Object.values(filters).some((v) => v !== '');
   const filteredRecords = records.filter((r) => {
@@ -196,7 +207,7 @@ export default function B2bMeetings() {
       if (!r.target_company?.toLowerCase().includes(q) && !r.target_contact?.toLowerCase().includes(q)) return false;
     }
     if (filters.status && r.status !== filters.status) return false;
-    if (filters.country && r.country !== filters.country) return false;
+    if (filters.country && normalizeCountry(r.country) !== filters.country) return false;
     if (filters.executive && r.executive !== filters.executive) return false;
     if (filters.dateFrom && (!r.meeting_date || r.meeting_date < filters.dateFrom)) return false;
     if (filters.dateTo && (!r.meeting_date || r.meeting_date > filters.dateTo)) return false;
@@ -541,7 +552,7 @@ export default function B2bMeetings() {
               <label className="block text-[10px] text-brand-muted mb-1">País</label>
               <select value={filters.country} onChange={(e) => setFilters({ ...filters, country: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
                 <option value="">Todos</option>
-                {distinctCountries.map((c) => <option key={c} value={c}>{c}</option>)}
+                {distinctCountries.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
               </select>
             </div>
             <div>
@@ -553,11 +564,11 @@ export default function B2bMeetings() {
             </div>
             <div>
               <label className="block text-[10px] text-brand-muted mb-1">Reunión desde</label>
-              <input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs font-tech focus:outline-none focus:border-brand-violet" />
+              <DateTimePicker dateOnly value={filters.dateFrom} onChange={(v) => setFilters({ ...filters, dateFrom: v })} placeholder="Sin límite" className="text-xs py-1.5" />
             </div>
             <div>
               <label className="block text-[10px] text-brand-muted mb-1">Reunión hasta</label>
-              <input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs font-tech focus:outline-none focus:border-brand-violet" />
+              <DateTimePicker dateOnly value={filters.dateTo} onChange={(v) => setFilters({ ...filters, dateTo: v })} placeholder="Sin límite" className="text-xs py-1.5" />
             </div>
             {hasActiveFilters && (
               <button onClick={() => setFilters(EMPTY_FILTERS)} className="text-xs text-brand-muted hover:text-red-300 transition pb-1.5">

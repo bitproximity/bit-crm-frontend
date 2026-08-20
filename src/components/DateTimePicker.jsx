@@ -5,7 +5,9 @@ const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 
 const DAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 // value/onChange trabajan con string ISO ('' si no hay fecha).
-export default function DateTimePicker({ value, onChange, className = '' }) {
+// dateOnly=true: sin selector de hora, onChange devuelve 'YYYY-MM-DD' en vez de ISO con hora
+// (para filtros de fecha simples, como "reunión desde/hasta").
+export default function DateTimePicker({ value, onChange, className = '', dateOnly = false, placeholder }) {
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(value ? new Date(value) : new Date());
   const [time, setTime] = useState(value ? new Date(value).toTimeString().slice(0, 5) : '09:00');
@@ -17,7 +19,7 @@ export default function DateTimePicker({ value, onChange, className = '' }) {
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, []);
 
-  const selected = value ? new Date(value) : null;
+  const selected = value ? new Date(dateOnly ? `${value}T00:00:00` : value) : null;
 
   const firstOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
   const startOffset = (firstOfMonth.getDay() + 6) % 7; // lunes=0
@@ -25,6 +27,12 @@ export default function DateTimePicker({ value, onChange, className = '' }) {
   const cells = [...Array(startOffset).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
 
   const pickDay = (day) => {
+    if (dateOnly) {
+      const iso = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      onChange(iso);
+      setOpen(false);
+      return;
+    }
     const [h, m] = time.split(':').map(Number);
     const d = new Date(viewDate.getFullYear(), viewDate.getMonth(), day, h, m);
     onChange(d.toISOString());
@@ -57,7 +65,7 @@ export default function DateTimePicker({ value, onChange, className = '' }) {
       >
         <Calendar size={14} className="text-brand-muted flex-shrink-0" />
         <span className={selected ? 'text-brand-white' : 'text-brand-muted'}>
-          {selected ? `${selected.toLocaleDateString()} ${selected.toTimeString().slice(0, 5)}` : 'Elegir fecha y hora'}
+          {selected ? (dateOnly ? selected.toLocaleDateString() : `${selected.toLocaleDateString()} ${selected.toTimeString().slice(0, 5)}`) : (placeholder || 'Elegir fecha y hora')}
         </span>
       </button>
 
@@ -91,19 +99,23 @@ export default function DateTimePicker({ value, onChange, className = '' }) {
           </div>
 
           <div className="flex items-center gap-2 pt-2 border-t border-brand-border">
-            <Clock size={13} className="text-brand-muted" />
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => onTimeChange(e.target.value)}
-              className="flex-1 px-2 py-1.5 rounded bg-brand-bg border border-brand-border text-xs font-tech focus:outline-none"
-            />
+            {!dateOnly && (
+              <>
+                <Clock size={13} className="text-brand-muted" />
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(e) => onTimeChange(e.target.value)}
+                  className="flex-1 px-2 py-1.5 rounded bg-brand-bg border border-brand-border text-xs font-tech focus:outline-none"
+                />
+              </>
+            )}
             {value && (
               <button type="button" onClick={() => { onChange(''); setOpen(false); }} className="text-xs text-brand-muted hover:text-red-400">
                 Quitar
               </button>
             )}
-            <button type="button" onClick={() => setOpen(false)} className="text-xs text-brand-ice hover:underline">
+            <button type="button" onClick={() => setOpen(false)} className={`text-xs text-brand-ice hover:underline ${dateOnly ? 'ml-auto' : ''}`}>
               Listo
             </button>
           </div>
