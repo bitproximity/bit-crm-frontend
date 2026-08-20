@@ -73,6 +73,8 @@ export default function B2bMeetings() {
   const [clientId, setClientId] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [records, setRecords] = useState([]);
+  const EMPTY_FILTERS = { search: '', status: '', country: '', executive: '', dateFrom: '', dateTo: '' };
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [error, setError] = useState('');
   const [importResult, setImportResult] = useState(null);
   const [showAddClient, setShowAddClient] = useState(false);
@@ -184,6 +186,22 @@ export default function B2bMeetings() {
   const onSaved = () => { setModalOpen(false); loadClientData(); };
 
   const client = clients.find((c) => c.id === clientId);
+
+  const distinctCountries = [...new Set(records.map((r) => r.country).filter(Boolean))].sort();
+  const distinctExecutives = [...new Set(records.map((r) => r.executive).filter(Boolean))].sort();
+  const hasActiveFilters = Object.values(filters).some((v) => v !== '');
+  const filteredRecords = records.filter((r) => {
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      if (!r.target_company?.toLowerCase().includes(q) && !r.target_contact?.toLowerCase().includes(q)) return false;
+    }
+    if (filters.status && r.status !== filters.status) return false;
+    if (filters.country && r.country !== filters.country) return false;
+    if (filters.executive && r.executive !== filters.executive) return false;
+    if (filters.dateFrom && (!r.meeting_date || r.meeting_date < filters.dateFrom)) return false;
+    if (filters.dateTo && (!r.meeting_date || r.meeting_date > filters.dateTo)) return false;
+    return true;
+  });
   const COLORS = ['#8500FF', '#E000FF', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6', '#ef4444'];
 
   return (
@@ -503,6 +521,52 @@ export default function B2bMeetings() {
             </>
           )}
 
+          <div className="flex flex-wrap items-end gap-2 mb-3 bg-brand-panel border border-brand-border rounded-xl p-3">
+            <div>
+              <label className="block text-[10px] text-brand-muted mb-1">Buscar</label>
+              <input
+                value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                placeholder="Empresa o contacto..."
+                className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet w-40"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-brand-muted mb-1">Estado</label>
+              <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
+                <option value="">Todos</option>
+                {STATUS_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] text-brand-muted mb-1">País</label>
+              <select value={filters.country} onChange={(e) => setFilters({ ...filters, country: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
+                <option value="">Todos</option>
+                {distinctCountries.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] text-brand-muted mb-1">Ejecutivo</label>
+              <select value={filters.executive} onChange={(e) => setFilters({ ...filters, executive: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
+                <option value="">Todos</option>
+                {distinctExecutives.map((ex) => <option key={ex} value={ex}>{ex}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] text-brand-muted mb-1">Reunión desde</label>
+              <input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs font-tech focus:outline-none focus:border-brand-violet" />
+            </div>
+            <div>
+              <label className="block text-[10px] text-brand-muted mb-1">Reunión hasta</label>
+              <input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs font-tech focus:outline-none focus:border-brand-violet" />
+            </div>
+            {hasActiveFilters && (
+              <button onClick={() => setFilters(EMPTY_FILTERS)} className="text-xs text-brand-muted hover:text-red-300 transition pb-1.5">
+                Limpiar filtros
+              </button>
+            )}
+            <div className="text-xs text-brand-muted pb-1.5 ml-auto">{filteredRecords.length} de {records.length}</div>
+          </div>
+
           <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-brand-panel/80 text-brand-muted text-left">
@@ -518,7 +582,7 @@ export default function B2bMeetings() {
                 </tr>
               </thead>
               <tbody>
-                {records.map((r) => (
+                {filteredRecords.map((r) => (
                   <tr key={r.id} className="border-t border-brand-border row-hover cursor-pointer" onClick={() => openEdit(r)}>
                     <td className="px-4 py-3">{r.target_company}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.target_contact || '—'}</td>
@@ -534,8 +598,8 @@ export default function B2bMeetings() {
                     <td className="px-4 py-3 text-right"><Pencil size={13} className="text-brand-muted inline" /></td>
                   </tr>
                 ))}
-                {records.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-10 text-center text-brand-muted text-sm">Sin registros todavía. Importa una base o agrega uno manual para empezar.</td></tr>
+                {filteredRecords.length === 0 && (
+                  <tr><td colSpan={8} className="px-4 py-10 text-center text-brand-muted text-sm">{records.length === 0 ? 'Sin registros todavía. Importa una base o agrega uno manual para empezar.' : 'Ningún registro coincide con estos filtros.'}</td></tr>
                 )}
               </tbody>
             </table>
