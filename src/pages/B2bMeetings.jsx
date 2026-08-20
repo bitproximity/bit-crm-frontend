@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck,
-  Link2, Check, Pencil, Trash2, GripVertical, X,
+  Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus,
 } from 'lucide-react';
 import B2bRecordModal from '../components/B2bRecordModal';
 import { useConfirm } from '../components/ConfirmModal';
@@ -84,6 +84,7 @@ export default function B2bMeetings() {
   const [leaderboard, setLeaderboard] = useState(null);
   const [expandedPerson, setExpandedPerson] = useState(null);
   const [reordering, setReordering] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const loadClients = () => api.get('/api/b2b/clients').then((list) => {
     setClients(list);
@@ -163,6 +164,17 @@ export default function B2bMeetings() {
     if (!ok) return;
     await api.delete(`/api/b2b/clients/${clientId}/records`);
     loadClientData();
+  };
+
+  const exportToContacts = async () => {
+    setExporting(true);
+    try {
+      const result = await api.post(`/api/b2b/clients/${clientId}/export-to-contacts`, {});
+      setImportResult({ inserted: result.created, updated: 0, list_name: result.list_name, exported: true });
+    } catch (err) {
+      setImportResult({ error: err.message });
+    }
+    setExporting(false);
   };
 
   const openEdit = (record) => { setEditingRecord(record); setModalOpen(true); };
@@ -361,6 +373,9 @@ export default function B2bMeetings() {
                 <CalendarCheck size={13} /> Importar reuniones
                 <input type="file" accept=".csv" className="hidden" onChange={(e) => handleImport(e, 'reuniones')} />
               </label>
+              <button onClick={exportToContacts} disabled={exporting} className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition flex items-center gap-1.5 disabled:opacity-50">
+                <ListPlus size={13} /> {exporting ? 'Enviando...' : 'Ver en Listas'}
+              </button>
               <button onClick={copyShareLink} className="px-3 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-xs hover:opacity-90 transition flex items-center gap-1.5">
                 {copiedLink ? <Check size={13} /> : <Link2 size={13} />}
                 {copiedLink ? 'Link copiado' : 'Compartir con la marca'}
@@ -373,7 +388,9 @@ export default function B2bMeetings() {
 
           {importResult && (
             <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${importResult.error ? 'bg-red-500/10 border border-red-500/30 text-red-300' : 'bg-green-500/10 border border-green-500/30 text-green-300'}`}>
-              {importResult.error || `Importado: ${importResult.inserted} nuevos${importResult.updated ? `, ${importResult.updated} actualizados a "reunión agendada"` : ''}.`}
+              {importResult.error || (importResult.exported
+                ? `${importResult.inserted} contacto(s) en la lista "${importResult.list_name}".`
+                : `Importado: ${importResult.inserted} nuevos${importResult.updated ? `, ${importResult.updated} actualizados a "reunión agendada"` : ''}.`)}
             </div>
           )}
 
