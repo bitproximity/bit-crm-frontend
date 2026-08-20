@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck,
-  Link2, Check, Pencil,
+  Link2, Check, Pencil, Trash2,
 } from 'lucide-react';
 import B2bRecordModal from '../components/B2bRecordModal';
+import { useConfirm } from '../components/ConfirmModal';
 
 function parseCsv(text) {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
@@ -66,6 +67,7 @@ const STATUS_LABEL = {
 };
 
 export default function B2bMeetings() {
+  const confirm = useConfirm();
   const [tab, setTab] = useState('client'); // client | team
   const [clients, setClients] = useState([]);
   const [clientId, setClientId] = useState(null);
@@ -148,6 +150,18 @@ export default function B2bMeetings() {
     await navigator.clipboard?.writeText(url).catch(() => {});
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const clearClientRecords = async () => {
+    const clientName = client?.name || 'esta marca';
+    const ok = await confirm({
+      title: 'Borrar todo',
+      message: `¿Borrar TODOS los registros de "${clientName}" (${records.length} en total)? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Borrar todo',
+    });
+    if (!ok) return;
+    await api.delete(`/api/b2b/clients/${clientId}/records`);
+    loadClientData();
   };
 
   const openEdit = (record) => { setEditingRecord(record); setModalOpen(true); };
@@ -336,6 +350,9 @@ export default function B2bMeetings() {
               <button onClick={copyShareLink} className="px-3 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-xs hover:opacity-90 transition flex items-center gap-1.5">
                 {copiedLink ? <Check size={13} /> : <Link2 size={13} />}
                 {copiedLink ? 'Link copiado' : 'Compartir con la marca'}
+              </button>
+              <button onClick={clearClientRecords} className="px-3 py-2 rounded-lg border border-red-500/30 text-red-300 text-xs hover:bg-red-500/10 transition flex items-center gap-1.5">
+                <Trash2 size={13} /> Borrar todo de {client?.name}
               </button>
             </div>
           </div>
