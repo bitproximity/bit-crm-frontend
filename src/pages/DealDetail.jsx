@@ -9,6 +9,7 @@ import ProductsModal from '../components/ProductsModal';
 import {
   ChevronLeft, ChevronDown, MoreHorizontal, Tag, Calendar, Building2, User,
   Plus, X, Mail, Phone, Video, StickyNote, FileText as FileTextIcon, Paperclip,
+  Pencil, Trash2,
 } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
@@ -89,6 +90,8 @@ export default function DealDetail() {
   const [noteText, setNoteText] = useState('');
   const [activityForm, setActivityForm] = useState({ type: 'llamada', title: '', due_date: '' });
   const [activityCalendarWarning, setActivityCalendarWarning] = useState('');
+  const [editingActivityId, setEditingActivityId] = useState(null);
+  const [editActivityForm, setEditActivityForm] = useState({ type: 'llamada', title: '', due_date: '' });
 
   const [showAddProduct, setShowAddProduct] = useState(false);
 
@@ -276,6 +279,35 @@ export default function DealDetail() {
     load();
   };
 
+  const startEditActivity = (a) => {
+    setEditingActivityId(a.id);
+    setEditActivityForm({ type: a.type, title: a.summary || a.title || '', due_date: a.due_date || '' });
+  };
+
+  const saveEditActivity = async (activityId) => {
+    if (!editActivityForm.title.trim()) return;
+    const updated = await api.patch(`/api/activities/${activityId}`, {
+      type: editActivityForm.type,
+      title: editActivityForm.title,
+      summary: editActivityForm.title,
+      due_date: editActivityForm.due_date || null,
+    });
+    setEditingActivityId(null);
+    setActivityCalendarWarning(editActivityForm.due_date && updated.calendar_sync && !updated.calendar_sync.ok ? updated.calendar_sync.reason : '');
+    load();
+  };
+
+  const deleteActivity = async (a) => {
+    const ok = await confirm({
+      title: 'Eliminar actividad',
+      message: `¿Eliminar "${a.summary || a.title}"? Si estaba sincronizada con Google Calendar, también se borra el evento.`,
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
+    await api.delete(`/api/activities/${a.id}`);
+    load();
+  };
+
   const syncGmail = async () => {
     if (!deal.contacts?.email) return;
     setGmailSyncing(true);
@@ -432,6 +464,17 @@ export default function DealDetail() {
   const createDealDoc = async () => {
     const created = await api.post('/api/documents', { title: `${deal.title} — nuevo documento`, content: '', deal_id: id });
     navigate(`/documents?open=${created.id}`);
+  };
+
+  const deleteDealDoc = async (doc) => {
+    const ok = await confirm({
+      title: 'Eliminar documento',
+      message: `¿Eliminar "${doc.title || 'este documento'}"? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
+    await api.delete(`/api/documents/${doc.id}`);
+    setDealDocs((prev) => prev.filter((d) => d.id !== doc.id));
   };
 
   // Línea de tiempo combinada: cambios de etapa + actividades
@@ -867,13 +910,43 @@ export default function DealDetail() {
               )}
               <div className="space-y-2">
                 {activities.filter((a) => a.type !== 'nota').map((a) => (
-                  <div key={a.id} className="bg-brand-panel border border-brand-border rounded-lg p-3 text-sm flex items-center justify-between panel-depth">
-                    <div>
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-brand-violet/15 text-brand-ice font-tech uppercase mr-2">{a.type}</span>
-                      {a.summary || a.title}
+                  editingActivityId === a.id ? (
+                    <div key={a.id} className="bg-brand-panel border border-brand-violet/40 rounded-lg p-3 flex flex-wrap gap-2 items-center panel-depth">
+                      <select value={editActivityForm.type} onChange={(e) => setEditActivityForm({ ...editActivityForm, type: e.target.value })} className={inputClass}>
+                        {ACTIVITY_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+                      </select>
+                      <input
+                        autoFocus value={editActivityForm.title}
+                        onChange={(e) => setEditActivityForm({ ...editActivityForm, title: e.target.value })}
+                        className={`${inputClass} flex-1 min-w-[150px]`}
+                      />
+                      <DateTimePicker value={editActivityForm.due_date} onChange={(v) => setEditActivityForm({ ...editActivityForm, due_date: v })} />
+                      <button onClick={() => saveEditActivity(a.id)} className="px-3 py-1.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-xs font-medium">
+                        Guardar
+                      </button>
+                      <button onClick={() => setEditingActivityId(null)} className="px-3 py-1.5 text-xs text-brand-muted hover:text-brand-white transition">
+                        Cancelar
+                      </button>
                     </div>
-                    <div className="text-xs text-brand-muted font-tech">{a.due_date ? new Date(a.due_date).toLocaleString() : ''}</div>
-                  </div>
+                  ) : (
+                    <div key={a.id} className="bg-brand-panel border border-brand-border rounded-lg p-3 text-sm flex items-center justify-between panel-depth group">
+                      <div>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-brand-violet/15 text-brand-ice font-tech uppercase mr-2">{a.type}</span>
+                        {a.summary || a.title}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-xs text-brand-muted font-tech">{a.due_date ? new Date(a.due_date).toLocaleString() : ''}</div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                          <button onClick={() => startEditActivity(a)} className="icon-btn p-1 text-brand-muted hover:text-brand-ice" title="Editar">
+                            <Pencil size={13} />
+                          </button>
+                          <button onClick={() => deleteActivity(a)} className="icon-btn p-1 text-brand-muted hover:text-red-300" title="Eliminar">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
                 ))}
                 {activities.filter((a) => a.type !== 'nota').length === 0 && <div className="text-brand-muted text-sm">Sin actividades todavía.</div>}
               </div>
@@ -994,10 +1067,19 @@ export default function DealDetail() {
               </div>
               <div className="space-y-2">
                 {dealDocs.map((d) => (
-                  <Link key={d.id} to={`/documents?open=${d.id}`} className="flex items-center gap-2 bg-brand-panel border border-brand-border rounded-lg p-3 text-sm row-hover">
-                    <FileTextIcon size={14} className="text-brand-muted flex-shrink-0" />
-                    {d.title || 'Sin título'}
-                  </Link>
+                  <div key={d.id} className="flex items-center gap-2 bg-brand-panel border border-brand-border rounded-lg p-3 text-sm row-hover group">
+                    <Link to={`/documents?open=${d.id}`} className="flex items-center gap-2 flex-1 min-w-0">
+                      <FileTextIcon size={14} className="text-brand-muted flex-shrink-0" />
+                      <span className="truncate">{d.title || 'Sin título'}</span>
+                    </Link>
+                    <button
+                      onClick={() => deleteDealDoc(d)}
+                      className="icon-btn p-1 text-brand-muted hover:text-red-300 opacity-0 group-hover:opacity-100 transition flex-shrink-0"
+                      title="Eliminar documento"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 ))}
                 {dealDocs.length === 0 && <div className="text-brand-muted text-sm">Sin documentos vinculados todavía.</div>}
               </div>
