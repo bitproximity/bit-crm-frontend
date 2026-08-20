@@ -126,6 +126,8 @@ export default function B2bMeetings() {
     setClientId(companyId);
   };
 
+  const [mergeByCompany, setMergeByCompany] = useState(true);
+
   const handleImport = async (e, mode) => {
     const file = e.target.files?.[0];
     if (!file || !clientId) return;
@@ -137,7 +139,7 @@ export default function B2bMeetings() {
       return;
     }
     try {
-      const result = await api.post('/api/b2b/import', { client_company_id: clientId, mode, records: rows });
+      const result = await api.post('/api/b2b/import', { client_company_id: clientId, mode, records: rows, mergeByCompany });
       setImportResult(result);
       loadClientData();
     } catch (err) {
@@ -385,6 +387,11 @@ export default function B2bMeetings() {
               </button>
             </div>
           </div>
+
+          <label className="flex items-center gap-1.5 text-xs text-brand-muted mb-4 -mt-2 cursor-pointer w-fit">
+            <input type="checkbox" checked={mergeByCompany} onChange={(e) => setMergeByCompany(e.target.checked)} className="accent-brand-violet" />
+            Fusionar por empresa al importar reuniones (desactívalo si la misma empresa puede tener varias reuniones distintas en el archivo)
+          </label>
 
           {importResult && (
             <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${importResult.error ? 'bg-red-500/10 border border-red-500/30 text-red-300' : 'bg-green-500/10 border border-green-500/30 text-green-300'}`}>
