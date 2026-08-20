@@ -4,7 +4,7 @@ import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck,
   Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus,
 } from 'lucide-react';
-import B2bRecordModal from '../components/B2bRecordModal';
+import B2bRecordModal, { INDUSTRY_OPTIONS } from '../components/B2bRecordModal';
 import DateTimePicker from '../components/DateTimePicker';
 import { useConfirm } from '../components/ConfirmModal';
 
@@ -74,7 +74,7 @@ export default function B2bMeetings() {
   const [clientId, setClientId] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [records, setRecords] = useState([]);
-  const EMPTY_FILTERS = { search: '', status: '', country: '', executive: '', dateFrom: '', dateTo: '' };
+  const EMPTY_FILTERS = { search: '', status: '', country: '', executive: '', industry: '', dateFrom: '', dateTo: '' };
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [error, setError] = useState('');
   const [importResult, setImportResult] = useState(null);
@@ -209,6 +209,7 @@ export default function B2bMeetings() {
     if (filters.status && r.status !== filters.status) return false;
     if (filters.country && normalizeCountry(r.country) !== filters.country) return false;
     if (filters.executive && r.executive !== filters.executive) return false;
+    if (filters.industry && r.industry !== filters.industry) return false;
     if (filters.dateFrom && (!r.meeting_date || r.meeting_date < filters.dateFrom)) return false;
     if (filters.dateTo && (!r.meeting_date || r.meeting_date > filters.dateTo)) return false;
     return true;
@@ -553,6 +554,13 @@ export default function B2bMeetings() {
               <select value={filters.country} onChange={(e) => setFilters({ ...filters, country: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
                 <option value="">Todos</option>
                 {distinctCountries.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] text-brand-muted mb-1">Industria</label>
+              <select value={filters.industry} onChange={(e) => setFilters({ ...filters, industry: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
+                <option value="">Todas</option>
+                {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
               </select>
             </div>
             <div>

@@ -11,6 +11,8 @@ const STATUS_OPTIONS = [
   { key: 'no_interesado', label: 'No interesado' },
 ];
 
+export const INDUSTRY_OPTIONS = ['Restaurantes', 'Retail', 'Salud', 'Banca', 'Centros Comerciales'];
+
 export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
   const confirm = useConfirm();
   const [team, setTeam] = useState([]);
@@ -139,7 +141,10 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>Industria</label>
-              <input value={form.industry} onChange={set('industry')} className={inputClass} />
+              <select value={form.industry} onChange={set('industry')} className={inputClass}>
+                <option value="">Sin especificar</option>
+                {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
+              </select>
             </div>
             <div>
               <label className={labelClass}>País</label>
