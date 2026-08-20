@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import DateTimePicker from './DateTimePicker';
 import { User, Building2, X, Plus } from 'lucide-react';
-import { POSITION_OPTIONS, COUNTRY_OPTIONS } from './B2bRecordModal';
+import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS } from './B2bRecordModal';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
@@ -604,12 +604,10 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
                 </div>
                 <div>
                   <label className={labelClass}>Industria</label>
-                  <input
-                    value={industry}
-                    onChange={(e) => setIndustry(e.target.value)}
-                    placeholder="ej. Restaurantes, Retail, Hotelería"
-                    className={plainInputClass}
-                  />
+                  <select value={industry} onChange={(e) => setIndustry(e.target.value)} className={plainInputClass}>
+                    <option value="">Sin especificar</option>
+                    {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
+                  </select>
                 </div>
               </div>
             </div>

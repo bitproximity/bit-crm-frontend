@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { ChevronLeft, Building2, MapPin, Users, DollarSign, Phone, Linkedin, FileText, Trash2 } from 'lucide-react';
 import EnrichButtons from '../components/EnrichButtons';
 import { useConfirm } from '../components/ConfirmModal';
+import { INDUSTRY_OPTIONS } from '../components/B2bRecordModal';
 
 const TYPES = ['restaurante', 'retail', 'hotel', 'espacio_comercial', 'otro'];
 const TYPE_LABELS = {
@@ -124,7 +125,10 @@ export default function CompanyDetail() {
           </div>
           <div>
             <label className={labelClass}>Industria</label>
-            <input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className={inputClass} />
+            <select value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className={inputClass}>
+              <option value="">Sin especificar</option>
+              {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
+            </select>
           </div>
           <div className="md:col-span-2">
             <button disabled={saving} className="px-5 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { X, Building2, Plus } from 'lucide-react';
+import { INDUSTRY_OPTIONS, POSITION_OPTIONS, COUNTRY_OPTIONS } from './B2bRecordModal';
 
 const PHONE_TYPES = ['Trabajo', 'Personal', 'Móvil', 'Otro'];
 const EMAIL_TYPES = ['Trabajo', 'Personal', 'Otro'];
@@ -174,19 +175,28 @@ export default function AddContactModal({ onClose, onCreated }) {
 
             <div>
               <label className={labelClass}>Cargo</label>
-              <input value={position} onChange={(e) => setPosition(e.target.value)} className={inputClass} placeholder="ej. Gerente de Marketing" />
+              <select value={position} onChange={(e) => setPosition(e.target.value)} className={inputClass}>
+                <option value="">Sin especificar</option>
+                {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
           </div>
 
           <div className="space-y-4">
             <div>
               <label className={labelClass}>Industria</label>
-              <input value={industry} onChange={(e) => setIndustry(e.target.value)} className={inputClass} placeholder="ej. Restaurantes, Retail, Hotelería" />
+              <select value={industry} onChange={(e) => setIndustry(e.target.value)} className={inputClass}>
+                <option value="">Sin especificar</option>
+                {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
+              </select>
             </div>
 
             <div>
               <label className={labelClass}>País</label>
-              <input value={country} onChange={(e) => setCountry(e.target.value)} className={inputClass} placeholder="ej. Colombia, México, Ecuador" />
+              <select value={country} onChange={(e) => setCountry(e.target.value)} className={inputClass}>
+                <option value="">Sin especificar</option>
+                {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
 
             <div>
