@@ -88,6 +88,7 @@ export default function DealDetail() {
 
   const [noteText, setNoteText] = useState('');
   const [activityForm, setActivityForm] = useState({ type: 'llamada', title: '', due_date: '' });
+  const [activityCalendarWarning, setActivityCalendarWarning] = useState('');
 
   const [showAddProduct, setShowAddProduct] = useState(false);
 
@@ -259,7 +260,7 @@ export default function DealDetail() {
   const addActivity = async (e) => {
     e.preventDefault();
     if (!activityForm.title.trim()) return;
-    await api.post('/api/activities', {
+    const created = await api.post('/api/activities', {
       entity_type: 'deal', entity_id: id,
       type: activityForm.type,
       title: activityForm.title,
@@ -267,6 +268,11 @@ export default function DealDetail() {
       due_date: activityForm.due_date || null,
     });
     setActivityForm({ type: 'llamada', title: '', due_date: '' });
+    if (activityForm.due_date && created.calendar_sync && !created.calendar_sync.ok) {
+      setActivityCalendarWarning(created.calendar_sync.reason);
+    } else {
+      setActivityCalendarWarning('');
+    }
     load();
   };
 
@@ -854,6 +860,11 @@ export default function DealDetail() {
                 <DateTimePicker value={activityForm.due_date} onChange={(v) => setActivityForm({ ...activityForm, due_date: v })} />
                 <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">Registrar</button>
               </form>
+              {activityCalendarWarning && (
+                <div className="mb-4 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs">
+                  Se guardó, pero no se sincronizó con Google Calendar: {activityCalendarWarning}
+                </div>
+              )}
               <div className="space-y-2">
                 {activities.filter((a) => a.type !== 'nota').map((a) => (
                   <div key={a.id} className="bg-brand-panel border border-brand-border rounded-lg p-3 text-sm flex items-center justify-between panel-depth">
