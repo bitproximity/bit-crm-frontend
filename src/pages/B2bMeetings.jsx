@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck,
-  Link2, Check, Pencil, Trash2,
+  Link2, Check, Pencil, Trash2, GripVertical, X,
 } from 'lucide-react';
 import B2bRecordModal from '../components/B2bRecordModal';
 import { useConfirm } from '../components/ConfirmModal';
@@ -83,6 +83,7 @@ export default function B2bMeetings() {
   const [editingRecord, setEditingRecord] = useState(null);
   const [leaderboard, setLeaderboard] = useState(null);
   const [expandedPerson, setExpandedPerson] = useState(null);
+  const [reordering, setReordering] = useState(false);
 
   const loadClients = () => api.get('/api/b2b/clients').then((list) => {
     setClients(list);
@@ -301,7 +302,20 @@ export default function B2bMeetings() {
         <button onClick={() => setShowAddClient(!showAddClient)} className="text-xs text-brand-ice hover:underline flex items-center gap-1">
           <Plus size={13} /> Agregar marca
         </button>
+        {clients.length > 1 && (
+          <button onClick={() => setReordering(true)} className="text-xs text-brand-muted hover:text-brand-ice transition flex items-center gap-1">
+            <GripVertical size={13} /> Reordenar marcas
+          </button>
+        )}
       </div>
+
+      {reordering && (
+        <ReorderClientsModal
+          clients={clients}
+          onClose={() => setReordering(false)}
+          onSaved={(ordered) => { setClients(ordered); setReordering(false); }}
+        />
+      )}
 
       {showAddClient && (
         <div className="relative mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 max-w-md">
@@ -515,6 +529,68 @@ export default function B2bMeetings() {
           onSaved={onSaved}
         />
       )}
+    </div>
+  );
+}
+
+function ReorderClientsModal({ clients, onClose, onSaved }) {
+  const [order, setOrder] = useState(clients);
+  const [saving, setSaving] = useState(false);
+  const dragIndex = useRef(null);
+
+  const handleDragOver = (e, i) => {
+    e.preventDefault();
+    if (dragIndex.current === null || dragIndex.current === i) return;
+    const next = [...order];
+    const [moved] = next.splice(dragIndex.current, 1);
+    next.splice(i, 0, moved);
+    dragIndex.current = i;
+    setOrder(next);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await api.patch('/api/b2b/clients/reorder', { ordered_ids: order.map((c) => c.id) });
+      onSaved(order);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 overlay-in" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-brand-panel border border-brand-border rounded-2xl shadow-2xl overflow-hidden modal-in">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
+          <span className="font-headline text-base font-semibold">Reordenar marcas</span>
+          <button onClick={onClose} className="text-brand-muted hover:text-brand-white"><X size={18} /></button>
+        </div>
+        <div className="max-h-80 overflow-y-auto py-1">
+          {order.map((c, i) => (
+            <div
+              key={c.id}
+              draggable
+              onDragStart={() => { dragIndex.current = i; }}
+              onDragOver={(e) => handleDragOver(e, i)}
+              className="flex items-center gap-2 px-5 py-2.5 text-sm cursor-grab active:cursor-grabbing hover:bg-brand-bg transition"
+            >
+              <GripVertical size={14} className="text-brand-muted flex-shrink-0" />
+              {c.name}
+            </div>
+          ))}
+        </div>
+        <div className="p-4 border-t border-brand-border flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">Cancelar</button>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50"
+          >
+            {saving ? 'Guardando...' : 'Guardar orden'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
