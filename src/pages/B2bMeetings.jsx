@@ -31,7 +31,11 @@ function parseCsv(text) {
 
 const FIELD_MAP = {
   empresa: 'target_company', target_company: 'target_company', compañia: 'target_company', marca: 'target_company',
-  contacto: 'target_contact', target_contact: 'target_contact', nombre: 'target_contact',
+  contacto: 'target_contact', target_contact: 'target_contact', nombre: 'target_contact', cliente: 'target_contact',
+  posicion: 'target_position', posición: 'target_position', cargo: 'target_position', puesto: 'target_position',
+  correo: 'target_email', email: 'target_email', mail: 'target_email',
+  numero: 'target_phone', número: 'target_phone', telefono: 'target_phone', teléfono: 'target_phone', celular: 'target_phone',
+  ejecutivo: 'executive', executive: 'executive', responsable: 'executive', vendedor: 'executive',
   industria: 'industry', industry: 'industry', sector: 'industry',
   pais: 'country', país: 'country', country: 'country',
   fecha: 'contacted_at', contacted_at: 'contacted_at', fecha_contacto: 'contacted_at',
@@ -450,6 +454,7 @@ export default function B2bMeetings() {
                 <tr>
                   <th className="px-4 py-3 font-manrope font-normal">Empresa</th>
                   <th className="px-4 py-3 font-manrope font-normal">Contacto</th>
+                  <th className="px-4 py-3 font-manrope font-normal">Ejecutivo</th>
                   <th className="px-4 py-3 font-manrope font-normal">Industria</th>
                   <th className="px-4 py-3 font-manrope font-normal">País</th>
                   <th className="px-4 py-3 font-manrope font-normal">Fecha reunión</th>
@@ -462,6 +467,7 @@ export default function B2bMeetings() {
                   <tr key={r.id} className="border-t border-brand-border row-hover cursor-pointer" onClick={() => openEdit(r)}>
                     <td className="px-4 py-3">{r.target_company}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.target_contact || '—'}</td>
+                    <td className="px-4 py-3 text-brand-muted">{r.executive || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.industry || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.country || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted font-tech text-xs">{r.meeting_date ? new Date(r.meeting_date).toLocaleDateString() : '—'}</td>
@@ -474,7 +480,7 @@ export default function B2bMeetings() {
                   </tr>
                 ))}
                 {records.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-10 text-center text-brand-muted text-sm">Sin registros todavía. Importa una base o agrega uno manual para empezar.</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-10 text-center text-brand-muted text-sm">Sin registros todavía. Importa una base o agrega uno manual para empezar.</td></tr>
                 )}
               </tbody>
             </table>

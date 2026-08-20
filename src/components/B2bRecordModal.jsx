@@ -16,6 +16,10 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
   const [form, setForm] = useState({
     target_company: record?.target_company || '',
     target_contact: record?.target_contact || '',
+    target_position: record?.target_position || '',
+    target_email: record?.target_email || '',
+    target_phone: record?.target_phone || '',
+    executive: record?.executive || '',
     industry: record?.industry || '',
     country: record?.country || '',
     status: record?.status || 'contactado',
@@ -79,10 +83,30 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
               <input value={form.target_contact} onChange={set('target_contact')} className={inputClass} />
             </div>
             <div>
+              <label className={labelClass}>Cargo</label>
+              <input value={form.target_position} onChange={set('target_position')} className={inputClass} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Correo</label>
+              <input type="email" value={form.target_email} onChange={set('target_email')} className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Teléfono</label>
+              <input value={form.target_phone} onChange={set('target_phone')} className={inputClass} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
               <label className={labelClass}>Estado</label>
               <select value={form.status} onChange={set('status')} className={inputClass}>
                 {STATUS_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
               </select>
+            </div>
+            <div>
+              <label className={labelClass}>Ejecutivo</label>
+              <input value={form.executive} onChange={set('executive')} className={inputClass} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
