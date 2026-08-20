@@ -11,7 +11,7 @@ const STATUS_OPTIONS = [
   { key: 'no_interesado', label: 'No interesado' },
 ];
 
-export const INDUSTRY_OPTIONS = ['Restaurantes', 'Retail', 'Salud', 'Banca', 'Centros Comerciales'];
+export const INDUSTRY_OPTIONS = ['Restaurantes', 'Retail', 'Salud', 'Banca', 'Centros Comerciales', 'Educación', 'Entretenimiento'];
 
 export const COUNTRY_OPTIONS = [
   'Argentina', 'Bolivia', 'Chile', 'Colombia', 'Costa Rica', 'Cuba', 'Ecuador',
