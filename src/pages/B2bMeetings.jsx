@@ -534,7 +534,7 @@ export default function B2bMeetings() {
               <label className="block text-[10px] text-brand-muted mb-1">Estado</label>
               <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
                 <option value="">Todos</option>
-                {STATUS_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                {Object.entries(STATUS_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
               </select>
             </div>
             <div>
