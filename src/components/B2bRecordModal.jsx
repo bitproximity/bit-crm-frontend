@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useConfirm } from './ConfirmModal';
 import { X } from 'lucide-react';
@@ -13,6 +13,8 @@ const STATUS_OPTIONS = [
 
 export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
   const confirm = useConfirm();
+  const [team, setTeam] = useState([]);
+  useEffect(() => { api.get('/api/team').then(setTeam).catch(() => setTeam([])); }, []);
   const [form, setForm] = useState({
     target_company: record?.target_company || '',
     target_contact: record?.target_contact || '',
@@ -28,6 +30,9 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const knownNames = team.filter((m) => m.active !== false).map((m) => m.full_name);
+  const isCustomExecutive = form.executive && !knownNames.includes(form.executive);
+  const [executiveMode, setExecutiveMode] = useState(null); // null = auto (se decide al render), 'select' | 'custom' una vez que el usuario interactúa
 
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
@@ -105,8 +110,30 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
               </select>
             </div>
             <div>
-              <label className={labelClass}>Ejecutivo</label>
-              <input value={form.executive} onChange={set('executive')} className={inputClass} />
+              <label className={labelClass}>Responsable</label>
+              {(executiveMode === 'custom' || (executiveMode === null && isCustomExecutive)) ? (
+                <div className="flex gap-1.5">
+                  <input value={form.executive} onChange={set('executive')} placeholder="Nombre" className={inputClass} />
+                  {team.length > 0 && (
+                    <button type="button" onClick={() => { setExecutiveMode('select'); setForm({ ...form, executive: '' }); }} className="text-xs text-brand-muted hover:text-brand-ice px-2 whitespace-nowrap">
+                      Elegir del equipo
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <select
+                  value={form.executive}
+                  onChange={(e) => {
+                    if (e.target.value === '__custom__') { setExecutiveMode('custom'); setForm({ ...form, executive: '' }); }
+                    else { setExecutiveMode('select'); setForm({ ...form, executive: e.target.value }); }
+                  }}
+                  className={inputClass}
+                >
+                  <option value="">Sin asignar</option>
+                  {knownNames.map((name) => <option key={name} value={name}>{name}</option>)}
+                  <option value="__custom__">Otro (escribir nombre)</option>
+                </select>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
