@@ -2,9 +2,20 @@ import { supabase } from './supabase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://bit-crm-backend-production.up.railway.app';
 
-async function request(path, options = {}) {
+async function getToken(forceRefresh = false) {
+  if (forceRefresh) {
+    // getSession() normalmente refresca sola si el token venció, pero si la pestaña
+    // estuvo en segundo plano o la máquina en reposo, ese refresco automático puede
+    // no haber alcanzado a correr a tiempo — se fuerza uno explícito antes de rendirse.
+    const { data } = await supabase.auth.refreshSession();
+    return data?.session?.access_token;
+  }
   const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData?.session?.access_token;
+  return sessionData?.session?.access_token;
+}
+
+async function request(path, options = {}, _retried = false) {
+  const token = await getToken(_retried);
 
   const mergedHeaders = {
     'Content-Type': 'application/json',
@@ -22,6 +33,12 @@ async function request(path, options = {}) {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    const isExpiredToken = res.status === 401 && /token inválido|expirado/i.test(body.error || '');
+    // Un solo reintento tras forzar el refresco de sesión — así una sesión vencida
+    // se recupera sola en vez de tirar el formulario que el usuario ya llenó.
+    if (isExpiredToken && !_retried) {
+      return request(path, options, true);
+    }
     throw new Error(body.error || `Error ${res.status}`);
   }
 
