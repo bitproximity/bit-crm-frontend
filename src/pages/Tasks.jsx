@@ -6,10 +6,10 @@ import DateTimePicker from '../components/DateTimePicker';
 import { LayoutGrid, List, Plus, Flag, Calendar, ChevronRight, ChevronDown, X, Send, Trash2, FolderKanban } from 'lucide-react';
 
 export const STATUSES = [
-  { key: 'pendiente', label: 'Pendiente' },
-  { key: 'en_progreso', label: 'En progreso' },
-  { key: 'bloqueada', label: 'Bloqueada' },
-  { key: 'completada', label: 'Completada' },
+  { key: 'pendiente', label: 'Pendiente', color: '#6B7280', dot: 'bg-gray-400' },
+  { key: 'en_progreso', label: 'En progreso', color: '#8500FF', dot: 'bg-brand-violet' },
+  { key: 'bloqueada', label: 'Bloqueada', color: '#EF4444', dot: 'bg-red-500' },
+  { key: 'completada', label: 'Completada', color: '#22C55E', dot: 'bg-green-500' },
 ];
 
 export const PRIORITY_COLORS = {
@@ -319,53 +319,71 @@ export default function Tasks() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {STATUSES.map((status) => (
-            <div
-              key={status.key}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => updateStatus(e.dataTransfer.getData('taskId'), status.key)}
-              className="bg-brand-panel/60 border border-brand-border rounded-xl p-3"
-            >
-              <div className="text-sm font-manrope font-semibold text-brand-white mb-3 flex justify-between">
-                <span>{status.label}</span>
-                <span className="text-brand-muted font-tech text-xs bg-brand-bg px-2 py-0.5 rounded-full">
-                  {tasks.filter((t) => t.status === status.key).length}
-                </span>
-              </div>
-              <div className="space-y-2">
-                {tasks
-                  .filter((t) => t.status === status.key)
-                  .map((task) => (
-                    <div
-                      key={task.id}
-                      draggable
-                      onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
-                      onClick={() => setSelectedTaskId(task.id)}
-                      className="card-elevated rounded-lg p-3 cursor-pointer"
-                    >
-                      <div className="text-sm mb-1.5 flex items-start gap-1.5">
-                        {task.priority && task.priority !== 'media' && (
-                          <Flag size={11} className={`mt-0.5 flex-shrink-0 ${PRIORITY_COLORS[task.priority]}`} fill="currentColor" />
-                        )}
-                        {task.title}
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2 min-w-0">
-                          {task.projects?.name && <span className="text-xs text-brand-muted truncate">{task.projects.name}</span>}
+          {STATUSES.map((status, colIndex) => {
+            const colTasks = tasks.filter((t) => t.status === status.key);
+            return (
+              <div
+                key={status.key}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => updateStatus(e.dataTransfer.getData('taskId'), status.key)}
+                className="bg-brand-panel/60 border border-brand-border rounded-xl overflow-hidden flex flex-col"
+              >
+                <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, ${status.color}, ${status.color}55)` }} />
+                <div className="p-3 pb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm font-manrope font-semibold text-brand-white">
+                    <span className={`w-2 h-2 rounded-full ${status.dot} flex-shrink-0`} />
+                    {status.label}
+                  </span>
+                  <span className="text-brand-muted font-tech text-xs bg-brand-bg px-2 py-0.5 rounded-full min-w-[22px] text-center">
+                    {colTasks.length}
+                  </span>
+                </div>
+                <div className="px-3 pb-3 flex-1">
+                  <div className="space-y-2">
+                    {colTasks.map((task, i) => (
+                      <div
+                        key={task.id}
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
+                        onClick={() => setSelectedTaskId(task.id)}
+                        className="card-elevated rounded-lg p-3 cursor-pointer stagger-item"
+                        style={{ animationDelay: `${Math.min(i, 15) * 25 + colIndex * 40}ms` }}
+                      >
+                        <div className="text-sm mb-2 flex items-start gap-1.5 leading-snug">
+                          {task.priority && task.priority !== 'media' && (
+                            <Flag size={11} className={`mt-0.5 flex-shrink-0 ${PRIORITY_COLORS[task.priority]}`} fill="currentColor" />
+                          )}
+                          <span className="text-brand-white">{task.title}</span>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {dueBadge(task.due_date, task.status)}
-                          <Avatar name={task.team_members?.full_name} />
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {task.projects?.name && (
+                              <span className="flex items-center gap-1 text-[11px] text-brand-muted truncate bg-brand-bg/60 px-1.5 py-0.5 rounded-md">
+                                <FolderKanban size={10} className="flex-shrink-0" />
+                                {task.projects.name}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {dueBadge(task.due_date, task.status)}
+                            <Avatar name={task.team_members?.full_name} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                    {colTasks.length === 0 && (
+                      <div className="text-center py-6 text-brand-muted text-xs border border-dashed border-brand-border rounded-lg">
+                        Sin tareas
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <InlineAddRow onSubmit={(title) => quickCreate(title, status.key)} />
+                  </div>
+                </div>
               </div>
-              <div className="mt-1 px-1">
-                <InlineAddRow onSubmit={(title) => quickCreate(title, status.key)} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
