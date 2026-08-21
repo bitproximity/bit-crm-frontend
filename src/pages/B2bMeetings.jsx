@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import {
-  Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck,
+  Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, History,
   Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus,
 } from 'lucide-react';
 import B2bRecordModal, { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
@@ -423,27 +423,36 @@ export default function B2bMeetings() {
 
           {dashboard && (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
                   <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><Users size={12} /> Contactados</div>
-                  <div className="text-2xl font-headline font-semibold">{dashboard.total_contacted}</div>
+                  <div className="text-xl sm:text-2xl font-headline font-semibold truncate">{dashboard.total_contacted}</div>
                 </div>
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
                   <div className="flex items-center gap-1.5 text-brand-ice text-xs mb-1"><CalendarCheck size={12} /> Reuniones agendadas</div>
-                  <div className="text-2xl font-headline font-semibold text-brand-ice">{dashboard.total_meetings}</div>
+                  <div className="text-xl sm:text-2xl font-headline font-semibold text-brand-ice truncate">{dashboard.total_meetings}</div>
                 </div>
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
-                  <div className="flex items-center gap-1.5 text-green-300 text-xs mb-1"><Percent size={12} /> Tasa de conversión</div>
-                  <div className="text-2xl font-headline font-semibold text-green-300">{dashboard.conversion_rate}%</div>
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
+                  <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><History size={12} /> Histórico de reuniones</div>
+                  {dashboard.by_month.length > 0 ? (
+                    <div className="flex items-end gap-[2px] h-8 mt-1">
+                      {dashboard.by_month.slice(-12).map((row) => {
+                        const max = Math.max(...dashboard.by_month.map((r) => r.count), 1);
+                        return <div key={row.month} title={`${row.month}: ${row.count}`} className="flex-1 bg-gradient-to-t from-brand-violet to-brand-magenta rounded-sm" style={{ height: `${Math.max((row.count / max) * 100, 6)}%` }} />;
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-xl sm:text-2xl font-headline font-semibold text-brand-muted">—</div>
+                  )}
                 </div>
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
                   <div className="flex items-center gap-1.5 text-yellow-300 text-xs mb-1"><TrendingUp size={12} /> Este mes</div>
-                  <div className="text-2xl font-headline font-semibold text-yellow-300">{dashboard.meetings_this_month}</div>
+                  <div className="text-xl sm:text-2xl font-headline font-semibold text-yellow-300 truncate">{dashboard.meetings_this_month}</div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
                   <div className="text-sm font-manrope font-medium mb-4">Reuniones por industria</div>
                   <div className="space-y-2">
                     {dashboard.by_industry.map((row, i) => (
@@ -457,7 +466,7 @@ export default function B2bMeetings() {
                   </div>
                 </div>
 
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
                   <div className="text-sm font-manrope font-medium mb-4">Reuniones por país</div>
                   <div className="space-y-2">
                     {dashboard.by_country.map((row, i) => (
@@ -470,15 +479,17 @@ export default function B2bMeetings() {
                     {dashboard.by_country.length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
                   </div>
                 </div>
+              </div>
 
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
-                  <div className="text-sm font-manrope font-medium mb-4">Reuniones por mes</div>
-                  {dashboard.by_month.length > 0 ? (
-                    <div className="flex items-end gap-1.5 h-28">
+              <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6 min-w-0">
+                <div className="text-sm font-manrope font-medium mb-4">Reuniones por mes</div>
+                {dashboard.by_month.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <div className="flex items-end gap-1.5 h-32" style={{ minWidth: `${dashboard.by_month.length * 32}px` }}>
                       {dashboard.by_month.map((row) => {
                         const max = Math.max(...dashboard.by_month.map((r) => r.count), 1);
                         return (
-                          <div key={row.month} className="flex-1 flex flex-col items-center justify-end h-full">
+                          <div key={row.month} className="flex-1 flex flex-col items-center justify-end h-full min-w-[24px]">
                             <div className="text-[9px] text-brand-muted font-tech mb-1">{row.count}</div>
                             <div className="w-full bg-gradient-to-t from-brand-violet to-brand-magenta rounded-t" style={{ height: `${(row.count / max) * 100}%` }} />
                             <div className="text-[9px] text-brand-muted font-tech mt-1">{row.month.slice(5)}</div>
@@ -486,10 +497,10 @@ export default function B2bMeetings() {
                         );
                       })}
                     </div>
-                  ) : (
-                    <div className="text-brand-muted text-xs">Sin datos todavía.</div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="text-brand-muted text-xs">Sin datos todavía.</div>
+                )}
               </div>
 
               {dashboard.by_person && dashboard.by_person.length > 0 && (
