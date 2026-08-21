@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
 import DateTimePicker from '../components/DateTimePicker';
-import { LayoutGrid, List, Plus, Flag, Calendar, ChevronRight, ChevronDown, X, Send, Trash2, FolderKanban } from 'lucide-react';
+import { LayoutGrid, List, Plus, Flag, Calendar, ChevronRight, ChevronDown, X, Send, Trash2, FolderKanban, CheckCircle2, Circle } from 'lucide-react';
 
 export const STATUSES = [
   { key: 'pendiente', label: 'Pendiente', color: '#6B7280', dot: 'bg-gray-400' },
@@ -38,11 +38,11 @@ export function dueBadge(dueDate, status) {
   const due = new Date(dueDate);
   const now = new Date();
   const diffDays = Math.floor((due - now) / 86400000);
-  let color = 'text-brand-muted';
-  if (diffDays < 0) color = 'text-red-400';
-  else if (diffDays === 0) color = 'text-yellow-400';
+  let color = 'text-brand-muted bg-brand-bg/60';
+  if (diffDays < 0) color = 'text-red-400 bg-red-500/10';
+  else if (diffDays === 0) color = 'text-yellow-400 bg-yellow-500/10';
   return (
-    <span className={`flex items-center gap-1 text-xs font-tech ${color}`}>
+    <span className={`flex items-center gap-1 text-xs font-tech px-1.5 py-0.5 rounded-md ${color}`}>
       <Calendar size={11} /> {due.toLocaleDateString()}
     </span>
   );
@@ -81,29 +81,41 @@ export function InlineAddRow({ onSubmit, placeholder = 'Nombre de la tarea' }) {
 }
 
 function TaskRow({ task, onToggleExpand, expanded, onStatusChange, onOpen, indent = false }) {
+  const done = task.status === 'completada';
   return (
     <div className={`flex items-center justify-between py-2.5 ${indent ? 'pl-8' : ''} border-b border-brand-border/50`}>
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        {task.subtasks?.length > 0 && (
-          <button onClick={() => onToggleExpand(task.id)} className="text-brand-muted w-4">
+      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+        {task.subtasks?.length > 0 ? (
+          <button onClick={() => onToggleExpand(task.id)} className="icon-btn p-0.5 rounded text-brand-muted hover:text-brand-white hover:bg-brand-bg w-5 flex-shrink-0">
             {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </button>
+        ) : (
+          <span className="w-5 flex-shrink-0" />
         )}
-        <input
-          type="checkbox"
-          checked={task.status === 'completada'}
-          onChange={(e) => onStatusChange(task.id, e.target.checked ? 'completada' : 'pendiente')}
-          className="accent-brand-violet"
-        />
-        <span onClick={() => onOpen(task.id)} className={`text-sm truncate cursor-pointer hover:text-brand-ice ${task.status === 'completada' ? 'line-through text-brand-muted' : ''}`}>
+        <button
+          onClick={() => onStatusChange(task.id, done ? 'pendiente' : 'completada')}
+          className="icon-btn flex-shrink-0"
+          title={done ? 'Marcar como pendiente' : 'Marcar como completada'}
+        >
+          {done ? <CheckCircle2 size={17} className="text-green-400" /> : <Circle size={17} className="text-brand-muted hover:text-brand-ice transition" />}
+        </button>
+        {task.priority && task.priority !== 'media' && (
+          <span className={`flex items-center justify-center w-5 h-5 rounded-md flex-shrink-0 ${
+            task.priority === 'urgente' ? 'bg-red-500/15' : task.priority === 'alta' ? 'bg-yellow-500/15' : 'bg-brand-bg'
+          }`}>
+            <Flag size={10} className={PRIORITY_COLORS[task.priority]} fill="currentColor" />
+          </span>
+        )}
+        <span onClick={() => onOpen(task.id)} className={`text-sm truncate cursor-pointer hover:text-brand-ice transition ${done ? 'line-through text-brand-muted' : 'text-brand-white'}`}>
           {task.title}
         </span>
-        {task.priority && task.priority !== 'media' && (
-          <Flag size={11} className={PRIORITY_COLORS[task.priority]} fill="currentColor" />
-        )}
       </div>
-      <div className="flex items-center gap-3 flex-shrink-0 ml-2">
-        {task.projects?.name && <span className="text-xs text-brand-muted hidden md:inline">{task.projects.name}</span>}
+      <div className="flex items-center gap-2.5 flex-shrink-0 ml-2">
+        {task.projects?.name && (
+          <span className="hidden md:flex items-center gap-1 text-[11px] text-brand-muted bg-brand-bg/60 px-1.5 py-0.5 rounded-md">
+            <FolderKanban size={10} className="flex-shrink-0" /> {task.projects.name}
+          </span>
+        )}
         {dueBadge(task.due_date, task.status)}
         <Avatar name={task.team_members?.full_name} />
       </div>
@@ -351,7 +363,11 @@ export default function Tasks() {
                       >
                         <div className="text-sm mb-2 flex items-start gap-1.5 leading-snug">
                           {task.priority && task.priority !== 'media' && (
-                            <Flag size={11} className={`mt-0.5 flex-shrink-0 ${PRIORITY_COLORS[task.priority]}`} fill="currentColor" />
+                            <span className={`flex items-center justify-center w-4 h-4 rounded flex-shrink-0 mt-0.5 ${
+                              task.priority === 'urgente' ? 'bg-red-500/15' : 'bg-yellow-500/15'
+                            }`}>
+                              <Flag size={9} className={PRIORITY_COLORS[task.priority]} fill="currentColor" />
+                            </span>
                           )}
                           <span className="text-brand-white">{task.title}</span>
                         </div>
