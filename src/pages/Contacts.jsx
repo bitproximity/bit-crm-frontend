@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import { csvToContacts } from '../lib/csv';
 import AddContactModal from '../components/AddContactModal';
-import { Upload, Plus, Search, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, Plus, Search, Mail, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import ContactDetailPanel from '../components/ContactDetailPanel';
 
 const STATUS_COLORS = {
@@ -20,6 +20,7 @@ export default function Contacts() {
   const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '' });
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [gmailConnected, setGmailConnected] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState(null);
   const [page, setPage] = useState(1);
@@ -87,6 +88,29 @@ export default function Contacts() {
     setImporting(false);
   };
 
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const { data: all } = await api.get('/api/contacts?limit=10000');
+      const headers = ['first_name', 'last_name', 'email', 'phone', 'position', 'country', 'company'];
+      const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const lines = [headers.join(',')];
+      all.forEach((c) => {
+        lines.push([c.first_name, c.last_name, c.email, c.phone, c.position, c.country, c.companies?.name].map(escape).join(','));
+      });
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `contactos_bitcrm_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setImportResult({ error: err.message || 'Error exportando contactos' });
+    }
+    setExporting(false);
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -116,6 +140,14 @@ export default function Contacts() {
           >
             <Upload size={14} />
             {importing ? 'Importando...' : 'Importar CSV'}
+          </button>
+          <button
+            onClick={exportCsv}
+            disabled={exporting}
+            className="px-4 py-2 border border-brand-border rounded-lg text-sm hover:border-brand-violet transition disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <Download size={14} />
+            {exporting ? 'Exportando...' : 'Exportar CSV'}
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
