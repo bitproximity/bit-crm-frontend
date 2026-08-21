@@ -43,6 +43,8 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
   const knownNames = team.filter((m) => m.active !== false).map((m) => m.full_name);
   const isCustomExecutive = form.executive && !knownNames.includes(form.executive);
   const [executiveMode, setExecutiveMode] = useState(null); // null = auto (se decide al render), 'select' | 'custom' una vez que el usuario interactúa
+  const isCustomPosition = form.target_position && !POSITION_OPTIONS.includes(form.target_position);
+  const [positionMode, setPositionMode] = useState(null);
 
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
@@ -99,10 +101,27 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
             </div>
             <div>
               <label className={labelClass}>Cargo</label>
-              <select value={form.target_position} onChange={set('target_position')} className={inputClass}>
-                <option value="">Sin especificar</option>
-                {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
+              {(positionMode === 'custom' || (positionMode === null && isCustomPosition)) ? (
+                <div className="flex gap-1.5">
+                  <input value={form.target_position} onChange={set('target_position')} placeholder="Cargo" className={inputClass} />
+                  <button type="button" onClick={() => { setPositionMode('select'); setForm({ ...form, target_position: '' }); }} className="text-xs text-brand-muted hover:text-brand-ice px-2 whitespace-nowrap">
+                    Elegir de la lista
+                  </button>
+                </div>
+              ) : (
+                <select
+                  value={form.target_position}
+                  onChange={(e) => {
+                    if (e.target.value === '__custom__') { setPositionMode('custom'); setForm({ ...form, target_position: '' }); }
+                    else { setPositionMode('select'); setForm({ ...form, target_position: e.target.value }); }
+                  }}
+                  className={inputClass}
+                >
+                  <option value="">Sin especificar</option>
+                  {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  <option value="__custom__">Otro (escribir cargo)</option>
+                </select>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
