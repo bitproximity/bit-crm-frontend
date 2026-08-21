@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, History,
-  Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus,
+  Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2,
 } from 'lucide-react';
 import B2bRecordModal, { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
 import DateTimePicker from '../components/DateTimePicker';
@@ -180,6 +180,19 @@ export default function B2bMeetings() {
       setImportResult({ error: err.message });
     }
     setExporting(false);
+  };
+
+  const markAllRealizada = async () => {
+    const ok = await confirm({
+      title: 'Marcar todo como realizada',
+      message: `¿Marcar los ${records.length} registro(s) de "${client?.name}" como "Reunión realizada"?`,
+      confirmLabel: 'Marcar todo',
+      danger: false,
+    });
+    if (!ok) return;
+    const { updated } = await api.patch(`/api/b2b/clients/${clientId}/mark-all-realizada`, {});
+    setImportResult({ inserted: updated, updated: 0, list_name: null, exported: false, marked: true });
+    loadClientData();
   };
 
   const openEdit = (record) => { setEditingRecord(record); setModalOpen(true); };
@@ -402,6 +415,9 @@ export default function B2bMeetings() {
                 {copiedLink ? <Check size={13} /> : <Link2 size={13} />}
                 {copiedLink ? 'Link copiado' : 'Compartir con la marca'}
               </button>
+              <button onClick={markAllRealizada} className="px-3 py-2 rounded-lg border border-green-500/30 text-green-300 text-xs hover:bg-green-500/10 transition flex items-center gap-1.5">
+                <CheckCircle2 size={13} /> Marcar todo como realizada
+              </button>
               <button onClick={clearClientRecords} className="px-3 py-2 rounded-lg border border-red-500/30 text-red-300 text-xs hover:bg-red-500/10 transition flex items-center gap-1.5">
                 <Trash2 size={13} /> Borrar todo de {client?.name}
               </button>
@@ -415,7 +431,9 @@ export default function B2bMeetings() {
 
           {importResult && (
             <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${importResult.error ? 'bg-red-500/10 border border-red-500/30 text-red-300' : 'bg-green-500/10 border border-green-500/30 text-green-300'}`}>
-              {importResult.error || (importResult.exported
+              {importResult.error || (importResult.marked
+                ? `${importResult.inserted} registro(s) marcados como "Reunión realizada".`
+                : importResult.exported
                 ? `${importResult.inserted} contacto(s) en la lista "${importResult.list_name}".`
                 : `Importado: ${importResult.inserted} nuevos${importResult.updated ? `, ${importResult.updated} actualizados a "reunión agendada"` : ''}.`)}
             </div>
