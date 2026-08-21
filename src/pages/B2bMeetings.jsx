@@ -62,6 +62,13 @@ const STATUS_STYLE = {
   reunion_realizada: 'bg-green-500/15 text-green-300',
   no_interesado: 'bg-red-500/10 text-red-300',
 };
+
+const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+function monthLabel(key) {
+  const [, m] = key.split('-');
+  return MONTH_NAMES[Number(m) - 1] || key.slice(5);
+}
+
 const STATUS_LABEL = {
   contactado: 'Contactado', reunion_agendada: 'Reunión agendada',
   reunion_realizada: 'Reunión realizada', no_interesado: 'No interesado',
@@ -510,7 +517,7 @@ export default function B2bMeetings() {
                           <div key={row.month} className="flex-1 flex flex-col items-center justify-end h-full min-w-[24px]">
                             <div className="text-[9px] text-brand-muted font-tech mb-1">{row.count}</div>
                             <div className="w-full bg-gradient-to-t from-brand-violet to-brand-magenta rounded-t" style={{ height: `${(row.count / max) * 100}%` }} />
-                            <div className="text-[9px] text-brand-muted font-tech mt-1">{row.month.slice(5)}</div>
+                            <div className="text-[9px] text-brand-muted font-tech mt-1">{monthLabel(row.month)}</div>
                           </div>
                         );
                       })}
