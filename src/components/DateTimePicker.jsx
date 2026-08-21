@@ -9,15 +9,28 @@ const DAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 // (para filtros de fecha simples, como "reunión desde/hasta").
 export default function DateTimePicker({ value, onChange, className = '', dateOnly = false, placeholder }) {
   const [open, setOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const [viewDate, setViewDate] = useState(value ? new Date(value) : new Date());
   const [time, setTime] = useState(value ? new Date(value).toTimeString().slice(0, 5) : '09:00');
   const ref = useRef(null);
+  const buttonRef = useRef(null);
 
   useEffect(() => {
     const onClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, []);
+
+  const toggleOpen = () => {
+    if (!open && buttonRef.current) {
+      // Altura aproximada del panel (calendario + hora): ~360px. Si no cabe abajo
+      // en la ventana visible, se abre hacia arriba en vez de cortarse contra el borde.
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpward(spaceBelow < 380 && rect.top > spaceBelow);
+    }
+    setOpen((v) => !v);
+  };
 
   const selected = value ? new Date(dateOnly ? `${value}T00:00:00` : value) : null;
 
@@ -60,7 +73,8 @@ export default function DateTimePicker({ value, onChange, className = '', dateOn
     <div className="relative" ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        ref={buttonRef}
+        onClick={toggleOpen}
         className={`flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm text-left hover:border-brand-violet transition ${className}`}
       >
         <Calendar size={14} className="text-brand-muted flex-shrink-0" />
@@ -70,7 +84,9 @@ export default function DateTimePicker({ value, onChange, className = '', dateOn
       </button>
 
       {open && (
-        <div className="absolute z-30 mt-2 w-72 bg-brand-panel border border-brand-border rounded-xl shadow-2xl p-3">
+        <div
+          className={`absolute z-30 w-72 max-h-[80vh] overflow-y-auto bg-brand-panel border border-brand-border rounded-xl shadow-2xl p-3 ${openUpward ? 'bottom-full mb-2' : 'top-full mt-2'}`}
+        >
           <div className="flex items-center justify-between mb-2">
             <button type="button" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))} className="p-1 text-brand-muted hover:text-white">
               <ChevronLeft size={15} />
