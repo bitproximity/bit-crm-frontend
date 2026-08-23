@@ -22,7 +22,11 @@ function initials(name) {
 export default function Deals() {
   const navigate = useNavigate();
   const [pipelines, setPipelines] = useState([]);
-  const [pipelineId, setPipelineId] = useState(null);
+  const [pipelineId, setPipelineIdRaw] = useState(() => localStorage.getItem('bitcrm_last_pipeline_id') || null);
+  const setPipelineId = (id) => {
+    setPipelineIdRaw(id);
+    if (id) localStorage.setItem('bitcrm_last_pipeline_id', id);
+  };
   const [cardFields, setCardFields] = useState({ company: true, contact: true, value: true, due_date_warning: true, avatar: true });
   const [visibleCount, setVisibleCount] = useState({}); // { [stageId]: n } — cuántas tarjetas renderizar por columna
   const [flatVisibleCount, setFlatVisibleCount] = useState(100); // límite compartido para las vistas Lista y Archivo
@@ -40,7 +44,8 @@ export default function Deals() {
   const loadPipelines = async () => {
     const list = await api.get('/api/pipelines');
     setPipelines(list);
-    if (list.length && !pipelineId) setPipelineId(list[0].id);
+    const stillExists = pipelineId && list.some((p) => p.id === pipelineId);
+    if (list.length && !stillExists) setPipelineId(list[0].id);
   };
 
   const loadDeals = async (pid) => {

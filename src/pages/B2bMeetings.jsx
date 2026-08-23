@@ -42,6 +42,7 @@ const FIELD_MAP = {
   pais: 'country', país: 'country', country: 'country',
   fecha: 'contacted_at', contacted_at: 'contacted_at', fecha_contacto: 'contacted_at',
   fecha_reunion: 'meeting_date', meeting_date: 'meeting_date', fecha_reunión: 'meeting_date',
+  fecha_programada: 'meeting_date', fecha_realizada: 'realized_date', realized_date: 'realized_date',
   notas: 'notes', notes: 'notes',
 };
 
@@ -448,17 +449,21 @@ export default function B2bMeetings() {
 
           {dashboard && (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
                   <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><Users size={12} /> Contactados</div>
                   <div className="text-xl sm:text-2xl font-headline font-semibold truncate">{dashboard.total_contacted}</div>
                 </div>
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
-                  <div className="flex items-center gap-1.5 text-brand-ice text-xs mb-1"><CalendarCheck size={12} /> Reuniones agendadas</div>
-                  <div className="text-xl sm:text-2xl font-headline font-semibold text-brand-ice truncate">{dashboard.total_meetings}</div>
+                  <div className="flex items-center gap-1.5 text-brand-ice text-xs mb-1"><CalendarClock size={12} /> Programadas</div>
+                  <div className="text-xl sm:text-2xl font-headline font-semibold text-brand-ice truncate">{dashboard.total_scheduled}</div>
                 </div>
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
-                  <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><History size={12} /> Histórico de reuniones</div>
+                  <div className="flex items-center gap-1.5 text-green-300 text-xs mb-1"><CalendarCheck size={12} /> Realizadas</div>
+                  <div className="text-xl sm:text-2xl font-headline font-semibold text-green-300 truncate">{dashboard.total_realized}</div>
+                </div>
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
+                  <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><History size={12} /> Histórico</div>
                   {dashboard.by_month.length > 0 ? (
                     <div className="flex items-end gap-[2px] h-8 mt-1">
                       {dashboard.by_month.slice(-12).map((row) => {

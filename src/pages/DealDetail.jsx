@@ -6,6 +6,7 @@ import { useConfirm } from '../components/ConfirmModal';
 import { InvoiceDetailModal } from './Invoicing';
 import DateTimePicker from '../components/DateTimePicker';
 import ProductsModal from '../components/ProductsModal';
+import ContactDetailPanel from '../components/ContactDetailPanel';
 import {
   ChevronLeft, ChevronDown, MoreHorizontal, Tag, Calendar, Building2, User,
   Plus, X, Mail, Phone, Video, StickyNote, FileText as FileTextIcon, Paperclip,
@@ -98,6 +99,9 @@ export default function DealDetail() {
   const [probEditing, setProbEditing] = useState(false);
   const [probValue, setProbValue] = useState(0);
   const [valueEditing, setValueEditing] = useState(false);
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [titleEdit, setTitleEdit] = useState('');
+  const [viewingContactId, setViewingContactId] = useState(null);
   const [valueEdit, setValueEdit] = useState(0);
   const [currencyEdit, setCurrencyEdit] = useState('USD');
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
@@ -333,6 +337,13 @@ export default function DealDetail() {
     load();
   };
 
+  const saveTitle = async () => {
+    setTitleEditing(false);
+    if (!titleEdit.trim() || titleEdit.trim() === deal.title) return;
+    await api.patch(`/api/deals/${id}`, { title: titleEdit.trim() });
+    load();
+  };
+
   const saveOwner = async (ownerId) => {
     setOwnerEditing(false);
     await api.patch(`/api/deals/${id}`, { owner_id: ownerId });
@@ -508,7 +519,27 @@ export default function DealDetail() {
 
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="font-headline text-2xl font-semibold">{deal.title}</h1>
+            {titleEditing ? (
+              <input
+                autoFocus
+                value={titleEdit}
+                onChange={(e) => setTitleEdit(e.target.value)}
+                onBlur={saveTitle}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveTitle();
+                  if (e.key === 'Escape') setTitleEditing(false);
+                }}
+                className="font-headline text-2xl font-semibold bg-transparent border-b border-brand-violet focus:outline-none w-full"
+              />
+            ) : (
+              <h1
+                onClick={() => { setTitleEdit(deal.title); setTitleEditing(true); }}
+                className="font-headline text-2xl font-semibold cursor-pointer hover:text-brand-ice transition"
+                title="Clic para editar"
+              >
+                {deal.title}
+              </h1>
+            )}
             <div className="relative inline-block mt-1">
               <button onClick={openPipelinePopover} className="flex items-center gap-1 text-xs text-brand-muted hover:text-brand-ice font-tech transition border border-brand-border hover:border-brand-violet rounded-full px-2.5 py-1">
                 {pipeline?.name} {deal.pipeline_stages?.name && <>→ {deal.pipeline_stages.name}</>}
@@ -747,7 +778,9 @@ export default function DealDetail() {
                     />
                   ) : contactName ? (
                     <>
-                      <span className="text-brand-white">{contactName}</span>
+                      <button onClick={() => setViewingContactId(deal.contacts.id)} className="text-brand-white hover:text-brand-ice hover:underline transition text-left">
+                        {contactName}
+                      </button>
                       <button onClick={() => { setContactEditing(true); setContactQuery(contactName); }} className="text-brand-muted hover:text-brand-ice text-xs">editar</button>
                     </>
                   ) : (
@@ -1185,6 +1218,14 @@ export default function DealDetail() {
           invoiceId={selectedInvoiceId}
           onClose={() => setSelectedInvoiceId(null)}
           onChanged={() => api.get(`/api/invoices?deal_id=${id}`).then(setDealInvoices)}
+        />
+      )}
+
+      {viewingContactId && (
+        <ContactDetailPanel
+          contactId={viewingContactId}
+          onClose={() => setViewingContactId(null)}
+          onDeleted={() => { setViewingContactId(null); load(); }}
         />
       )}
     </div>

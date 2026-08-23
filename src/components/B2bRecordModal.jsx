@@ -36,6 +36,7 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
     country: record?.country || '',
     status: record?.status || 'contactado',
     meeting_date: record?.meeting_date ? new Date(record.meeting_date).toISOString() : '',
+    realized_date: record?.realized_date ? new Date(record.realized_date).toISOString() : '',
     notes: record?.notes || '',
   });
   const [saving, setSaving] = useState(false);
@@ -54,7 +55,11 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
     setSaving(true);
     setError('');
     try {
-      const payload = { ...form, meeting_date: form.meeting_date ? form.meeting_date.slice(0, 10) : null };
+      const payload = {
+        ...form,
+        meeting_date: form.meeting_date ? form.meeting_date.slice(0, 10) : null,
+        realized_date: form.realized_date ? form.realized_date.slice(0, 10) : null,
+      };
       if (record) {
         await api.patch(`/api/b2b/records/${record.id}`, payload);
       } else {
@@ -137,7 +142,15 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>Estado</label>
-              <select value={form.status} onChange={set('status')} className={inputClass}>
+              <select
+                value={form.status}
+                onChange={(e) => {
+                  const status = e.target.value;
+                  const shouldPrefillRealized = status === 'reunion_realizada' && !form.realized_date;
+                  setForm({ ...form, status, realized_date: shouldPrefillRealized ? new Date().toISOString() : form.realized_date });
+                }}
+                className={inputClass}
+              >
                 {STATUS_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
               </select>
             </div>
@@ -184,9 +197,15 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
               </select>
             </div>
           </div>
-          <div>
-            <label className={labelClass}>Fecha de reunión (si aplica)</label>
-            <DateTimePicker value={form.meeting_date} onChange={(v) => setForm({ ...form, meeting_date: v })} className="w-full" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Fecha programada</label>
+              <DateTimePicker value={form.meeting_date} onChange={(v) => setForm({ ...form, meeting_date: v })} className="w-full" />
+            </div>
+            <div>
+              <label className={labelClass}>Fecha realizada</label>
+              <DateTimePicker value={form.realized_date} onChange={(v) => setForm({ ...form, realized_date: v })} className="w-full" />
+            </div>
           </div>
           <div>
             <label className={labelClass}>Notas</label>
