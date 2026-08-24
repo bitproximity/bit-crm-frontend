@@ -1,7 +1,7 @@
 import { SkeletonLine } from '../components/Skeleton';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import { ChevronDown as ChevronDownIcon, Pencil as PencilIcon, Trash2 as Trash2Icon, GripVertical as GripVerticalIcon } from 'lucide-react';
+import { ChevronDown as ChevronDownIcon, Pencil as PencilIcon, Trash2 as Trash2Icon, GripVertical as GripVerticalIcon, X as XIcon } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmModal';
 
 const MCP_URL = `${import.meta.env.VITE_API_URL || 'https://bit-crm-backend-production.up.railway.app'}/mcp`;
@@ -134,6 +134,11 @@ function PipelinesAdmin() {
   const [error, setError] = useState('');
   const dragIndex = useRef(null);
   const [dragOverPipelineId, setDragOverPipelineId] = useState(null);
+  const [showCloneModal, setShowCloneModal] = useState(false);
+  const [cloneSourceId, setCloneSourceId] = useState('');
+  const [cloneTargetIds, setCloneTargetIds] = useState([]);
+  const [cloning, setCloning] = useState(false);
+  const [cloneResult, setCloneResult] = useState(null);
 
   const load = () => api.get('/api/pipelines').then(setPipelines).catch(console.error);
 
@@ -243,13 +248,36 @@ function PipelinesAdmin() {
     }
   };
 
+  const toggleCloneTarget = (id) => {
+    setCloneTargetIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const runCloneStages = async () => {
+    if (!cloneSourceId || cloneTargetIds.length === 0) return;
+    setCloning(true);
+    setCloneResult(null);
+    try {
+      const result = await api.post('/api/pipelines/clone-stages', { source_pipeline_id: cloneSourceId, target_pipeline_ids: cloneTargetIds });
+      setCloneResult(result.summary);
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo clonar.');
+    }
+    setCloning(false);
+  };
+
   return (
     <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mt-4">
       <div className="flex items-center justify-between mb-1">
         <div className="font-manrope font-medium">Pipelines</div>
-        <button onClick={() => setShowForm(!showForm)} className="text-xs text-brand-ice hover:underline">
-          + Nuevo pipeline
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setShowCloneModal(true)} className="text-xs text-brand-ice hover:underline">
+            Clonar etapas entre pipelines
+          </button>
+          <button onClick={() => setShowForm(!showForm)} className="text-xs text-brand-ice hover:underline">
+            + Nuevo pipeline
+          </button>
+        </div>
       </div>
       <p className="text-brand-muted text-sm mb-4">
         Crea un pipeline distinto por marca, país, o vertical — cada uno con sus propias etapas.
@@ -385,6 +413,71 @@ function PipelinesAdmin() {
           );
         })}
       </div>
+
+      {showCloneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 overlay-in" onClick={() => setShowCloneModal(false)} />
+          <div className="relative w-full max-w-md bg-brand-panel border border-brand-border rounded-2xl shadow-2xl overflow-hidden modal-in">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
+              <span className="font-headline text-base font-semibold">Clonar etapas entre pipelines</span>
+              <button onClick={() => setShowCloneModal(false)} className="text-brand-muted hover:text-brand-white"><XIcon size={18} /></button>
+            </div>
+            <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              <p className="text-xs text-brand-muted">
+                Solo agrega las etapas del pipeline de origen que le falten al destino, por nombre —
+                nunca borra ni renombra una etapa que ya exista, aunque tenga tratos.
+              </p>
+              <div>
+                <label className="block text-xs text-brand-muted mb-1.5">Pipeline de origen (de dónde copiar)</label>
+                <select value={cloneSourceId} onChange={(e) => setCloneSourceId(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm">
+                  <option value="">Elige uno</option>
+                  {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-brand-muted mb-1.5">Pipelines destino</label>
+                <div className="space-y-1 max-h-52 overflow-y-auto border border-brand-border rounded-lg p-2">
+                  {pipelines.filter((p) => p.id !== cloneSourceId).map((p) => (
+                    <label key={p.id} className="flex items-center gap-2 px-1.5 py-1 rounded hover:bg-brand-bg cursor-pointer text-sm">
+                      <input type="checkbox" checked={cloneTargetIds.includes(p.id)} onChange={() => toggleCloneTarget(p.id)} className="accent-brand-violet" />
+                      {p.name}
+                    </label>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setCloneTargetIds(pipelines.filter((p) => p.id !== cloneSourceId).map((p) => p.id))}
+                  className="text-xs text-brand-ice hover:underline mt-1"
+                >
+                  Seleccionar todos
+                </button>
+              </div>
+
+              {cloneResult && (
+                <div className="space-y-1.5 text-xs">
+                  {cloneResult.map((r) => {
+                    const p = pipelines.find((x) => x.id === r.pipeline_id);
+                    return (
+                      <div key={r.pipeline_id} className={`px-2.5 py-1.5 rounded-lg ${r.error ? 'bg-red-500/10 text-red-300' : 'bg-green-500/10 text-green-300'}`}>
+                        <strong>{p?.name}</strong>: {r.error || (r.added.length ? `+${r.added.join(', ')}` : 'ya tenía todas las etapas')}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-brand-border flex justify-end gap-2">
+              <button onClick={() => { setShowCloneModal(false); setCloneResult(null); }} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">Cerrar</button>
+              <button
+                onClick={runCloneStages}
+                disabled={!cloneSourceId || cloneTargetIds.length === 0 || cloning}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50"
+              >
+                {cloning ? 'Clonando...' : 'Clonar etapas'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

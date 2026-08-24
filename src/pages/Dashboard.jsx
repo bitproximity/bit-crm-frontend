@@ -2,25 +2,34 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { TrendingUp, DollarSign, Trophy, AlertCircle, ListTodo, Calendar, MapPin, Video, ExternalLink, PieChart } from 'lucide-react';
 import { api } from '../lib/api';
+import { useAuth } from '../hooks/useAuth';
 
-function Card({ icon: Icon, label, value, accent, iconColor, onClick, index = 0 }) {
+function Card({ icon: Icon, label, value, accent, iconColor, barColor, onClick, index = 0, big }) {
   return (
     <div
       onClick={onClick}
       style={{ animationDelay: `${index * 60}ms` }}
-      className={`card-elevated rounded-xl p-5 group stagger-item ${onClick ? 'cursor-pointer' : ''}`}
+      className={`relative card-elevated rounded-xl overflow-hidden group stagger-item ${onClick ? 'cursor-pointer' : ''} ${big ? 'sm:col-span-2 p-6' : 'p-5'}`}
     >
+      <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${barColor || '#8500FF'}, ${barColor || '#8500FF'}22)` }} />
       <div className="flex items-center justify-between mb-3">
         <div className="text-brand-muted text-sm font-manrope">{label}</div>
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-transform duration-200 group-hover:scale-110 ${iconColor || 'bg-brand-violet/10'}`}>
-          <Icon size={15} className="text-brand-ice" />
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3 ${iconColor || 'bg-brand-violet/10'}`}>
+          <Icon size={16} className="text-brand-ice" />
         </div>
       </div>
-      <div className={`text-2xl font-headline font-semibold ${accent ? 'bg-gradient-to-r from-brand-violet to-brand-magenta bg-clip-text text-transparent' : 'text-brand-white'}`}>
+      <div className={`${big ? 'text-4xl' : 'text-2xl'} font-headline font-semibold ${accent ? 'bg-gradient-to-r from-brand-violet to-brand-magenta bg-clip-text text-transparent' : 'text-brand-white'}`}>
         {value}
       </div>
     </div>
   );
+}
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Buenos días';
+  if (h < 19) return 'Buenas tardes';
+  return 'Buenas noches';
 }
 
 function CardSkeleton() {
@@ -49,6 +58,7 @@ export default function Dashboard() {
   const [events, setEvents] = useState(null);
   const [eventsError, setEventsError] = useState('');
   const navigate = useNavigate();
+  const { profile } = useAuth();
 
   useEffect(() => {
     api.get('/api/dashboard').then(setData).catch(console.error);
@@ -59,27 +69,31 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="font-headline text-xl font-semibold mb-1">Dashboard</h1>
-      <p className="text-brand-muted text-sm mb-6">Panorama general de ventas y operaciones</p>
+      <h1 className="font-headline text-2xl font-semibold mb-1">
+        {greeting()}{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''} <span className="inline-block">👋</span>
+      </h1>
+      <p className="text-brand-muted text-sm mb-6">Esto es lo que está pasando en Bit Proximity hoy.</p>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 mb-6">
         {!data ? (
           Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)
         ) : (
           <>
-            <Card icon={TrendingUp} label="Deals abiertos" value={data.open_deals} iconColor="bg-blue-500/10" onClick={() => navigate('/deals-list?status=abierto')} index={0} />
             <Card
               icon={DollarSign}
               label="Pipeline abierto (USD)"
               value={`$${data.open_pipeline_value_usd.toLocaleString()}`}
               accent
               iconColor="bg-brand-violet/10"
+              barColor="#8500FF"
               onClick={() => navigate('/deals-list?status=abierto')}
-              index={1}
+              index={0}
+              big
             />
-            <Card icon={Trophy} label="Ganados este mes" value={data.won_this_month} iconColor="bg-green-500/10" onClick={() => navigate('/deals-list?status=ganado&period=this_month')} index={2} />
-            <Card icon={AlertCircle} label="Tareas vencidas" value={data.overdue_tasks} iconColor="bg-red-500/10" onClick={() => navigate('/tasks')} index={3} />
-            <Card icon={ListTodo} label="Mis tareas pendientes" value={data.my_open_tasks} iconColor="bg-yellow-500/10" onClick={() => navigate('/tasks')} index={4} />
+            <Card icon={TrendingUp} label="Deals abiertos" value={data.open_deals} iconColor="bg-blue-500/10" barColor="#3B82F6" onClick={() => navigate('/deals-list?status=abierto')} index={1} />
+            <Card icon={Trophy} label="Ganados este mes" value={data.won_this_month} iconColor="bg-green-500/10" barColor="#22C55E" onClick={() => navigate('/deals-list?status=ganado&period=this_month')} index={2} />
+            <Card icon={AlertCircle} label="Tareas vencidas" value={data.overdue_tasks} iconColor="bg-red-500/10" barColor="#EF4444" onClick={() => navigate('/tasks')} index={3} />
+            <Card icon={ListTodo} label="Mis tareas pendientes" value={data.my_open_tasks} iconColor="bg-yellow-500/10" barColor="#EAB308" onClick={() => navigate('/tasks')} index={4} />
           </>
         )}
       </div>

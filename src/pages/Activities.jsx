@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import DateTimePicker from '../components/DateTimePicker';
 import { csvToActivities } from '../lib/csv';
-import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check, Upload } from 'lucide-react';
+import { useConfirm } from '../components/ConfirmModal';
+import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check, Upload, X, Trash2 } from 'lucide-react';
 
 const TYPE_ICONS = {
   llamada: Phone, email: Mail, reunion: Users, whatsapp: MessageCircle, nota: StickyNote, tarea: CheckSquare,
@@ -12,6 +13,7 @@ const TYPE_LABELS = {
 };
 
 export default function Activities() {
+  const confirm = useConfirm();
   const [activities, setActivities] = useState([]);
   const [tab, setTab] = useState('pendiente'); // pendiente | vencida | completada
   const [showForm, setShowForm] = useState(false);
@@ -19,6 +21,9 @@ export default function Activities() {
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef(null);
+  const [editingActivity, setEditingActivity] = useState(null);
+  const [editForm, setEditForm] = useState({ title: '', type: 'llamada', due_date: '' });
+  const [saving, setSaving] = useState(false);
 
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
@@ -63,6 +68,39 @@ export default function Activities() {
 
   const markDone = async (id) => {
     await api.patch(`/api/activities/${id}`, { done: true });
+    load();
+  };
+
+  const openEdit = (a) => {
+    setEditingActivity(a);
+    setEditForm({ title: a.title || a.summary || '', type: a.type, due_date: a.due_date || '' });
+  };
+
+  const saveEdit = async () => {
+    setSaving(true);
+    try {
+      await api.patch(`/api/activities/${editingActivity.id}`, {
+        title: editForm.title,
+        summary: editForm.title,
+        type: editForm.type,
+        due_date: editForm.due_date || null,
+      });
+      setEditingActivity(null);
+      load();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteActivity = async () => {
+    const ok = await confirm({
+      title: 'Eliminar actividad',
+      message: `¿Eliminar "${editingActivity.title || editingActivity.summary}"? Si estaba sincronizada con Google Calendar, también se borra el evento.`,
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
+    await api.delete(`/api/activities/${editingActivity.id}`);
+    setEditingActivity(null);
     load();
   };
 
@@ -157,8 +195,8 @@ export default function Activities() {
               const Icon = TYPE_ICONS[a.type] || StickyNote;
               const isOverdue = tab === 'vencida';
               return (
-                <tr key={a.id} className="border-t border-brand-border row-hover">
-                  <td className="px-4 py-3">
+                <tr key={a.id} className="border-t border-brand-border row-hover cursor-pointer" onClick={() => openEdit(a)}>
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     {a.done ? (
                       <div className="w-4 h-4 rounded bg-green-500/30 flex items-center justify-center">
                         <Check size={11} className="text-green-300" />
@@ -197,6 +235,51 @@ export default function Activities() {
           </tbody>
         </table>
       </div>
+
+      {editingActivity && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 overlay-in" onClick={() => setEditingActivity(null)} />
+          <div className="relative w-full max-w-md bg-brand-panel border border-brand-border rounded-2xl shadow-2xl overflow-hidden modal-in">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
+              <span className="font-headline text-base font-semibold">Editar actividad</span>
+              <button onClick={() => setEditingActivity(null)} className="text-brand-muted hover:text-brand-white"><X size={18} /></button>
+            </div>
+            <div className="p-5 space-y-3">
+              <div>
+                <label className="block text-xs text-brand-muted mb-1.5">Asunto</label>
+                <input
+                  autoFocus value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-brand-muted mb-1.5">Tipo</label>
+                <select value={editForm.type} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm">
+                  {Object.entries(TYPE_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-brand-muted mb-1.5">Fecha</label>
+                <DateTimePicker value={editForm.due_date} onChange={(v) => setEditForm({ ...editForm, due_date: v })} className="w-full" />
+              </div>
+              {editingActivity.entity_label && (
+                <div className="text-xs text-brand-muted">Relacionado: {editingActivity.entity_label}</div>
+              )}
+            </div>
+            <div className="p-4 border-t border-brand-border flex justify-between items-center">
+              <button onClick={deleteActivity} className="flex items-center gap-1.5 text-xs text-red-300 hover:text-red-200 transition">
+                <Trash2 size={13} /> Eliminar
+              </button>
+              <div className="flex gap-2">
+                <button onClick={() => setEditingActivity(null)} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">Cancelar</button>
+                <button onClick={saveEdit} disabled={saving} className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50">
+                  {saving ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

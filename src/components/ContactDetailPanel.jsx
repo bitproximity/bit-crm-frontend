@@ -7,6 +7,8 @@ import { useConfirm } from './ConfirmModal';
 export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
   const confirm = useConfirm();
   const [contact, setContact] = useState(null);
+  const [team, setTeam] = useState([]);
+  const [ownerEditing, setOwnerEditing] = useState(false);
   const [emails, setEmails] = useState([]);
   const [gmailStatus, setGmailStatus] = useState(null);
   const [syncing, setSyncing] = useState(false);
@@ -24,16 +26,18 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
 
   const load = async () => {
     setLoading(true);
-    const [contactData, gs, tags, allTagsList] = await Promise.all([
+    const [contactData, gs, tags, allTagsList, teamList] = await Promise.all([
       api.get(`/api/contacts/${contactId}`),
       api.get('/api/gmail/status'),
       api.get(`/api/tags/for/contact/${contactId}`),
       api.get('/api/tags'),
+      api.get('/api/team').catch(() => []),
     ]);
     setContact(contactData);
     setGmailStatus(gs);
     setContactTags(tags);
     setAllTags(allTagsList);
+    setTeam(teamList);
     const msgs = await api.get(`/api/gmail/messages/contact/${contactId}`).catch(() => []);
     setEmails(msgs);
     setLoading(false);
@@ -132,6 +136,12 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
     setContactTags((prev) => [...prev, tag]);
     setTagInput('');
     setTagPickerOpen(false);
+  };
+
+  const saveOwner = async (ownerId) => {
+    setOwnerEditing(false);
+    const updated = await api.patch(`/api/contacts/${contactId}`, { owner_id: ownerId });
+    setContact((c) => ({ ...c, ...updated, team_members: team.find((m) => m.id === ownerId) || null }));
   };
 
   if (!contactId) return null;
@@ -247,6 +257,26 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
 
                   <div className="mt-3">
                     <EnrichButtons entityType="contacts" entityId={contact.id} onEnriched={(updated) => setContact((c) => ({ ...c, ...updated }))} />
+                  </div>
+                  <div className="mt-3 relative">
+                    <span className="text-xs text-brand-muted mr-1.5">Dueño:</span>
+                    <button onClick={() => setOwnerEditing((v) => !v)} className="text-xs text-brand-ice hover:underline">
+                      {contact.team_members?.full_name || 'Sin asignar'}
+                    </button>
+                    {ownerEditing && (
+                      <div className="absolute left-0 mt-1.5 w-52 bg-brand-bg border border-brand-border rounded-lg shadow-xl dropdown-in z-20 overflow-hidden max-h-52 overflow-y-auto">
+                        {team.map((m) => (
+                          <button
+                            key={m.id}
+                            onClick={() => saveOwner(m.id)}
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center justify-between ${m.id === contact.owner_id ? 'text-brand-ice' : 'text-brand-white'}`}
+                          >
+                            {m.full_name}
+                            {m.id === contact.owner_id && <span className="text-brand-violet">✓</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="mt-3 relative">
                     <div className="flex items-center gap-1.5 flex-wrap">
