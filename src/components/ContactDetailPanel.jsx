@@ -224,121 +224,127 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
           </form>
         ) : (
           <>
-            <div className="sticky top-0 bg-brand-panel border-b border-brand-border p-5 flex items-start justify-between">
-              <div className="flex gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center text-sm font-tech font-semibold flex-shrink-0">
-                  {initials || '?'}
-                </div>
-                <div className="min-w-0">
-                  <h2 className="font-headline text-lg font-semibold truncate">{fullName || 'Sin nombre'}</h2>
-                  {(contact.position || contact.companies?.name) && (
-                    <div className="text-sm text-brand-muted truncate">
-                      {contact.position}{contact.position && contact.companies?.name && ' · '}{contact.companies?.name}
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5">
-                    {contact.email && (
-                      <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-ice transition">
-                        <Mail size={12} /> {contact.email}
-                      </a>
-                    )}
-                    {contact.phone && (
-                      <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-ice transition">
-                        <Phone size={12} /> {contact.phone}
-                      </a>
-                    )}
-                    {contact.country && (
-                      <span className="flex items-center gap-1.5 text-xs text-brand-muted">
-                        <MapPin size={12} /> {contact.country}
-                      </span>
-                    )}
+            <div className="relative bg-gradient-to-br from-brand-violet/15 via-brand-panel to-brand-panel border-b border-brand-border p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex gap-4 min-w-0">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center text-lg font-tech font-semibold flex-shrink-0 shadow-lg shadow-brand-violet/20">
+                    {initials || '?'}
                   </div>
-
-                  <div className="mt-3">
-                    <EnrichButtons entityType="contacts" entityId={contact.id} onEnriched={(updated) => setContact((c) => ({ ...c, ...updated }))} />
-                  </div>
-                  <div className="mt-3 relative">
-                    <span className="text-xs text-brand-muted mr-1.5">Dueño:</span>
-                    <button onClick={() => setOwnerEditing((v) => !v)} className="text-xs text-brand-ice hover:underline">
-                      {contact.team_members?.full_name || 'Sin asignar'}
-                    </button>
-                    {ownerEditing && (
-                      <div className="absolute left-0 mt-1.5 w-52 bg-brand-bg border border-brand-border rounded-lg shadow-xl dropdown-in z-20 overflow-hidden max-h-52 overflow-y-auto">
-                        {team.map((m) => (
-                          <button
-                            key={m.id}
-                            onClick={() => saveOwner(m.id)}
-                            className={`w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center justify-between ${m.id === contact.owner_id ? 'text-brand-ice' : 'text-brand-white'}`}
-                          >
-                            {m.full_name}
-                            {m.id === contact.owner_id && <span className="text-brand-violet">✓</span>}
-                          </button>
-                        ))}
+                  <div className="min-w-0 pt-0.5">
+                    <h2 className="font-headline text-xl font-semibold truncate">{fullName || 'Sin nombre'}</h2>
+                    {(contact.position || contact.companies?.name) && (
+                      <div className="text-sm text-brand-muted truncate mt-0.5">
+                        {contact.position}{contact.position && contact.companies?.name && <span className="text-brand-violet mx-1">·</span>}{contact.companies?.name}
                       </div>
                     )}
-                  </div>
-                  <div className="mt-3 relative">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {contactTags.map((tag) => (
-                        <span key={tag.id} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-brand-violet/15 text-brand-ice">
-                          <TagIcon size={10} /> {tag.name}
-                        </span>
-                      ))}
-                      <button onClick={() => setTagPickerOpen((v) => !v)} className="text-xs text-brand-muted hover:text-brand-ice transition">
-                        + Añadir a lista
+                    <div className="relative inline-block mt-2">
+                      <button onClick={() => setOwnerEditing((v) => !v)} className="flex items-center gap-1.5 text-xs bg-brand-bg/80 border border-brand-border rounded-full px-2.5 py-1 hover:border-brand-violet transition">
+                        <span className="text-brand-muted">Dueño:</span>
+                        <span className="text-brand-ice font-medium">{contact.team_members?.full_name || 'Sin asignar'}</span>
                       </button>
-                    </div>
-                    {tagPickerOpen && (
-                      <div className="absolute z-20 mt-1.5 w-56 bg-brand-bg border border-brand-border rounded-lg shadow-xl dropdown-in overflow-hidden">
-                        <input
-                          autoFocus value={tagInput} onChange={(e) => setTagInput(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter' && tagInput.trim()) createAndAttachTag(tagInput.trim()); }}
-                          placeholder="Buscar o crear lista..."
-                          className="w-full px-3 py-2 text-sm bg-transparent border-b border-brand-border focus:outline-none"
-                        />
-                        <div className="max-h-40 overflow-y-auto">
-                          {allTags.filter((t) => t.name.toLowerCase().includes(tagInput.toLowerCase())).map((t) => (
+                      {ownerEditing && (
+                        <div className="absolute left-0 mt-1.5 w-52 bg-brand-bg border border-brand-border rounded-lg shadow-xl dropdown-in z-20 overflow-hidden max-h-52 overflow-y-auto">
+                          {team.map((m) => (
                             <button
-                              key={t.id}
-                              onClick={() => toggleTag(t)}
-                              className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center justify-between"
+                              key={m.id}
+                              onClick={() => saveOwner(m.id)}
+                              className={`w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center justify-between ${m.id === contact.owner_id ? 'text-brand-ice' : 'text-brand-white'}`}
                             >
-                              {t.name}
-                              {contactTags.some((ct) => ct.id === t.id) && <span className="text-brand-violet">✓</span>}
+                              {m.full_name}
+                              {m.id === contact.owner_id && <span className="text-brand-violet">✓</span>}
                             </button>
                           ))}
-                          {tagInput.trim() && !allTags.some((t) => t.name.toLowerCase() === tagInput.trim().toLowerCase()) && (
-                            <button
-                              onClick={() => createAndAttachTag(tagInput.trim())}
-                              className="w-full text-left px-3 py-2 text-sm text-brand-ice hover:bg-brand-panel transition border-t border-brand-border"
-                            >
-                              + Crear lista "{tagInput.trim()}"
-                            </button>
-                          )}
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={startEdit} className="icon-btn p-2 rounded-lg text-brand-muted hover:text-brand-ice hover:bg-brand-bg/60" title="Editar">
+                    <Pencil size={16} />
+                  </button>
+                  <button onClick={deleteContact} className="icon-btn p-2 rounded-lg text-brand-muted hover:text-red-300 hover:bg-brand-bg/60" title="Eliminar">
+                    <Trash2 size={16} />
+                  </button>
+                  <button onClick={onClose} className="p-2 rounded-lg text-brand-muted hover:text-brand-white hover:bg-brand-bg/60">
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <button onClick={startEdit} className="icon-btn text-brand-muted hover:text-brand-ice" title="Editar">
-                  <Pencil size={16} />
-                </button>
-                <button onClick={deleteContact} className="icon-btn text-brand-muted hover:text-red-300" title="Eliminar">
-                  <Trash2 size={16} />
-                </button>
-                <button onClick={onClose} className="text-brand-muted hover:text-brand-white">
-                  <X size={18} />
-                </button>
+
+              <div className="flex flex-wrap gap-2 mt-5">
+                {contact.email && (
+                  <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 text-xs bg-brand-bg/80 border border-brand-border rounded-full px-3 py-1.5 hover:border-brand-violet hover:text-brand-ice transition">
+                    <Mail size={12} /> {contact.email}
+                  </a>
+                )}
+                {contact.phone && (
+                  <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 text-xs bg-brand-bg/80 border border-brand-border rounded-full px-3 py-1.5 hover:border-brand-violet hover:text-brand-ice transition">
+                    <Phone size={12} /> {contact.phone}
+                  </a>
+                )}
+                {contact.country && (
+                  <span className="flex items-center gap-1.5 text-xs bg-brand-bg/80 border border-brand-border rounded-full px-3 py-1.5 text-brand-muted">
+                    <MapPin size={12} /> {contact.country}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-4">
+                <EnrichButtons entityType="contacts" entityId={contact.id} onEnriched={(updated) => setContact((c) => ({ ...c, ...updated }))} />
+              </div>
+
+              <div className="mt-4 relative">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {contactTags.map((tag) => (
+                    <span key={tag.id} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-brand-violet/15 text-brand-ice border border-brand-violet/20">
+                      <TagIcon size={10} /> {tag.name}
+                    </span>
+                  ))}
+                  <button onClick={() => setTagPickerOpen((v) => !v)} className="flex items-center gap-1 text-xs text-brand-muted hover:text-brand-ice transition px-1">
+                    + Añadir a lista
+                  </button>
+                </div>
+                {tagPickerOpen && (
+                  <div className="absolute z-20 mt-1.5 w-56 bg-brand-bg border border-brand-border rounded-lg shadow-xl dropdown-in overflow-hidden">
+                    <input
+                      autoFocus value={tagInput} onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && tagInput.trim()) createAndAttachTag(tagInput.trim()); }}
+                      placeholder="Buscar o crear lista..."
+                      className="w-full px-3 py-2 text-sm bg-transparent border-b border-brand-border focus:outline-none"
+                    />
+                    <div className="max-h-40 overflow-y-auto">
+                      {allTags.filter((t) => t.name.toLowerCase().includes(tagInput.toLowerCase())).map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => toggleTag(t)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center justify-between"
+                        >
+                          {t.name}
+                          {contactTags.some((ct) => ct.id === t.id) && <span className="text-brand-violet">✓</span>}
+                        </button>
+                      ))}
+                      {tagInput.trim() && !allTags.some((t) => t.name.toLowerCase() === tagInput.trim().toLowerCase()) && (
+                        <button
+                          onClick={() => createAndAttachTag(tagInput.trim())}
+                          className="w-full text-left px-3 py-2 text-sm text-brand-ice hover:bg-brand-panel transition border-t border-brand-border"
+                        >
+                          + Crear lista "{tagInput.trim()}"
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="p-5">
+            <div className="p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2 font-manrope font-medium text-sm">
-                  <Mail size={14} className="text-brand-muted" /> Correos (Gmail)
+                  <span className="w-7 h-7 rounded-lg bg-brand-violet/10 flex items-center justify-center">
+                    <Mail size={13} className="text-brand-ice" />
+                  </span>
+                  Correos (Gmail)
                 </div>
                 {gmailStatus?.connected && contact.email && (
                   <button
@@ -353,20 +359,20 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
               </div>
 
               {!gmailStatus?.connected && (
-                <div className="text-xs text-brand-muted bg-brand-bg border border-brand-border rounded-lg p-3">
+                <div className="text-xs text-brand-muted bg-brand-bg border border-dashed border-brand-border rounded-xl p-4 text-center">
                   Conecta tu Gmail en Mi Perfil para ver el historial de correos con este contacto.
                 </div>
               )}
 
               {gmailStatus?.connected && !contact.email && (
-                <div className="text-xs text-brand-muted bg-brand-bg border border-brand-border rounded-lg p-3">
+                <div className="text-xs text-brand-muted bg-brand-bg border border-dashed border-brand-border rounded-xl p-4 text-center">
                   Este contacto no tiene email registrado — no se puede sincronizar.
                 </div>
               )}
 
               <div className="space-y-2 mt-2">
                 {emails.map((e, i) => (
-                  <div key={e.id} className="bg-brand-bg border border-brand-border rounded-lg p-3 stagger-item hover:border-brand-violet/40 transition" style={{ animationDelay: `${Math.min(i, 15) * 25}ms` }}>
+                  <div key={e.id} className="bg-brand-bg border border-brand-border rounded-xl p-3.5 stagger-item hover:border-brand-violet/40 hover:shadow-md transition" style={{ animationDelay: `${Math.min(i, 15) * 25}ms` }}>
                     <div className="text-sm font-manrope mb-0.5 text-brand-white">{e.subject || '(sin asunto)'}</div>
                     <div className="text-xs text-brand-muted mb-1.5 line-clamp-2">{e.snippet}</div>
                     <div className="text-xs text-brand-muted font-tech">
@@ -375,7 +381,10 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
                   </div>
                 ))}
                 {gmailStatus?.connected && contact.email && emails.length === 0 && (
-                  <div className="text-brand-muted text-xs">Sin correos sincronizados todavía. Dale a "Sincronizar".</div>
+                  <div className="flex flex-col items-center gap-2 text-brand-muted text-xs py-8 text-center border border-dashed border-brand-border rounded-xl">
+                    <Mail size={20} className="text-brand-border" />
+                    Sin correos sincronizados todavía.<br />Dale a "Sincronizar" arriba.
+                  </div>
                 )}
               </div>
             </div>

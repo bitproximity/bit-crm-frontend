@@ -24,6 +24,9 @@ export default function Activities() {
   const [editingActivity, setEditingActivity] = useState(null);
   const [editForm, setEditForm] = useState({ title: '', type: 'llamada', due_date: '' });
   const [saving, setSaving] = useState(false);
+  const [dealQuery, setDealQuery] = useState('');
+  const [dealResults, setDealResults] = useState([]);
+  const [selectedDeal, setSelectedDeal] = useState(null);
 
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
@@ -74,17 +77,35 @@ export default function Activities() {
   const openEdit = (a) => {
     setEditingActivity(a);
     setEditForm({ title: a.title || a.summary || '', type: a.type, due_date: a.due_date || '' });
+    setSelectedDeal(a.entity_type === 'deal' ? { id: a.entity_id, title: a.entity_label } : null);
+    setDealQuery(a.entity_type === 'deal' ? (a.entity_label || '') : '');
+    setDealResults([]);
   };
+
+  useEffect(() => {
+    if (!dealQuery.trim() || selectedDeal?.title === dealQuery) { setDealResults([]); return; }
+    const t = setTimeout(() => {
+      api.get(`/api/deals?search=${encodeURIComponent(dealQuery.trim())}&limit=8`)
+        .then((res) => setDealResults(Array.isArray(res) ? res : res.data || []))
+        .catch(() => setDealResults([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [dealQuery]);
 
   const saveEdit = async () => {
     setSaving(true);
     try {
-      await api.patch(`/api/activities/${editingActivity.id}`, {
+      const payload = {
         title: editForm.title,
         summary: editForm.title,
         type: editForm.type,
         due_date: editForm.due_date || null,
-      });
+      };
+      if (selectedDeal && selectedDeal.id !== editingActivity.entity_id) {
+        payload.entity_type = 'deal';
+        payload.entity_id = selectedDeal.id;
+      }
+      await api.patch(`/api/activities/${editingActivity.id}`, payload);
       setEditingActivity(null);
       load();
     } finally {
@@ -262,9 +283,29 @@ export default function Activities() {
                 <label className="block text-xs text-brand-muted mb-1.5">Fecha</label>
                 <DateTimePicker value={editForm.due_date} onChange={(v) => setEditForm({ ...editForm, due_date: v })} className="w-full" />
               </div>
-              {editingActivity.entity_label && (
-                <div className="text-xs text-brand-muted">Relacionado: {editingActivity.entity_label}</div>
-              )}
+              <div className="relative">
+                <label className="block text-xs text-brand-muted mb-1.5">Relacionado con (trato)</label>
+                <input
+                  value={dealQuery}
+                  onChange={(e) => { setDealQuery(e.target.value); setSelectedDeal(null); }}
+                  placeholder="Buscar trato..."
+                  className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
+                />
+                {dealResults.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-brand-bg border border-brand-border rounded-lg shadow-xl dropdown-in max-h-40 overflow-y-auto">
+                    {dealResults.map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => { setSelectedDeal(d); setDealQuery(d.title); setDealResults([]); }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition truncate"
+                      >
+                        {d.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="p-4 border-t border-brand-border flex justify-between items-center">
               <button onClick={deleteActivity} className="flex items-center gap-1.5 text-xs text-red-300 hover:text-red-200 transition">
