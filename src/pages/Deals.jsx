@@ -7,7 +7,7 @@ import PipelineSelector from '../components/PipelineSelector';
 import { csvToDeals } from '../lib/csv';
 import {
   LayoutGrid, List, DollarSign, Archive, Plus, Search,
-  Info, ChevronDown, User, AlertTriangle, Upload,
+  Info, ChevronDown, User, AlertTriangle, Upload, GripVertical,
 } from 'lucide-react';
 
 function isOverdue(deal) {
@@ -78,6 +78,37 @@ export default function Deals() {
   const onDrop = async (stageId, dealId) => {
     setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage_id: stageId } : d)));
     await api.patch(`/api/deals/${dealId}/stage`, { stage_id: stageId });
+  };
+
+  // Reordenar las columnas (etapas) del tablero arrastrando el encabezado — útil para
+  // ajustar un pipeline puntual sin tener que ir hasta Configuración.
+  const stageDragIndex = useRef(null);
+  const [stageDragOverId, setStageDragOverId] = useState(null);
+
+  const onStageDragStart = (stageId) => {
+    stageDragIndex.current = pipeline.pipeline_stages.sort((a, b) => a.position - b.position).findIndex((s) => s.id === stageId);
+  };
+
+  const onStageDragOver = (overStageId) => {
+    if (stageDragIndex.current === null) return;
+    const sorted = [...pipeline.pipeline_stages].sort((a, b) => a.position - b.position);
+    const overIndex = sorted.findIndex((s) => s.id === overStageId);
+    if (overIndex === -1 || overIndex === stageDragIndex.current) return;
+    const [moved] = sorted.splice(stageDragIndex.current, 1);
+    sorted.splice(overIndex, 0, moved);
+    stageDragIndex.current = overIndex;
+    setPipelines((prev) => prev.map((p) => (p.id === pipelineId ? { ...p, pipeline_stages: sorted.map((s, i) => ({ ...s, position: i })) } : p)));
+  };
+
+  const onStageDragEnd = async () => {
+    stageDragIndex.current = null;
+    setStageDragOverId(null);
+    const sorted = [...pipeline.pipeline_stages].sort((a, b) => a.position - b.position);
+    try {
+      await api.patch(`/api/pipelines/${pipelineId}/stages/reorder`, { ordered_ids: sorted.map((s) => s.id) });
+    } catch (err) {
+      loadPipelines();
+    }
   };
 
   const handleFileSelect = async (e) => {
@@ -225,10 +256,17 @@ export default function Deals() {
                 onDrop={(e) => onDrop(stage.id, e.dataTransfer.getData('dealId'))}
                 className="w-64 md:w-72 flex-shrink-0"
               >
-                <div className="flex items-center gap-2 justify-between mb-1 px-1">
-                  <span className="flex items-center gap-2">
+                <div
+                  draggable
+                  onDragStart={() => onStageDragStart(stage.id)}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setStageDragOverId(stage.id); onStageDragOver(stage.id); }}
+                  onDragEnd={onStageDragEnd}
+                  className={`flex items-center gap-2 justify-between mb-1 px-1 py-1 rounded-lg cursor-grab active:cursor-grabbing group transition ${stageDragOverId === stage.id ? 'bg-brand-violet/10' : ''}`}
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <GripVertical size={12} className="text-brand-muted opacity-0 group-hover:opacity-60 transition flex-shrink-0" />
                     {stage.color && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />}
-                    <span className="text-sm font-manrope font-semibold">{stage.name}</span>
+                    <span className="text-sm font-manrope font-semibold truncate">{stage.name}</span>
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-brand-muted mb-3 px-1">
