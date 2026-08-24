@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import {
-  Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, History,
+  Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, CalendarClock, History,
   Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2,
 } from 'lucide-react';
 import B2bRecordModal, { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
