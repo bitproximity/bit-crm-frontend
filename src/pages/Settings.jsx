@@ -1,6 +1,7 @@
 import { SkeletonLine } from '../components/Skeleton';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
+import { ChevronDown as ChevronDownIcon, Pencil as PencilIcon, Trash2 as Trash2Icon, GripVertical as GripVerticalIcon } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmModal';
 
 const MCP_URL = `${import.meta.env.VITE_API_URL || 'https://bit-crm-backend-production.up.railway.app'}/mcp`;
@@ -131,6 +132,8 @@ function PipelinesAdmin() {
   const [editingStageId, setEditingStageId] = useState(null);
   const [editStageName, setEditStageName] = useState('');
   const [error, setError] = useState('');
+  const dragIndex = useRef(null);
+  const [dragOverPipelineId, setDragOverPipelineId] = useState(null);
 
   const load = () => api.get('/api/pipelines').then(setPipelines).catch(console.error);
 
@@ -148,11 +151,14 @@ function PipelinesAdmin() {
 
   const addStage = async (e, pipelineId) => {
     e.preventDefault();
-    const pipeline = pipelines.find((p) => p.id === pipelineId);
-    const position = (pipeline?.pipeline_stages?.length || 0) + 1;
-    await api.post(`/api/pipelines/${pipelineId}/stages`, { name: stageName, position });
-    setStageName('');
-    load();
+    setError('');
+    try {
+      await api.post(`/api/pipelines/${pipelineId}/stages`, { name: stageName });
+      setStageName('');
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo agregar la etapa.');
+    }
   };
 
   const startEditPipeline = (p) => {
@@ -166,10 +172,10 @@ function PipelinesAdmin() {
     load();
   };
 
-  const deletePipeline = async (pipelineId) => {
+  const deletePipeline = async (pipelineId, pipelineName) => {
     const ok = await confirm({
       title: 'Borrar pipeline',
-      message: '¿Borrar este pipeline? Solo se puede si no tiene deals asociados.',
+      message: `¿Borrar "${pipelineName}"? Solo se puede si no tiene deals asociados.`,
       confirmLabel: 'Borrar',
     });
     if (!ok) return;
@@ -193,10 +199,10 @@ function PipelinesAdmin() {
     load();
   };
 
-  const deleteStage = async (stageId) => {
+  const deleteStage = async (stageId, stageName) => {
     const ok = await confirm({
       title: 'Borrar etapa',
-      message: '¿Borrar esta etapa? Solo se puede si no tiene deals en ella.',
+      message: `¿Borrar "${stageName}"? Solo se puede si no tiene deals en ella.`,
       confirmLabel: 'Borrar',
     });
     if (!ok) return;
@@ -209,34 +215,32 @@ function PipelinesAdmin() {
     }
   };
 
-  const moveStage = async (pipelineId, stageId, direction) => {
-    const pipeline = pipelines.find((p) => p.id === pipelineId);
-    const sorted = [...(pipeline?.pipeline_stages || [])].sort((a, b) => a.position - b.position);
-    const index = sorted.findIndex((s) => s.id === stageId);
-    const swapIndex = direction === 'up' ? index - 1 : index + 1;
-    if (swapIndex < 0 || swapIndex >= sorted.length) return;
-
-    const current = sorted[index];
-    const swapWith = sorted[swapIndex];
-
-    // Actualiza el estado local al toque para que se sienta instantáneo, y confirma con el backend
+  // Drag & drop para reordenar etapas dentro de un pipeline — reemplaza las flechas ↑↓ de antes.
+  const handleStageDragOver = (pipelineId, overIndex) => {
+    if (dragIndex.current === null || dragOverPipelineId !== pipelineId) return;
+    if (dragIndex.current === overIndex) return;
     setPipelines((prev) => prev.map((p) => {
       if (p.id !== pipelineId) return p;
-      return {
-        ...p,
-        pipeline_stages: p.pipeline_stages.map((s) => {
-          if (s.id === current.id) return { ...s, position: swapWith.position };
-          if (s.id === swapWith.id) return { ...s, position: current.position };
-          return s;
-        }),
-      };
+      const sorted = [...p.pipeline_stages].sort((a, b) => a.position - b.position);
+      const [moved] = sorted.splice(dragIndex.current, 1);
+      sorted.splice(overIndex, 0, moved);
+      dragIndex.current = overIndex;
+      return { ...p, pipeline_stages: sorted.map((s, i) => ({ ...s, position: i })) };
     }));
+  };
 
-    await Promise.all([
-      api.patch(`/api/pipelines/stages/${current.id}`, { position: swapWith.position }),
-      api.patch(`/api/pipelines/stages/${swapWith.id}`, { position: current.position }),
-    ]);
-    load();
+  const saveStageOrder = async (pipelineId) => {
+    const pipeline = pipelines.find((p) => p.id === pipelineId);
+    const sorted = [...pipeline.pipeline_stages].sort((a, b) => a.position - b.position);
+    setDragOverPipelineId(null);
+    dragIndex.current = null;
+    try {
+      await api.patch(`/api/pipelines/${pipelineId}/stages/reorder`, { ordered_ids: sorted.map((s) => s.id) });
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar el orden.');
+      load();
+    }
   };
 
   return (
@@ -249,7 +253,7 @@ function PipelinesAdmin() {
       </div>
       <p className="text-brand-muted text-sm mb-4">
         Crea un pipeline distinto por marca, país, o vertical — cada uno con sus propias etapas.
-        Click en un pipeline para editar sus etapas.
+        Click en un pipeline para editar sus etapas: arrastra para reordenar, o usa Editar/Borrar.
       </p>
 
       {error && (
@@ -273,109 +277,113 @@ function PipelinesAdmin() {
         </form>
       )}
 
-      <div className="space-y-1.5">
-        {pipelines.map((p) => (
-          <div key={p.id} className="bg-brand-bg rounded-lg px-3 py-2">
-            <div className="flex justify-between items-center text-sm">
-              {editingPipelineId === p.id ? (
-                <div className="flex gap-2 flex-1">
-                  <input
-                    value={editPipelineName}
-                    onChange={(e) => setEditPipelineName(e.target.value)}
-                    autoFocus
-                    className="flex-1 px-2 py-1 rounded bg-brand-panel border border-brand-border text-sm"
-                  />
-                  <button onClick={() => saveEditPipeline(p.id)} className="text-xs text-brand-ice hover:underline">
-                    Guardar
-                  </button>
-                  <button onClick={() => setEditingPipelineId(null)} className="text-xs text-brand-muted hover:underline">
-                    Cancelar
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <span
-                    className="cursor-pointer flex-1"
-                    onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
-                  >
-                    {p.name}
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-brand-muted text-xs font-tech">{p.pipeline_stages?.length || 0} etapas</span>
-                    <button onClick={() => startEditPipeline(p)} className="text-xs text-brand-muted hover:text-brand-ice">
-                      Editar
-                    </button>
-                    <button onClick={() => deletePipeline(p.id)} className="text-xs text-brand-muted hover:text-red-400">
-                      Borrar
-                    </button>
-                    <button
-                      onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
-                      className="text-brand-muted text-xs"
-                    >
-                      {expandedId === p.id ? '▾' : '▸'}
-                    </button>
+      <div className="space-y-2">
+        {pipelines.map((p, i) => {
+          const sortedStages = [...(p.pipeline_stages || [])].sort((a, b) => a.position - b.position);
+          const isExpanded = expandedId === p.id;
+          return (
+            <div
+              key={p.id}
+              className={`bg-brand-bg rounded-lg overflow-hidden border stagger-item transition ${isExpanded ? 'border-brand-violet/40' : 'border-transparent'}`}
+              style={{ animationDelay: `${Math.min(i, 15) * 25}ms` }}
+            >
+              <div className="flex justify-between items-center text-sm px-3 py-2.5">
+                {editingPipelineId === p.id ? (
+                  <div className="flex gap-2 flex-1">
+                    <input
+                      value={editPipelineName}
+                      onChange={(e) => setEditPipelineName(e.target.value)}
+                      autoFocus
+                      className="flex-1 px-2 py-1 rounded bg-brand-panel border border-brand-border text-sm"
+                    />
+                    <button onClick={() => saveEditPipeline(p.id)} className="text-xs text-brand-ice hover:underline">Guardar</button>
+                    <button onClick={() => setEditingPipelineId(null)} className="text-xs text-brand-muted hover:underline">Cancelar</button>
                   </div>
-                </>
-              )}
-            </div>
-            {expandedId === p.id && (
-              <div className="mt-2 pt-2 border-t border-brand-border/50">
-                <div className="space-y-1 mb-2">
-                  {(p.pipeline_stages || []).sort((a, b) => a.position - b.position).map((s) => (
-                    <div key={s.id} className="flex items-center justify-between bg-brand-panel rounded px-2 py-1.5">
-                      {editingStageId === s.id ? (
-                        <div className="flex gap-2 flex-1 items-center">
+                ) : (
+                  <>
+                    <button
+                      className="flex items-center gap-2 flex-1 text-left"
+                      onClick={() => setExpandedId(isExpanded ? null : p.id)}
+                    >
+                      <ChevronDownIcon size={14} className={`text-brand-muted transition-transform flex-shrink-0 ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
+                      <span className="font-medium">{p.name}</span>
+                    </button>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-brand-muted text-xs font-tech bg-brand-panel px-2 py-0.5 rounded-full">{sortedStages.length} etapas</span>
+                      <button onClick={() => startEditPipeline(p)} className="icon-btn text-brand-muted hover:text-brand-ice" title="Renombrar">
+                        <PencilIcon size={13} />
+                      </button>
+                      <button onClick={() => deletePipeline(p.id, p.name)} className="icon-btn text-brand-muted hover:text-red-400" title="Borrar pipeline">
+                        <Trash2Icon size={13} />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {isExpanded && (
+                <div className="px-3 pb-3 pt-1 border-t border-brand-border/50 dropdown-in">
+                  <div className="space-y-1 mb-2">
+                    {sortedStages.map((s, stageIdx) => (
+                      editingStageId === s.id ? (
+                        <div key={s.id} className="flex items-center gap-2 bg-brand-panel rounded-lg px-2.5 py-2">
                           <input
                             value={editStageName}
                             onChange={(e) => setEditStageName(e.target.value)}
                             autoFocus
+                            onKeyDown={(e) => e.key === 'Enter' && saveEditStage(s.id)}
                             className="flex-1 px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs"
                           />
-                          <button onClick={() => saveEditStage(s.id)} className="text-xs text-brand-ice hover:underline">
-                            Guardar
-                          </button>
-                          <button onClick={() => setEditingStageId(null)} className="text-xs text-brand-muted hover:underline">
-                            Cancelar
-                          </button>
+                          <button onClick={() => saveEditStage(s.id)} className="text-xs text-brand-ice hover:underline whitespace-nowrap">Guardar</button>
+                          <button onClick={() => setEditingStageId(null)} className="text-xs text-brand-muted hover:underline whitespace-nowrap">Cancelar</button>
                         </div>
                       ) : (
-                        <>
-                          <span className="text-xs text-brand-muted font-tech">{s.position}. {s.name}</span>
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => moveStage(p.id, s.id, 'up')} className="text-xs text-brand-muted hover:text-brand-ice disabled:opacity-20" disabled={s === (p.pipeline_stages || []).slice().sort((a, b) => a.position - b.position)[0]}>
-                              ↑
+                        <div
+                          key={s.id}
+                          draggable
+                          onDragStart={() => { dragIndex.current = stageIdx; setDragOverPipelineId(p.id); }}
+                          onDragOver={(e) => { e.preventDefault(); handleStageDragOver(p.id, stageIdx); }}
+                          onDragEnd={() => saveStageOrder(p.id)}
+                          className="flex items-center justify-between gap-2 bg-brand-panel rounded-lg px-2.5 py-2 cursor-grab active:cursor-grabbing hover:bg-brand-panel/70 transition group"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <GripVerticalIcon size={13} className="text-brand-muted flex-shrink-0" />
+                            <span className="text-xs text-brand-white truncate">{s.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
+                            <button onClick={() => startEditStage(s)} className="icon-btn p-1 text-brand-muted hover:text-brand-ice" title="Renombrar">
+                              <PencilIcon size={12} />
                             </button>
-                            <button onClick={() => moveStage(p.id, s.id, 'down')} className="text-xs text-brand-muted hover:text-brand-ice disabled:opacity-20" disabled={s === (p.pipeline_stages || []).slice().sort((a, b) => a.position - b.position).slice(-1)[0]}>
-                              ↓
-                            </button>
-                            <button onClick={() => startEditStage(s)} className="text-xs text-brand-muted hover:text-brand-ice">
-                              Editar
-                            </button>
-                            <button onClick={() => deleteStage(s.id)} className="text-xs text-brand-muted hover:text-red-400">
-                              Borrar
+                            <button onClick={() => deleteStage(s.id, s.name)} className="icon-btn p-1 text-brand-muted hover:text-red-400" title="Borrar">
+                              <Trash2Icon size={12} />
                             </button>
                           </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
+                        </div>
+                      )
+                    ))}
+                    {sortedStages.length === 0 && (
+                      <div className="text-brand-muted text-xs text-center py-3 border border-dashed border-brand-border rounded-lg">
+                        Sin etapas todavía.
+                      </div>
+                    )}
+                  </div>
+                  <form onSubmit={(e) => addStage(e, p.id)} className="flex gap-2">
+                    <input
+                      placeholder="Nombre de la nueva etapa"
+                      value={stageName}
+                      onChange={(e) => setStageName(e.target.value)}
+                      required
+                      className="flex-1 px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs"
+                    />
+                    <button className="px-3 py-1.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded text-xs font-medium whitespace-nowrap">
+                      Agregar etapa
+                    </button>
+                  </form>
                 </div>
-                <form onSubmit={(e) => addStage(e, p.id)} className="flex gap-2">
-                  <input
-                    placeholder="Nombre de la nueva etapa"
-                    value={stageName}
-                    onChange={(e) => setStageName(e.target.value)}
-                    required
-                    className="flex-1 px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs"
-                  />
-                  <button className="px-3 py-1.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded text-xs font-medium">
-                    Agregar etapa
-                  </button>
-                </form>
-              </div>
-            )}
-          </div>
-        ))}
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
