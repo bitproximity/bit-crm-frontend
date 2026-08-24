@@ -43,28 +43,30 @@ function TreeNode({ node, byParent, depth, activeId, onSelect, onAddChild, onDel
       <div
         onClick={() => onSelect(node.id)}
         className={`group flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer text-sm transition ${
-          activeId === node.id ? 'bg-brand-violet/15 text-brand-ice' : 'hover:bg-brand-bg text-brand-white'
+          activeId === node.id
+            ? 'bg-gradient-to-r from-brand-violet/20 to-brand-magenta/10 text-brand-ice border-l-2 border-brand-violet'
+            : 'hover:bg-brand-bg text-brand-white border-l-2 border-transparent'
         }`}
         style={{ paddingLeft: `${depth * 14 + 8}px` }}
       >
         <button
           onClick={(e) => { e.stopPropagation(); toggleExpand(node.id); }}
-          className={`w-4 h-4 flex items-center justify-center text-brand-muted flex-shrink-0 ${children.length === 0 ? 'invisible' : ''}`}
+          className={`w-4 h-4 flex items-center justify-center text-brand-muted flex-shrink-0 transition-transform ${children.length === 0 ? 'invisible' : ''} ${isExpanded ? 'rotate-0' : ''}`}
         >
           {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         </button>
-        <FileText size={13} className="text-brand-muted flex-shrink-0" />
+        <FileText size={13} className={`flex-shrink-0 ${activeId === node.id ? 'text-brand-ice' : 'text-brand-muted'}`} />
         <span className="truncate flex-1">{node.title || 'Sin título'}</span>
         <button
           onClick={(e) => { e.stopPropagation(); onAddChild(node.id); }}
-          className="opacity-0 group-hover:opacity-100 text-brand-muted hover:text-brand-ice flex-shrink-0"
+          className="icon-btn opacity-0 group-hover:opacity-100 text-brand-muted hover:text-brand-ice flex-shrink-0"
           title="Nueva subpágina"
         >
           <Plus size={12} />
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(node.id); }}
-          className="opacity-0 group-hover:opacity-100 text-brand-muted hover:text-red-400 flex-shrink-0"
+          className="icon-btn opacity-0 group-hover:opacity-100 text-brand-muted hover:text-red-400 flex-shrink-0"
           title="Eliminar"
         >
           <Trash2 size={12} />
@@ -234,11 +236,13 @@ export default function Documents() {
   return (
     <div className="-m-6 flex h-[calc(100vh-0px)]">
       {/* Sidebar árbol de páginas */}
-      <div className="w-72 border-r border-brand-border p-4 overflow-y-auto flex-shrink-0">
+      <div className="w-72 border-r border-brand-border p-4 overflow-y-auto flex-shrink-0 bg-brand-panel/40">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="font-headline text-lg font-semibold">Documentos</h1>
-          <button onClick={() => createDoc(null)} className="text-brand-muted hover:text-brand-ice" title="Nueva página">
-            <Plus size={16} />
+          <h1 className="font-headline text-lg font-semibold flex items-center gap-2">
+            <FileText size={17} className="text-brand-ice" /> Documentos
+          </h1>
+          <button onClick={() => createDoc(null)} className="icon-btn p-1.5 rounded-lg bg-brand-violet/15 text-brand-ice hover:bg-brand-violet/25 transition" title="Nueva página">
+            <Plus size={15} />
           </button>
         </div>
         <div className="space-y-0.5">
@@ -255,7 +259,10 @@ export default function Documents() {
             />
           ))}
           {roots.length === 0 && (
-            <div className="text-brand-muted text-xs py-4 text-center">Sin páginas todavía.</div>
+            <button onClick={() => createDoc(null)} className="w-full flex flex-col items-center gap-2 text-brand-muted text-xs py-8 text-center border border-dashed border-brand-border rounded-xl hover:border-brand-violet/50 hover:text-brand-ice transition">
+              <FileText size={20} />
+              Sin páginas todavía.<br />Crea la primera.
+            </button>
           )}
         </div>
       </div>
@@ -263,13 +270,19 @@ export default function Documents() {
       {/* Editor */}
       <div className="flex-1 overflow-y-auto">
         {!doc ? (
-          <div className="h-full flex items-center justify-center text-brand-muted text-sm">
-            Selecciona una página o crea una nueva.
+          <div className="h-full flex flex-col items-center justify-center text-brand-muted text-sm gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-violet/20 to-brand-magenta/10 flex items-center justify-center">
+              <FileText size={24} className="text-brand-ice" />
+            </div>
+            <div>Selecciona una página o crea una nueva.</div>
+            <button onClick={() => createDoc(null)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-white text-sm font-medium hover:opacity-90 transition">
+              <Plus size={14} /> Nueva página
+            </button>
           </div>
         ) : (
           <div>
             {/* Barra de formato */}
-            <div className="sticky top-0 z-10 flex items-center gap-1 px-6 py-2 border-b border-brand-border bg-brand-bg/95 backdrop-blur">
+            <div className="sticky top-0 z-10 flex items-center gap-1 px-6 py-2.5 border-b border-brand-border bg-brand-panel/95 backdrop-blur">
               <button onClick={() => exec('bold')} className={toolBtn} title="Negrita"><Bold size={15} /></button>
               <button onClick={() => exec('italic')} className={toolBtn} title="Cursiva"><Italic size={15} /></button>
               <button onClick={() => exec('underline')} className={toolBtn} title="Subrayado"><Underline size={15} /></button>
@@ -310,9 +323,13 @@ export default function Documents() {
                 {uploadingFile ? <span className="text-[9px]">...</span> : <Paperclip size={15} />}
                 <input type="file" className="hidden" disabled={uploadingFile} onChange={handleFileUpload} />
               </label>
-              <div className="ml-auto text-xs text-brand-muted font-tech">
-                {saveState === 'saving' && 'Guardando...'}
-                {saveState === 'saved' && 'Guardado'}
+              <div className="ml-auto flex items-center gap-1.5 text-xs text-brand-muted font-tech">
+                {saveState === 'saving' && (
+                  <><span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" /> Guardando...</>
+                )}
+                {saveState === 'saved' && (
+                  <><span className="w-1.5 h-1.5 rounded-full bg-green-400" /> Guardado</>
+                )}
               </div>
             </div>
 
@@ -337,16 +354,21 @@ export default function Documents() {
 
               {files.length > 0 && (
                 <div className="mt-8 pt-4 border-t border-brand-border">
-                  <div className="text-xs text-brand-muted uppercase mb-2">Archivos adjuntos</div>
+                  <div className="text-xs text-brand-muted uppercase mb-2 flex items-center gap-1.5">
+                    <Paperclip size={11} /> Archivos adjuntos
+                  </div>
                   <div className="space-y-1.5">
-                    {files.map((f) => (
-                      <div key={f.id} className="flex items-center justify-between bg-brand-panel border border-brand-border rounded-lg px-3 py-2 text-sm">
-                        <a href={f.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-brand-ice hover:underline truncate">
-                          <Paperclip size={13} className="flex-shrink-0" /> {f.file_name}
+                    {files.map((f, i) => (
+                      <div key={f.id} className="flex items-center justify-between bg-brand-bg border border-brand-border rounded-lg px-3 py-2.5 text-sm stagger-item hover:border-brand-violet/40 transition" style={{ animationDelay: `${Math.min(i, 10) * 25}ms` }}>
+                        <a href={f.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-brand-ice hover:underline truncate min-w-0">
+                          <span className="w-7 h-7 rounded-lg bg-brand-violet/15 flex items-center justify-center flex-shrink-0">
+                            <Paperclip size={12} className="text-brand-ice" />
+                          </span>
+                          <span className="truncate">{f.file_name}</span>
                         </a>
                         <div className="flex items-center gap-3 flex-shrink-0">
                           <span className="text-xs text-brand-muted font-tech">{(f.file_size / 1024).toFixed(0)} KB</span>
-                          <button onClick={() => removeFile(f.id)} className="text-brand-muted hover:text-red-400 text-xs"><X size={13} /></button>
+                          <button onClick={() => removeFile(f.id)} className="icon-btn text-brand-muted hover:text-red-400"><X size={13} /></button>
                         </div>
                       </div>
                     ))}

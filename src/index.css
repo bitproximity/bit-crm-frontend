@@ -191,6 +191,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Paneles laterales (ej. ficha de contacto) — entran deslizando desde la derecha */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 /* Dropdowns/menús contextuales: entrada rápida con origen arriba */
 @keyframes dropIn {
   from { opacity: 0; transform: translateY(-4px) scale(0.98); }

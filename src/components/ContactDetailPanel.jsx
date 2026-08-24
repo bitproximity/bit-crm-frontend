@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Mail, RefreshCw, Phone, Building2, X, Pencil, MapPin, Briefcase, Tag as TagIcon, Trash2 } from 'lucide-react';
+import { Mail, RefreshCw, Phone, X, Pencil, MapPin, Tag as TagIcon, Trash2 } from 'lucide-react';
 import EnrichButtons from './EnrichButtons';
 import { useConfirm } from './ConfirmModal';
 
@@ -138,11 +138,13 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
 
   const inputClass = 'w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet';
   const labelClass = 'block text-xs text-brand-muted mb-1';
+  const fullName = contact ? `${contact.first_name || ''} ${contact.last_name || ''}`.trim() : '';
+  const initials = fullName.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-brand-panel border-l border-brand-border h-full overflow-y-auto">
+      <div className="absolute inset-0 bg-black/60 overlay-in" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-brand-panel border-l border-brand-border h-full overflow-y-auto" style={{ animation: 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}>
         {loading || !contact ? (
           <div className="p-6 text-brand-muted">Cargando...</div>
         ) : editing ? (
@@ -213,79 +215,81 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
         ) : (
           <>
             <div className="sticky top-0 bg-brand-panel border-b border-brand-border p-5 flex items-start justify-between">
-              <div>
-                <h2 className="font-headline text-lg font-semibold">
-                  {contact.first_name} {contact.last_name}
-                </h2>
-                {contact.position && (
-                  <div className="flex items-center gap-1.5 text-sm text-brand-muted mt-1">
-                    <Briefcase size={13} /> {contact.position}
-                  </div>
-                )}
-                {contact.companies?.name && (
-                  <div className="flex items-center gap-1.5 text-sm text-brand-muted mt-1">
-                    <Building2 size={13} /> {contact.companies.name}
-                  </div>
-                )}
-                {contact.email && (
-                  <div className="flex items-center gap-1.5 text-sm text-brand-muted mt-1">
-                    <Mail size={13} /> {contact.email}
-                  </div>
-                )}
-                {contact.phone && (
-                  <div className="flex items-center gap-1.5 text-sm text-brand-muted mt-1">
-                    <Phone size={13} /> {contact.phone}
-                  </div>
-                )}
-                {contact.country && (
-                  <div className="flex items-center gap-1.5 text-sm text-brand-muted mt-1">
-                    <MapPin size={13} /> {contact.country}
-                  </div>
-                )}
-                <div className="mt-3">
-                  <EnrichButtons entityType="contacts" entityId={contact.id} onEnriched={(updated) => setContact((c) => ({ ...c, ...updated }))} />
+              <div className="flex gap-3 min-w-0">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center text-sm font-tech font-semibold flex-shrink-0">
+                  {initials || '?'}
                 </div>
-                <div className="mt-3 relative">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {contactTags.map((tag) => (
-                      <span key={tag.id} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-brand-violet/15 text-brand-ice">
-                        <TagIcon size={10} /> {tag.name}
-                      </span>
-                    ))}
-                    <button onClick={() => setTagPickerOpen((v) => !v)} className="text-xs text-brand-muted hover:text-brand-ice transition">
-                      + Añadir a lista
-                    </button>
-                  </div>
-                  {tagPickerOpen && (
-                    <div className="absolute z-20 mt-1.5 w-56 bg-brand-bg border border-brand-border rounded-lg shadow-xl dropdown-in overflow-hidden">
-                      <input
-                        autoFocus value={tagInput} onChange={(e) => setTagInput(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && tagInput.trim()) createAndAttachTag(tagInput.trim()); }}
-                        placeholder="Buscar o crear lista..."
-                        className="w-full px-3 py-2 text-sm bg-transparent border-b border-brand-border focus:outline-none"
-                      />
-                      <div className="max-h-40 overflow-y-auto">
-                        {allTags.filter((t) => t.name.toLowerCase().includes(tagInput.toLowerCase())).map((t) => (
-                          <button
-                            key={t.id}
-                            onClick={() => toggleTag(t)}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center justify-between"
-                          >
-                            {t.name}
-                            {contactTags.some((ct) => ct.id === t.id) && <span className="text-brand-violet">✓</span>}
-                          </button>
-                        ))}
-                        {tagInput.trim() && !allTags.some((t) => t.name.toLowerCase() === tagInput.trim().toLowerCase()) && (
-                          <button
-                            onClick={() => createAndAttachTag(tagInput.trim())}
-                            className="w-full text-left px-3 py-2 text-sm text-brand-ice hover:bg-brand-panel transition border-t border-brand-border"
-                          >
-                            + Crear lista "{tagInput.trim()}"
-                          </button>
-                        )}
-                      </div>
+                <div className="min-w-0">
+                  <h2 className="font-headline text-lg font-semibold truncate">{fullName || 'Sin nombre'}</h2>
+                  {(contact.position || contact.companies?.name) && (
+                    <div className="text-sm text-brand-muted truncate">
+                      {contact.position}{contact.position && contact.companies?.name && ' · '}{contact.companies?.name}
                     </div>
                   )}
+
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5">
+                    {contact.email && (
+                      <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-ice transition">
+                        <Mail size={12} /> {contact.email}
+                      </a>
+                    )}
+                    {contact.phone && (
+                      <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-ice transition">
+                        <Phone size={12} /> {contact.phone}
+                      </a>
+                    )}
+                    {contact.country && (
+                      <span className="flex items-center gap-1.5 text-xs text-brand-muted">
+                        <MapPin size={12} /> {contact.country}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-3">
+                    <EnrichButtons entityType="contacts" entityId={contact.id} onEnriched={(updated) => setContact((c) => ({ ...c, ...updated }))} />
+                  </div>
+                  <div className="mt-3 relative">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {contactTags.map((tag) => (
+                        <span key={tag.id} className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-brand-violet/15 text-brand-ice">
+                          <TagIcon size={10} /> {tag.name}
+                        </span>
+                      ))}
+                      <button onClick={() => setTagPickerOpen((v) => !v)} className="text-xs text-brand-muted hover:text-brand-ice transition">
+                        + Añadir a lista
+                      </button>
+                    </div>
+                    {tagPickerOpen && (
+                      <div className="absolute z-20 mt-1.5 w-56 bg-brand-bg border border-brand-border rounded-lg shadow-xl dropdown-in overflow-hidden">
+                        <input
+                          autoFocus value={tagInput} onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' && tagInput.trim()) createAndAttachTag(tagInput.trim()); }}
+                          placeholder="Buscar o crear lista..."
+                          className="w-full px-3 py-2 text-sm bg-transparent border-b border-brand-border focus:outline-none"
+                        />
+                        <div className="max-h-40 overflow-y-auto">
+                          {allTags.filter((t) => t.name.toLowerCase().includes(tagInput.toLowerCase())).map((t) => (
+                            <button
+                              key={t.id}
+                              onClick={() => toggleTag(t)}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center justify-between"
+                            >
+                              {t.name}
+                              {contactTags.some((ct) => ct.id === t.id) && <span className="text-brand-violet">✓</span>}
+                            </button>
+                          ))}
+                          {tagInput.trim() && !allTags.some((t) => t.name.toLowerCase() === tagInput.trim().toLowerCase()) && (
+                            <button
+                              onClick={() => createAndAttachTag(tagInput.trim())}
+                              className="w-full text-left px-3 py-2 text-sm text-brand-ice hover:bg-brand-panel transition border-t border-brand-border"
+                            >
+                              + Crear lista "{tagInput.trim()}"
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
@@ -303,7 +307,9 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
 
             <div className="p-5">
               <div className="flex items-center justify-between mb-3">
-                <div className="font-manrope font-medium text-sm">Correos (Gmail)</div>
+                <div className="flex items-center gap-2 font-manrope font-medium text-sm">
+                  <Mail size={14} className="text-brand-muted" /> Correos (Gmail)
+                </div>
                 {gmailStatus?.connected && contact.email && (
                   <button
                     onClick={syncEmails}
@@ -329,10 +335,10 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
               )}
 
               <div className="space-y-2 mt-2">
-                {emails.map((e) => (
-                  <div key={e.id} className="bg-brand-bg border border-brand-border rounded-lg p-3">
-                    <div className="text-sm font-manrope mb-0.5">{e.subject || '(sin asunto)'}</div>
-                    <div className="text-xs text-brand-muted mb-1">{e.snippet}</div>
+                {emails.map((e, i) => (
+                  <div key={e.id} className="bg-brand-bg border border-brand-border rounded-lg p-3 stagger-item hover:border-brand-violet/40 transition" style={{ animationDelay: `${Math.min(i, 15) * 25}ms` }}>
+                    <div className="text-sm font-manrope mb-0.5 text-brand-white">{e.subject || '(sin asunto)'}</div>
+                    <div className="text-xs text-brand-muted mb-1.5 line-clamp-2">{e.snippet}</div>
                     <div className="text-xs text-brand-muted font-tech">
                       {e.sent_at ? new Date(e.sent_at).toLocaleString() : ''}
                     </div>
