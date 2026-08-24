@@ -274,7 +274,12 @@ export default function Contacts() {
         </div>
       )}
 
-      <ContactDetailPanel contactId={selectedContactId} onClose={() => setSelectedContactId(null)} onDeleted={() => { setSelectedContactId(null); load(); }} />
+      <ContactDetailPanel
+        contactId={selectedContactId}
+        onClose={() => setSelectedContactId(null)}
+        onDeleted={() => { setSelectedContactId(null); load(); }}
+        onSaved={load}
+      />
     </div>
   );
 }

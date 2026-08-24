@@ -4,7 +4,7 @@ import { Mail, RefreshCw, Phone, X, Pencil, MapPin, Tag as TagIcon, Trash2 } fro
 import EnrichButtons from './EnrichButtons';
 import { useConfirm } from './ConfirmModal';
 
-export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
+export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSaved }) {
   const confirm = useConfirm();
   const [contact, setContact] = useState(null);
   const [team, setTeam] = useState([]);
@@ -82,6 +82,7 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
       setContact({ ...contact, ...updated });
       setEditing(false);
       load();
+      onSaved?.();
     } catch (err) {
       setSaveError(err.message || 'No se pudo guardar.');
     }
@@ -142,6 +143,7 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted }) {
     setOwnerEditing(false);
     const updated = await api.patch(`/api/contacts/${contactId}`, { owner_id: ownerId });
     setContact((c) => ({ ...c, ...updated, team_members: team.find((m) => m.id === ownerId) || null }));
+    onSaved?.();
   };
 
   if (!contactId) return null;
