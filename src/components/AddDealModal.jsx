@@ -144,6 +144,14 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
     setTagInput('');
   };
 
+  // El Valor sigue el total de los productos añadidos (mismo criterio que el resto del
+  // CRM) — se recalcula solo al agregar/quitar un producto, sin esperar a Guardar.
+  useEffect(() => {
+    if (lineItems.length === 0) return;
+    const total = lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0), 0);
+    setValue(String(total));
+  }, [lineItems]);
+
   const addLineItem = () => {
     if (productForm.product_id) {
       const p = products.find((pr) => pr.id === productForm.product_id);
