@@ -3,7 +3,7 @@ import { api } from '../lib/api';
 import DateTimePicker from '../components/DateTimePicker';
 import { csvToActivities } from '../lib/csv';
 import { useConfirm } from '../components/ConfirmModal';
-import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check, Upload, X, Trash2 } from 'lucide-react';
+import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check, Upload, X, Trash2, LayoutGrid, List } from 'lucide-react';
 
 const TYPE_ICONS = {
   llamada: Phone, email: Mail, reunion: Users, whatsapp: MessageCircle, nota: StickyNote, tarea: CheckSquare,
@@ -11,11 +11,23 @@ const TYPE_ICONS = {
 const TYPE_LABELS = {
   llamada: 'Llamada', email: 'Email', reunion: 'Reunión', whatsapp: 'WhatsApp', nota: 'Nota', tarea: 'Tarea',
 };
+const COLUMNS = [
+  { key: 'pendiente', label: 'Pendientes', color: '#6B7280', dot: 'bg-gray-400' },
+  { key: 'vencida', label: 'Vencidas', color: '#EF4444', dot: 'bg-red-500' },
+  { key: 'completada', label: 'Completadas', color: '#22C55E', dot: 'bg-green-500' },
+];
+
+function activityStatus(a) {
+  if (a.done) return 'completada';
+  if (a.due_date && new Date(a.due_date) < new Date()) return 'vencida';
+  return 'pendiente';
+}
 
 export default function Activities() {
   const confirm = useConfirm();
+  const [view, setView] = useState('tablero'); // tablero | lista
   const [activities, setActivities] = useState([]);
-  const [tab, setTab] = useState('pendiente'); // pendiente | vencida | completada
+  const [tab, setTab] = useState('pendiente'); // solo para la vista Lista
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', type: 'llamada', due_date: '', summary: '' });
   const [importResult, setImportResult] = useState(null);
@@ -27,6 +39,7 @@ export default function Activities() {
   const [dealQuery, setDealQuery] = useState('');
   const [dealResults, setDealResults] = useState([]);
   const [selectedDeal, setSelectedDeal] = useState(null);
+  const dragActivityId = useRef(null);
 
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
@@ -49,11 +62,14 @@ export default function Activities() {
     load();
   };
 
-  const load = () => api.get(`/api/activities?status=${tab}`).then(setActivities).catch(console.error);
+  const load = () => {
+    const query = view === 'tablero' ? '' : `?status=${tab}`;
+    return api.get(`/api/activities${query}`).then(setActivities).catch(console.error);
+  };
 
   useEffect(() => {
     load();
-  }, [tab]);
+  }, [tab, view]);
 
   const create = async (e) => {
     e.preventDefault();
@@ -73,6 +89,16 @@ export default function Activities() {
     await api.patch(`/api/activities/${id}`, { done: true });
     load();
   };
+
+  // Arrastrar una tarjeta a otra columna del tablero — a Completadas marca done=true;
+  // a Pendientes/Vencidas marca done=false (la fecha decide sola en cuál de esas dos cae).
+  const onColumnDrop = async (columnKey, activityId) => {
+    if (!activityId) return;
+    const done = columnKey === 'completada';
+    setActivities((prev) => prev.map((a) => (a.id === activityId ? { ...a, done } : a)));
+    await api.patch(`/api/activities/${activityId}`, { done });
+  };
+
 
   const openEdit = (a) => {
     setEditingActivity(a);
@@ -161,20 +187,34 @@ export default function Activities() {
         </div>
       )}
 
-      <div className="flex bg-brand-panel border border-brand-border rounded-xl p-1 w-fit mb-6">
-        {[
-          { key: 'pendiente', label: 'Pendientes' },
-          { key: 'vencida', label: 'Vencidas' },
-          { key: 'completada', label: 'Completadas' },
-        ].map((t) => (
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex bg-brand-panel border border-brand-border rounded-xl p-1 w-fit">
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-tech transition ${tab === t.key ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
+            onClick={() => setView('tablero')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-tech transition ${view === 'tablero' ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
           >
-            {t.label}
+            <LayoutGrid size={13} /> Tablero
           </button>
-        ))}
+          <button
+            onClick={() => setView('lista')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-tech transition ${view === 'lista' ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
+          >
+            <List size={13} /> Lista
+          </button>
+        </div>
+        {view === 'lista' && (
+          <div className="flex bg-brand-panel border border-brand-border rounded-xl p-1 w-fit">
+            {COLUMNS.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`px-4 py-1.5 rounded-lg text-sm font-tech transition ${tab === t.key ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {showForm && (
@@ -200,6 +240,73 @@ export default function Activities() {
         </form>
       )}
 
+      {view === 'tablero' ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {COLUMNS.map((col, colIndex) => {
+            const colActivities = activities.filter((a) => activityStatus(a) === col.key);
+            return (
+              <div
+                key={col.key}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => onColumnDrop(col.key, e.dataTransfer.getData('activityId'))}
+                className="bg-brand-panel/60 border border-brand-border rounded-xl overflow-hidden flex flex-col"
+              >
+                <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, ${col.color}, ${col.color}55)` }} />
+                <div className="p-3 pb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-sm font-manrope font-semibold text-brand-white">
+                    <span className={`w-2 h-2 rounded-full ${col.dot} flex-shrink-0`} />
+                    {col.label}
+                  </span>
+                  <span className="text-brand-muted font-tech text-xs bg-brand-bg px-2 py-0.5 rounded-full min-w-[22px] text-center">
+                    {colActivities.length}
+                  </span>
+                </div>
+                <div className="px-3 pb-3 flex-1 space-y-2">
+                  {colActivities.map((a, i) => {
+                    const Icon = TYPE_ICONS[a.type] || StickyNote;
+                    return (
+                      <div
+                        key={a.id}
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData('activityId', a.id)}
+                        onClick={() => openEdit(a)}
+                        className="card-elevated rounded-lg p-3 cursor-pointer stagger-item"
+                        style={{ animationDelay: `${Math.min(i, 15) * 25 + colIndex * 40}ms` }}
+                      >
+                        <div className="flex items-start gap-1.5 mb-2">
+                          <span className="flex items-center justify-center w-5 h-5 rounded bg-brand-violet/10 flex-shrink-0 mt-0.5">
+                            <Icon size={11} className="text-brand-ice" />
+                          </span>
+                          <span className={`text-sm leading-snug ${a.done ? 'line-through text-brand-muted' : 'text-brand-white'}`}>
+                            {a.title || a.summary}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          {a.entity_label ? (
+                            <span className="text-[11px] text-brand-muted truncate bg-brand-bg/60 px-1.5 py-0.5 rounded-md">
+                              {a.entity_label}
+                            </span>
+                          ) : <span />}
+                          {a.due_date && (
+                            <span className={`text-[11px] font-tech flex-shrink-0 ${col.key === 'vencida' ? 'text-red-400' : 'text-brand-muted'}`}>
+                              {new Date(a.due_date).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {colActivities.length === 0 && (
+                    <div className="text-center py-6 text-brand-muted text-xs border border-dashed border-brand-border rounded-lg">
+                      Sin actividades
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
       <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-brand-panel text-brand-muted text-left">
@@ -257,6 +364,7 @@ export default function Activities() {
           </tbody>
         </table>
       </div>
+      )}
 
       {editingActivity && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
