@@ -4,6 +4,14 @@ import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
 import ContactDetailPanel from '../components/ContactDetailPanel';
 
+const STATUS_COLORS = {
+  nuevo: 'bg-blue-500/20 text-blue-300',
+  contactado: 'bg-yellow-500/20 text-yellow-300',
+  calificado: 'bg-purple-500/20 text-purple-300',
+  descartado: 'bg-neutral-600/30 text-brand-muted',
+  cliente: 'bg-green-500/20 text-green-300',
+};
+
 const LIST_COLORS = ['#8500FF', '#E000FF', '#D9F6FF', '#22C55E', '#F59E0B', '#EF4444'];
 const QUICK_SUGGESTIONS = ['Apollo', 'Lusha', 'Prioritarios', 'Fríos'];
 
@@ -100,19 +108,43 @@ export default function Lists() {
                 <th className="px-4 py-3 font-manrope font-normal">Empresa</th>
                 <th className="px-4 py-3 font-manrope font-normal">Email</th>
                 <th className="px-4 py-3 font-manrope font-normal">Cargo</th>
+                <th className="px-4 py-3 font-manrope font-normal">Estado</th>
+                <th className="px-4 py-3 font-manrope font-normal">Dueño</th>
               </tr>
             </thead>
             <tbody>
-              {(contacts || []).map((c) => (
-                <tr key={c.id} onClick={() => setSelectedContactId(c.id)} className="border-t border-brand-border row-hover cursor-pointer">
-                  <td className="px-4 py-3">{c.first_name} {c.last_name}</td>
-                  <td className="px-4 py-3 text-brand-muted">{c.companies?.name || '—'}</td>
-                  <td className="px-4 py-3 text-brand-muted">{c.email || '—'}</td>
-                  <td className="px-4 py-3 text-brand-muted">{c.position || '—'}</td>
-                </tr>
-              ))}
+              {(contacts || []).map((c, i) => {
+                const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim();
+                const initials = fullName.split(' ').filter(Boolean).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+                return (
+                  <tr
+                    key={c.id}
+                    onClick={() => setSelectedContactId(c.id)}
+                    className="border-t border-brand-border row-hover cursor-pointer stagger-item"
+                    style={{ animationDelay: `${Math.min(i, 25) * 15}ms` }}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center text-[10px] font-tech font-semibold flex-shrink-0">
+                          {initials || '?'}
+                        </div>
+                        {fullName || 'Sin nombre'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-brand-muted">{c.companies?.name || '—'}</td>
+                    <td className="px-4 py-3 text-brand-muted">{c.email || '—'}</td>
+                    <td className="px-4 py-3 text-brand-muted">{c.position || '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${STATUS_COLORS[c.status] || 'bg-neutral-600/30 text-brand-muted'}`}>
+                        {c.status || 'nuevo'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-brand-muted">{c.team_members?.full_name || '—'}</td>
+                  </tr>
+                );
+              })}
               {contacts && contacts.length === 0 && (
-                <tr><td colSpan={4} className="px-4 py-10 text-center text-brand-muted text-sm">Sin contactos en esta lista todavía.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-brand-muted text-sm">Sin contactos en esta lista todavía.</td></tr>
               )}
             </tbody>
           </table>
