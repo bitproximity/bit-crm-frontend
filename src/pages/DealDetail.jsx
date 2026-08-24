@@ -118,18 +118,32 @@ export default function DealDetail() {
   const [contactResults, setContactResults] = useState([]);
   const [selectedContactPick, setSelectedContactPick] = useState(null);
 
-  const load = async () => {
-    setLoading(true);
-    const [dealData, items, acts, values, defs, prods, pls, tags, teamList] = await Promise.all([
-      api.get(`/api/deals/${id}`),
-      api.get(`/api/deals/${id}/line-items`),
-      api.get(`/api/activities/for/deal/${id}`),
-      api.get(`/api/custom-fields/values/${id}`),
+  // Datos "globales" que casi nunca cambian dentro de una sesión — se piden UNA sola vez
+  // por trato abierto, no en cada guardado. Antes se repetían las 9 llamadas completas
+  // cada vez que guardabas cualquier cosa (título, valor, dueño, etiqueta, actividad...),
+  // lo cual hacía sentir todo el CRM más lento de lo necesario.
+  const loadStatic = async () => {
+    const [defs, prods, pls, tags, teamList] = await Promise.all([
       api.get('/api/custom-fields?entity_type=deal'),
       api.get('/api/products?active=true'),
       api.get('/api/pipelines'),
       api.get('/api/tags'),
       api.get('/api/team').catch(() => []),
+    ]);
+    setProducts(prods);
+    setPipelines(pls);
+    setAllTags(tags);
+    setTeam(teamList);
+    return defs;
+  };
+
+  // Solo lo propio de ESTE trato — esto sí hay que refrescar después de cada guardado.
+  const loadDeal = async (defs) => {
+    const [dealData, items, acts, values] = await Promise.all([
+      api.get(`/api/deals/${id}`),
+      api.get(`/api/deals/${id}/line-items`),
+      api.get(`/api/activities/for/deal/${id}`),
+      api.get(`/api/custom-fields/values/${id}`),
     ]);
     setDeal(dealData);
     setLineItems(items);
@@ -138,11 +152,14 @@ export default function DealDetail() {
       const existing = values.find((v) => v.field_id === def.id);
       return { field_id: def.id, custom_field_definitions: def, value: existing?.value || '' };
     }));
-    setProducts(prods);
-    setPipelines(pls);
-    setAllTags(tags);
-    setTeam(teamList);
     setProbValue(dealData.probability || 0);
+    return dealData;
+  };
+
+  const load = async () => {
+    setLoading(true);
+    const defs = await loadStatic();
+    const dealData = await loadDeal(defs);
     setLoading(false);
 
     api.get('/api/gmail/status').then(setGmailStatus).catch(() => setGmailStatus({ connected: false }));
@@ -151,6 +168,10 @@ export default function DealDetail() {
       api.get(`/api/gmail/messages/deal/${id}`).then(setGmailMessages).catch(() => setGmailMessages([]));
     }
   };
+
+  // Refresco liviano tras guardar algo en el trato — reutiliza las definiciones de campos
+  // personalizados ya cargadas, sin volver a pedir pipelines/productos/etiquetas/equipo.
+  const refreshDeal = () => loadDeal(customFields.map((cf) => cf.custom_field_definitions));
 
   useEffect(() => { load().catch((err) => { setLoadError(err.message || 'No se pudo cargar el trato.'); setLoading(false); }); }, [id]);
 
@@ -203,10 +224,10 @@ export default function DealDetail() {
   const changeStage = async (stageId) => {
     if (deal.status !== 'abierto' || stageId === deal.stage_id) return;
     await api.patch(`/api/deals/${id}/stage`, { stage_id: stageId });
-    load();
+    refreshDeal();
   };
 
-  const markWon = async () => { await api.post(`/api/deals/${id}/win`, {}); load(); };
+  const markWon = async () => { await api.post(`/api/deals/${id}/win`, {}); refreshDeal(); };
 
   const openPipelinePopover = () => {
     setPipelineSel(deal.pipeline_id);
@@ -225,12 +246,12 @@ export default function DealDetail() {
     }
     setSavingPipeline(false);
     setPipelinePopoverOpen(false);
-    load();
+    refreshDeal();
   };
   const markLost = async () => {
     const reason = window.prompt('Motivo de la pérdida (opcional):') || '';
     await api.post(`/api/deals/${id}/lose`, { reason });
-    load();
+    refreshDeal();
   };
 
   const reopenDeal = async () => {
@@ -242,7 +263,7 @@ export default function DealDetail() {
     });
     if (!ok) return;
     await api.post(`/api/deals/${id}/reopen`, {});
-    load();
+    refreshDeal();
   };
 
   const deleteDeal = async () => {
@@ -261,7 +282,7 @@ export default function DealDetail() {
     if (!noteText.trim()) return;
     await api.post('/api/activities', { entity_type: 'deal', entity_id: id, type: 'nota', summary: noteText, title: noteText.slice(0, 60) });
     setNoteText('');
-    load();
+    refreshDeal();
   };
 
   const addActivity = async (e) => {
@@ -280,7 +301,7 @@ export default function DealDetail() {
     } else {
       setActivityCalendarWarning('');
     }
-    load();
+    refreshDeal();
   };
 
   const startEditActivity = (a) => {
@@ -298,7 +319,7 @@ export default function DealDetail() {
     });
     setEditingActivityId(null);
     setActivityCalendarWarning(editActivityForm.due_date && updated.calendar_sync && !updated.calendar_sync.ok ? updated.calendar_sync.reason : '');
-    load();
+    refreshDeal();
   };
 
   const deleteActivity = async (a) => {
@@ -309,7 +330,7 @@ export default function DealDetail() {
     });
     if (!ok) return;
     await api.delete(`/api/activities/${a.id}`);
-    load();
+    refreshDeal();
   };
 
   const syncGmail = async () => {
@@ -328,31 +349,31 @@ export default function DealDetail() {
   const saveProbability = async () => {
     await api.patch(`/api/deals/${id}`, { probability: Number(probValue) || 0 });
     setProbEditing(false);
-    load();
+    refreshDeal();
   };
 
   const saveValue = async () => {
     await api.patch(`/api/deals/${id}`, { value: Number(valueEdit) || 0, currency: currencyEdit });
     setValueEditing(false);
-    load();
+    refreshDeal();
   };
 
   const saveTitle = async () => {
     setTitleEditing(false);
     if (!titleEdit.trim() || titleEdit.trim() === deal.title) return;
     await api.patch(`/api/deals/${id}`, { title: titleEdit.trim() });
-    load();
+    refreshDeal();
   };
 
   const saveOwner = async (ownerId) => {
     setOwnerEditing(false);
     await api.patch(`/api/deals/${id}`, { owner_id: ownerId });
-    load();
+    refreshDeal();
   };
 
   const saveExpectedDate = async (val) => {
     await api.patch(`/api/deals/${id}`, { expected_close_date: val || null });
-    load();
+    refreshDeal();
   };
 
   const saveCompanyEdit = async (picked) => {
@@ -366,7 +387,7 @@ export default function DealDetail() {
       await api.patch(`/api/deals/${id}`, { company_id: companyId });
       setCompanyEditing(false);
       setSelectedCompanyPick(null);
-      load();
+      refreshDeal();
     } catch (err) {
       alert(err.message);
     }
@@ -384,7 +405,7 @@ export default function DealDetail() {
       await api.patch(`/api/deals/${id}`, { contact_id: contactId });
       setContactEditing(false);
       setSelectedContactPick(null);
-      load();
+      refreshDeal();
     } catch (err) {
       alert(err.message);
     }
@@ -394,7 +415,7 @@ export default function DealDetail() {
     const has = (deal.tags || []).some((t) => t.id === tag.id);
     if (has) await api.delete(`/api/tags/${tag.id}/detach`, { entity_type: 'deal', entity_id: id });
     else await api.post(`/api/tags/${tag.id}/attach`, { entity_type: 'deal', entity_id: id });
-    load();
+    refreshDeal();
   };
 
   const createTagFromInput = async () => {
@@ -405,7 +426,7 @@ export default function DealDetail() {
     if (!existing) setAllTags((p) => [...p, tag]);
     await api.post(`/api/tags/${tag.id}/attach`, { entity_type: 'deal', entity_id: id });
     setTagInput('');
-    load();
+    refreshDeal();
   };
 
   const createTask = async (e) => {
@@ -414,12 +435,12 @@ export default function DealDetail() {
     await api.post('/api/tasks', { deal_id: id, title: taskForm.title, due_date: taskForm.due_date || null, status: 'pendiente' });
     setTaskForm({ title: '', due_date: '' });
     setShowTaskForm(false);
-    load();
+    refreshDeal();
   };
 
   const toggleTaskDone = async (taskId, done) => {
     await api.patch(`/api/tasks/${taskId}`, { status: done ? 'completada' : 'pendiente' });
-    load();
+    refreshDeal();
   };
 
   const createInvoiceForDeal = async (e) => {
@@ -862,7 +883,7 @@ export default function DealDetail() {
                 // Actualiza el valor en pantalla al instante, sin esperar la recarga completa
                 // del trato (9 llamadas en paralelo) que hace load() — se siente inmediato.
                 setDeal((d) => ({ ...d, value: total, currency }));
-                load();
+                refreshDeal();
               }}
             />
           </div>
@@ -879,7 +900,7 @@ export default function DealDetail() {
                       onBlur={async (e) => {
                         if (e.target.value === (f.value || '')) return;
                         await api.put(`/api/custom-fields/values/${id}`, { field_id: f.field_id, value: e.target.value });
-                        load();
+                        refreshDeal();
                       }}
                       className="flex-1 text-right bg-transparent border-b border-transparent hover:border-brand-border focus:border-brand-violet focus:outline-none px-1 py-0.5 text-sm"
                     />
@@ -1230,7 +1251,7 @@ export default function DealDetail() {
         <ContactDetailPanel
           contactId={viewingContactId}
           onClose={() => setViewingContactId(null)}
-          onDeleted={() => { setViewingContactId(null); load(); }}
+          onDeleted={() => { setViewingContactId(null); refreshDeal(); }}
           onSaved={load}
         />
       )}
