@@ -1019,7 +1019,7 @@ export default function DealDetail() {
             <div className="mb-6">
               {!gmailStatus?.connected ? (
                 <div className="text-sm text-brand-muted">
-                  No has conectado Gmail. <Link to="/settings" className="text-brand-ice hover:underline">Conéctalo en Configuración</Link> para sincronizar correos aquí.
+                  No has conectado Gmail. <Link to="/profile" className="text-brand-ice hover:underline">Conéctalo en Mi Perfil</Link> para sincronizar correos aquí.
                 </div>
               ) : !deal.contacts?.email ? (
                 <div className="text-sm text-brand-muted">Este trato no tiene un contacto con correo electrónico asociado.</div>

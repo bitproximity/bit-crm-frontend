@@ -160,7 +160,7 @@ export default function Contacts() {
 
       {!gmailConnected && (
         <div className="mb-4 px-4 py-3 rounded-lg text-sm bg-brand-panel border border-brand-border text-brand-muted">
-          Conecta tu Gmail en <a href="/settings" className="text-brand-ice hover:underline">Configuración</a> para poder importar tus contactos de Google directamente.
+          Conecta tu Gmail en <a href="/profile" className="text-brand-ice hover:underline">Mi Perfil</a> para poder importar tus contactos de Google directamente.
         </div>
       )}
 
