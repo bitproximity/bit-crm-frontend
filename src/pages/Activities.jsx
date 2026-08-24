@@ -22,7 +22,7 @@ export default function Activities() {
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef(null);
   const [editingActivity, setEditingActivity] = useState(null);
-  const [editForm, setEditForm] = useState({ title: '', type: 'llamada', due_date: '' });
+  const [editForm, setEditForm] = useState({ title: '', type: 'llamada', due_date: '', done: false });
   const [saving, setSaving] = useState(false);
   const [dealQuery, setDealQuery] = useState('');
   const [dealResults, setDealResults] = useState([]);
@@ -76,7 +76,7 @@ export default function Activities() {
 
   const openEdit = (a) => {
     setEditingActivity(a);
-    setEditForm({ title: a.title || a.summary || '', type: a.type, due_date: a.due_date || '' });
+    setEditForm({ title: a.title || a.summary || '', type: a.type, due_date: a.due_date || '', done: !!a.done });
     setSelectedDeal(a.entity_type === 'deal' ? { id: a.entity_id, title: a.entity_label } : null);
     setDealQuery(a.entity_type === 'deal' ? (a.entity_label || '') : '');
     setDealResults([]);
@@ -100,6 +100,7 @@ export default function Activities() {
         summary: editForm.title,
         type: editForm.type,
         due_date: editForm.due_date || null,
+        done: editForm.done,
       };
       if (selectedDeal && selectedDeal.id !== editingActivity.entity_id) {
         payload.entity_type = 'deal';
@@ -283,6 +284,18 @@ export default function Activities() {
                 <label className="block text-xs text-brand-muted mb-1.5">Fecha</label>
                 <DateTimePicker value={editForm.due_date} onChange={(v) => setEditForm({ ...editForm, due_date: v })} className="w-full" />
               </div>
+              <label className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border cursor-pointer">
+                <span className="text-sm">
+                  {editForm.done ? 'Completada' : (editForm.due_date && new Date(editForm.due_date) < new Date() ? 'Vencida' : 'Pendiente')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setEditForm({ ...editForm, done: !editForm.done })}
+                  className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${editForm.done ? 'bg-green-500' : 'bg-brand-border'}`}
+                >
+                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editForm.done ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+                </button>
+              </label>
               <div className="relative">
                 <label className="block text-xs text-brand-muted mb-1.5">Relacionado con (trato)</label>
                 <input
