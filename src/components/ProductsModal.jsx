@@ -147,7 +147,7 @@ export default function ProductsModal({ open, onClose, dealId, dealTitle, dealCu
         return; // deja el modal abierto para que puedas reintentar el/los ítems fallidos
       }
 
-      onSaved?.();
+      onSaved?.(total, currency);
       onClose();
     } catch (err) {
       setError(err.message);

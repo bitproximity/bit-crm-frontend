@@ -858,7 +858,12 @@ export default function DealDetail() {
               dealId={id}
               dealTitle={deal.title}
               dealCurrency={deal.currency}
-              onSaved={load}
+              onSaved={(total, currency) => {
+                // Actualiza el valor en pantalla al instante, sin esperar la recarga completa
+                // del trato (9 llamadas en paralelo) que hace load() — se siente inmediato.
+                setDeal((d) => ({ ...d, value: total, currency }));
+                load();
+              }}
             />
           </div>
 
