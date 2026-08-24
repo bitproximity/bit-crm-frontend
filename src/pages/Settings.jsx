@@ -139,6 +139,7 @@ function PipelinesAdmin() {
   const [cloneTargetIds, setCloneTargetIds] = useState([]);
   const [cloning, setCloning] = useState(false);
   const [cloneResult, setCloneResult] = useState(null);
+  const [cloneReplace, setCloneReplace] = useState(true);
 
   const load = () => api.get('/api/pipelines').then(setPipelines).catch(console.error);
 
@@ -257,7 +258,7 @@ function PipelinesAdmin() {
     setCloning(true);
     setCloneResult(null);
     try {
-      const result = await api.post('/api/pipelines/clone-stages', { source_pipeline_id: cloneSourceId, target_pipeline_ids: cloneTargetIds });
+      const result = await api.post('/api/pipelines/clone-stages', { source_pipeline_id: cloneSourceId, target_pipeline_ids: cloneTargetIds, replace: cloneReplace });
       setCloneResult(result.summary);
       load();
     } catch (err) {
@@ -423,10 +424,17 @@ function PipelinesAdmin() {
               <button onClick={() => setShowCloneModal(false)} className="text-brand-muted hover:text-brand-white"><XIcon size={18} /></button>
             </div>
             <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-              <p className="text-xs text-brand-muted">
-                Solo agrega las etapas del pipeline de origen que le falten al destino, por nombre —
-                nunca borra ni renombra una etapa que ya exista, aunque tenga tratos.
-              </p>
+              <label className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border cursor-pointer">
+                <input type="checkbox" checked={cloneReplace} onChange={(e) => setCloneReplace(e.target.checked)} className="accent-brand-violet mt-0.5" />
+                <div>
+                  <div className="text-sm text-brand-white">Reemplazar (recomendado)</div>
+                  <div className="text-xs text-brand-muted mt-0.5">
+                    {cloneReplace
+                      ? 'Borra las etapas del destino que NO estén en el origen. Si tenían tratos, se mueven automáticamente a la primera etapa del set nuevo — no se pierden.'
+                      : 'Solo agrega las etapas que falten, deja intactas todas las demás (puede quedar con etapas repetidas de más).'}
+                  </div>
+                </div>
+              </label>
               <div>
                 <label className="block text-xs text-brand-muted mb-1.5">Pipeline de origen (de dónde copiar)</label>
                 <select value={cloneSourceId} onChange={(e) => setCloneSourceId(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm">
@@ -457,8 +465,16 @@ function PipelinesAdmin() {
                   {cloneResult.map((r) => {
                     const p = pipelines.find((x) => x.id === r.pipeline_id);
                     return (
-                      <div key={r.pipeline_id} className={`px-2.5 py-1.5 rounded-lg ${r.error ? 'bg-red-500/10 text-red-300' : 'bg-green-500/10 text-green-300'}`}>
-                        <strong>{p?.name}</strong>: {r.error || (r.added.length ? `+${r.added.join(', ')}` : 'ya tenía todas las etapas')}
+                      <div key={r.pipeline_id} className={`px-2.5 py-2 rounded-lg ${r.error ? 'bg-red-500/10 text-red-300' : 'bg-green-500/10 text-green-300'}`}>
+                        <strong>{p?.name}</strong>
+                        {r.error ? `: ${r.error}` : (
+                          <div className="mt-1 space-y-0.5">
+                            {r.added?.length > 0 && <div>+ Agregadas: {r.added.join(', ')}</div>}
+                            {r.removed?.length > 0 && <div>− Borradas: {r.removed.join(', ')}</div>}
+                            {r.moved_deals > 0 && <div>↷ {r.moved_deals} trato(s) reubicados a la primera etapa</div>}
+                            {!r.added?.length && !r.removed?.length && <div>Ya estaba igual al origen.</div>}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
