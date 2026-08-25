@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Percent, TrendingUp, Filter, Gauge, Package2, ListChecks, Activity, Users, Clock, PieChart, DollarSign, Trophy, Globe, Briefcase } from 'lucide-react';
 
-function Bar({ label, value, max, suffix = '' }) {
+function Bar({ label, value, max, suffix = '', prefix = '' }) {
   const pct = max ? Math.round((value / max) * 100) : 0;
   return (
     <div className="mb-3">
       <div className="flex justify-between text-xs text-brand-muted font-tech mb-1">
         <span>{label}</span>
-        <span>{value}{suffix}</span>
+        <span>{prefix}{value.toLocaleString()}{suffix}</span>
       </div>
       <div className="w-full h-2 bg-brand-bg rounded-full overflow-hidden">
         <div className="h-full bg-gradient-to-r from-brand-violet to-brand-magenta" style={{ width: `${pct}%` }} />
@@ -323,7 +323,7 @@ export default function Metrics() {
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="font-manrope font-medium mb-4 flex items-center gap-2"><Package2 size={15} /> Pipeline por etapa (valor)</div>
           {metrics.deals_by_stage.map((s) => (
-            <Bar key={s.stage} label={s.stage} value={s.value} max={maxStageValue} />
+            <Bar key={s.stage} label={s.stage} value={s.value} max={maxStageValue} prefix="$" />
           ))}
           {metrics.deals_by_stage.length === 0 && (
             <div className="text-brand-muted text-sm">Sin deals abiertos.</div>
@@ -364,7 +364,7 @@ export default function Metrics() {
                           style={{ height: `${Math.max((w.count / max) * 100, 4)}%` }}
                           title={`Semana del ${d.toLocaleDateString()}`}
                         />
-                        <div className="text-[9px] text-brand-muted font-tech mt-1">{d.toLocaleDateString('es', { day: '2-digit', month: '2-digit' })}</div>
+                        <div className="text-[9px] text-brand-muted font-tech mt-1">{d.toLocaleDateString('es', { day: 'numeric', month: 'short' })}</div>
                       </div>
                     );
                   })}
