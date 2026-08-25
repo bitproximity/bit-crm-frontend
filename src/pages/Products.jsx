@@ -28,6 +28,7 @@ export default function Products() {
   const [form, setForm] = useState({ name: '', type: 'producto', price: '', currency: 'USD', sku: '' });
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [error, setError] = useState('');
 
   const load = () => api.get('/api/products').then(setProducts).catch(console.error);
 
@@ -37,10 +38,15 @@ export default function Products() {
 
   const create = async (e) => {
     e.preventDefault();
-    await api.post('/api/products', { ...form, price: Number(form.price) || 0 });
-    setForm({ name: '', type: 'producto', price: '', currency: 'USD', sku: '' });
-    setShowForm(false);
-    load();
+    setError('');
+    try {
+      await api.post('/api/products', { ...form, price: Number(form.price) || 0 });
+      setForm({ name: '', type: 'producto', price: '', currency: 'USD', sku: '' });
+      setShowForm(false);
+      load();
+    } catch (err) {
+      setError(err.message.includes('products_sku_key') ? 'Ese SKU ya lo está usando otro producto.' : (err.message || 'No se pudo crear.'));
+    }
   };
 
   const startEdit = (p) => {
@@ -49,9 +55,14 @@ export default function Products() {
   };
 
   const saveEdit = async (id) => {
-    await api.patch(`/api/products/${id}`, { ...editForm, price: Number(editForm.price) || 0 });
-    setEditingId(null);
-    load();
+    setError('');
+    try {
+      await api.patch(`/api/products/${id}`, { ...editForm, price: Number(editForm.price) || 0 });
+      setEditingId(null);
+      load();
+    } catch (err) {
+      setError(err.message.includes('products_sku_key') ? 'Ese SKU ya lo está usando otro producto.' : (err.message || 'No se pudo guardar.'));
+    }
   };
 
   const remove = async (id) => {
@@ -72,6 +83,13 @@ export default function Products() {
           <Plus size={14} /> Nuevo
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm flex items-center justify-between">
+          {error}
+          <button onClick={() => setError('')} className="text-xs underline">Cerrar</button>
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={create} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 grid grid-cols-5 gap-3">
