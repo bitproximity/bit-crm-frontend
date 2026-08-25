@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import { Mail, RefreshCw, Phone, X, Pencil, MapPin, Tag as TagIcon, Trash2 } from 'lucide-react';
 import EnrichButtons from './EnrichButtons';
 import { useConfirm } from './ConfirmModal';
+import { POSITION_OPTIONS, COUNTRY_OPTIONS } from './B2bRecordModal';
 
 export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSaved }) {
   const confirm = useConfirm();
@@ -210,11 +211,17 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Cargo</label>
-                <input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} className={inputClass} />
+                <select value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} className={inputClass}>
+                  <option value="">Sin especificar</option>
+                  {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
               </div>
               <div>
                 <label className={labelClass}>País</label>
-                <input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className={inputClass} />
+                <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className={inputClass}>
+                  <option value="">Sin especificar</option>
+                  {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
