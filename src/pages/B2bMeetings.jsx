@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, CalendarClock, History,
-  Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2,
+  Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2, ChevronDown, MoreHorizontal,
 } from 'lucide-react';
 import B2bRecordModal, { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
 import DateTimePicker from '../components/DateTimePicker';
@@ -87,6 +87,9 @@ export default function B2bMeetings() {
   const [error, setError] = useState('');
   const [importResult, setImportResult] = useState(null);
   const [showAddClient, setShowAddClient] = useState(false);
+  const [clientMenuOpen, setClientMenuOpen] = useState(false);
+  const [importMenuOpen, setImportMenuOpen] = useState(false);
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState('');
   const [companyResults, setCompanyResults] = useState([]);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -103,6 +106,14 @@ export default function B2bMeetings() {
   }).catch((err) => setError(err.message));
 
   useEffect(() => { loadClients(); }, []);
+
+  // Cierra cualquier menú desplegable abierto (marca, importar, acciones) al hacer
+  // clic fuera de él.
+  useEffect(() => {
+    const closeAll = () => { setClientMenuOpen(false); setImportMenuOpen(false); setActionsMenuOpen(false); };
+    document.addEventListener('click', closeAll);
+    return () => document.removeEventListener('click', closeAll);
+  }, []);
 
   useEffect(() => {
     if (tab !== 'team') return;
@@ -346,22 +357,49 @@ export default function B2bMeetings() {
       {tab === 'client' && (
       <>
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <select
-          value={clientId || ''}
-          onChange={(e) => setClientId(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm font-tech min-w-[200px]"
-        >
-          <option value="" disabled>Elige una marca</option>
-          {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <button onClick={() => setShowAddClient(!showAddClient)} className="text-xs text-brand-ice hover:underline flex items-center gap-1">
-          <Plus size={13} /> Agregar marca
-        </button>
-        {clients.length > 1 && (
-          <button onClick={() => setReordering(true)} className="text-xs text-brand-muted hover:text-brand-ice transition flex items-center gap-1">
-            <GripVertical size={13} /> Reordenar marcas
+        <div className="relative">
+          <button
+            onClick={(e) => { e.stopPropagation(); setClientMenuOpen((v) => !v); }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm font-tech min-w-[200px] hover:border-brand-violet transition"
+          >
+            <Building2 size={14} className="text-brand-muted flex-shrink-0" />
+            <span className="flex-1 text-left truncate">{client?.name || 'Elige una marca'}</span>
+            <ChevronDown size={13} className={`text-brand-muted transition-transform flex-shrink-0 ${clientMenuOpen ? 'rotate-180' : ''}`} />
           </button>
-        )}
+          {clientMenuOpen && (
+            <div onClick={(e) => e.stopPropagation()} className="absolute z-20 mt-1.5 w-64 bg-brand-bg border border-brand-border rounded-xl shadow-xl dropdown-in overflow-hidden">
+              <div className="max-h-64 overflow-y-auto py-1">
+                {clients.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => { setClientId(c.id); setClientMenuOpen(false); }}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-brand-panel transition ${c.id === clientId ? 'text-brand-ice' : ''}`}
+                  >
+                    <span className="truncate">{c.name}</span>
+                    {c.id === clientId && <Check size={13} className="text-brand-violet flex-shrink-0" />}
+                  </button>
+                ))}
+                {clients.length === 0 && <div className="px-3 py-3 text-xs text-brand-muted">Sin marcas todavía.</div>}
+              </div>
+              <div className="border-t border-brand-border">
+                <button
+                  onClick={() => { setShowAddClient(!showAddClient); setClientMenuOpen(false); }}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-brand-ice hover:bg-brand-panel transition"
+                >
+                  <Plus size={14} /> Agregar marca
+                </button>
+                {clients.length > 1 && (
+                  <button
+                    onClick={() => { setReordering(true); setClientMenuOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-brand-muted hover:text-brand-ice hover:bg-brand-panel transition"
+                  >
+                    <GripVertical size={14} /> Reordenar marcas
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {reordering && (
@@ -404,31 +442,62 @@ export default function B2bMeetings() {
         <>
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div className="font-manrope font-medium text-lg">{client?.name}</div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
               <button onClick={openAdd} className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition flex items-center gap-1.5">
                 <Plus size={13} /> Agregar manual
               </button>
-              <label className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs cursor-pointer hover:border-brand-violet transition flex items-center gap-1.5">
-                <Upload size={13} /> Importar base contactada
-                <input type="file" accept=".csv" className="hidden" onChange={(e) => handleImport(e, 'contactados')} />
-              </label>
-              <label className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs cursor-pointer hover:border-brand-violet transition flex items-center gap-1.5">
-                <CalendarCheck size={13} /> Importar reuniones
-                <input type="file" accept=".csv" className="hidden" onChange={(e) => handleImport(e, 'reuniones')} />
-              </label>
-              <button onClick={exportToContacts} disabled={exporting} className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition flex items-center gap-1.5 disabled:opacity-50">
-                <ListPlus size={13} /> {exporting ? 'Enviando...' : 'Ver en Listas'}
-              </button>
+
+              <div className="relative">
+                <button onClick={(e) => { e.stopPropagation(); setImportMenuOpen((v) => !v); }} className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition flex items-center gap-1.5">
+                  <Upload size={13} /> Importar <ChevronDown size={11} className={`transition-transform ${importMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {importMenuOpen && (
+                  <div onClick={(e) => e.stopPropagation()} className="absolute right-0 z-20 mt-1.5 w-56 bg-brand-bg border border-brand-border rounded-xl shadow-xl dropdown-in overflow-hidden">
+                    <label className="flex items-center gap-2 px-3 py-2.5 text-sm cursor-pointer hover:bg-brand-panel transition">
+                      <Upload size={13} className="text-brand-muted flex-shrink-0" /> Base contactada
+                      <input type="file" accept=".csv" className="hidden" onChange={(e) => { setImportMenuOpen(false); handleImport(e, 'contactados'); }} />
+                    </label>
+                    <label className="flex items-center gap-2 px-3 py-2.5 text-sm cursor-pointer hover:bg-brand-panel transition border-t border-brand-border">
+                      <CalendarCheck size={13} className="text-brand-muted flex-shrink-0" /> Reuniones
+                      <input type="file" accept=".csv" className="hidden" onChange={(e) => { setImportMenuOpen(false); handleImport(e, 'reuniones'); }} />
+                    </label>
+                  </div>
+                )}
+              </div>
+
               <button onClick={copyShareLink} className="px-3 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-xs hover:opacity-90 transition flex items-center gap-1.5">
                 {copiedLink ? <Check size={13} /> : <Link2 size={13} />}
-                {copiedLink ? 'Link copiado' : 'Compartir con la marca'}
+                {copiedLink ? 'Link copiado' : 'Compartir'}
               </button>
-              <button onClick={markAllRealizada} className="px-3 py-2 rounded-lg border border-green-500/30 text-green-300 text-xs hover:bg-green-500/10 transition flex items-center gap-1.5">
-                <CheckCircle2 size={13} /> Marcar todo como realizada
-              </button>
-              <button onClick={clearClientRecords} className="px-3 py-2 rounded-lg border border-red-500/30 text-red-300 text-xs hover:bg-red-500/10 transition flex items-center gap-1.5">
-                <Trash2 size={13} /> Borrar todo de {client?.name}
-              </button>
+
+              <div className="relative">
+                <button onClick={(e) => { e.stopPropagation(); setActionsMenuOpen((v) => !v); }} className="icon-btn p-2 rounded-lg bg-brand-panel border border-brand-border text-brand-muted hover:text-brand-ice hover:border-brand-violet transition">
+                  <MoreHorizontal size={15} />
+                </button>
+                {actionsMenuOpen && (
+                  <div onClick={(e) => e.stopPropagation()} className="absolute right-0 z-20 mt-1.5 w-56 bg-brand-bg border border-brand-border rounded-xl shadow-xl dropdown-in overflow-hidden">
+                    <button
+                      onClick={() => { setActionsMenuOpen(false); exportToContacts(); }}
+                      disabled={exporting}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-brand-panel transition disabled:opacity-50"
+                    >
+                      <ListPlus size={14} className="text-brand-muted flex-shrink-0" /> {exporting ? 'Enviando...' : 'Ver en Listas'}
+                    </button>
+                    <button
+                      onClick={() => { setActionsMenuOpen(false); markAllRealizada(); }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-green-300 hover:bg-brand-panel transition border-t border-brand-border"
+                    >
+                      <CheckCircle2 size={14} className="flex-shrink-0" /> Marcar todo realizada
+                    </button>
+                    <button
+                      onClick={() => { setActionsMenuOpen(false); clearClientRecords(); }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-300 hover:bg-brand-panel transition border-t border-brand-border"
+                    >
+                      <Trash2 size={14} className="flex-shrink-0" /> Borrar todo de {client?.name}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
