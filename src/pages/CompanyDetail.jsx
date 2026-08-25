@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { ChevronLeft, Building2, MapPin, Users, DollarSign, Phone, Linkedin, FileText, Trash2 } from 'lucide-react';
 import EnrichButtons from '../components/EnrichButtons';
 import { useConfirm } from '../components/ConfirmModal';
-import { INDUSTRY_OPTIONS } from '../components/B2bRecordModal';
+import { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
 
 export default function CompanyDetail() {
   const { id } = useParams();
@@ -108,7 +108,10 @@ export default function CompanyDetail() {
           </div>
           <div>
             <label className={labelClass}>País</label>
-            <input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className={inputClass} />
+            <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className={inputClass}>
+              <option value="">Sin especificar</option>
+              {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
           <div>
             <label className={labelClass}>Industria</label>

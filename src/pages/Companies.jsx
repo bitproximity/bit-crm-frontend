@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Building2, Search, Plus, MapPin } from 'lucide-react';
-import { INDUSTRY_OPTIONS } from '../components/B2bRecordModal';
+import { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
 
 export default function Companies() {
   const navigate = useNavigate();
@@ -64,9 +64,11 @@ export default function Companies() {
             <option value="">Industria (sin especificar)</option>
             {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
           </select>
-          <input placeholder="País" value={form.country}
-            onChange={(e) => setForm({ ...form, country: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" />
+          <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })}
+            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm">
+            <option value="">País (sin especificar)</option>
+            {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
           <button className="col-span-3 px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
             Crear
           </button>
