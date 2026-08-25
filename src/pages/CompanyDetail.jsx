@@ -7,12 +7,6 @@ import EnrichButtons from '../components/EnrichButtons';
 import { useConfirm } from '../components/ConfirmModal';
 import { INDUSTRY_OPTIONS } from '../components/B2bRecordModal';
 
-const TYPES = ['restaurante', 'retail', 'hotel', 'espacio_comercial', 'otro'];
-const TYPE_LABELS = {
-  restaurante: 'Restaurante', retail: 'Retail', hotel: 'Hotel',
-  espacio_comercial: 'Espacio comercial', otro: 'Otro',
-};
-
 export default function CompanyDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -82,10 +76,9 @@ export default function CompanyDetail() {
             <h1 className="font-headline text-xl font-semibold">{company.name}</h1>
             <div className="flex items-center gap-2 text-xs text-brand-muted mt-1">
               <span className="px-2 py-0.5 rounded-full bg-brand-violet/15 text-brand-ice font-tech">
-                {TYPE_LABELS[company.company_type] || 'Otro'}
+                {company.industry || 'Sin especificar'}
               </span>
               {company.country && <span className="flex items-center gap-1"><MapPin size={11} /> {company.country}</span>}
-              {company.industry && <span>· {company.industry}</span>}
             </div>
           </div>
         </div>
@@ -112,12 +105,6 @@ export default function CompanyDetail() {
           <div>
             <label className={labelClass}>Nombre</label>
             <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>Tipo</label>
-            <select value={form.company_type} onChange={(e) => setForm({ ...form, company_type: e.target.value })} className={`${inputClass} font-tech`}>
-              {TYPES.map((t) => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
-            </select>
           </div>
           <div>
             <label className={labelClass}>País</label>

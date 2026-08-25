@@ -2,19 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Building2, Search, Plus, MapPin } from 'lucide-react';
-
-const TYPES = ['restaurante', 'retail', 'hotel', 'espacio_comercial', 'otro'];
-const TYPE_LABELS = {
-  restaurante: 'Restaurante', retail: 'Retail', hotel: 'Hotel',
-  espacio_comercial: 'Espacio comercial', otro: 'Otro',
-};
-const TYPE_COLORS = {
-  restaurante: 'bg-orange-500/15 text-orange-300',
-  retail: 'bg-blue-500/15 text-blue-300',
-  hotel: 'bg-purple-500/15 text-purple-300',
-  espacio_comercial: 'bg-teal-500/15 text-teal-300',
-  otro: 'bg-brand-border text-brand-muted',
-};
+import { INDUSTRY_OPTIONS } from '../components/B2bRecordModal';
 
 export default function Companies() {
   const navigate = useNavigate();
@@ -67,21 +55,19 @@ export default function Companies() {
       </div>
 
       {showForm && (
-        <form onSubmit={createCompany} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 grid grid-cols-4 gap-3">
+        <form onSubmit={createCompany} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 grid grid-cols-3 gap-3">
           <input placeholder="Nombre" required value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" />
-          <select value={form.company_type} onChange={(e) => setForm({ ...form, company_type: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm font-tech">
-            {TYPES.map((t) => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
+          <select value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })}
+            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm">
+            <option value="">Industria (sin especificar)</option>
+            {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
           </select>
           <input placeholder="País" value={form.country}
             onChange={(e) => setForm({ ...form, country: e.target.value })}
             className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" />
-          <input placeholder="Industria" value={form.industry}
-            onChange={(e) => setForm({ ...form, industry: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" />
-          <button className="col-span-4 px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
+          <button className="col-span-3 px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
             Crear
           </button>
         </form>
@@ -101,8 +87,8 @@ export default function Companies() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-manrope font-medium truncate">{c.name}</div>
-                <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-tech ${TYPE_COLORS[c.company_type] || TYPE_COLORS.otro}`}>
-                  {TYPE_LABELS[c.company_type] || 'Otro'}
+                <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-tech bg-brand-violet/15 text-brand-ice">
+                  {c.industry || 'Sin especificar'}
                 </span>
               </div>
             </div>
