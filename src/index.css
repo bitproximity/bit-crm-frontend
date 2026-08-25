@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Le dice al navegador que toda la interfaz nativa (los <select> desplegados, los
+     selectores de fecha nativos, la barra de scroll del sistema, etc.) debe pintarse
+     en modo oscuro. Sin esto, cualquier <select> abre su lista de opciones con los
+     colores por defecto del sistema operativo (blanco/azul), sin importar cuánto se
+     estilice el botón cerrado con Tailwind — es lo que se veía "horrible" en el
+     selector de estado del proyecto, y pasaba en cualquier otro <select> de la app. */
+  color-scheme: dark;
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: #302b47 transparent;
