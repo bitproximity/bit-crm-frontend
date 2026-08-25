@@ -54,17 +54,24 @@ export default function Metrics() {
   const [pipelinesLoaded, setPipelinesLoaded] = useState(false);
 
   useEffect(() => {
-    const onErr = (label) => (err) => setLoadError((prev) => prev || `${label}: ${err.message}`);
-    api.get('/api/metrics').then(setMetrics).catch(onErr('Métricas'));
-    api.get('/api/forecast?months=3').then(setForecast).catch(onErr('Forecast'));
-    api.get('/api/insights/feed?limit=30').then(setFeed).catch(onErr('Feed'));
-    api.get('/api/metrics/meetings?weeks=8').then(setMeetings).catch(onErr('Reuniones'));
-    api.get('/api/metrics/products').then(setProductMetrics).catch(onErr('Productos'));
+    // Guarda contra respuestas "viejas" pisando a las nuevas si este efecto llegara a
+    // correr más de una vez (ej. remount) — solo la corrida más reciente puede escribir
+    // el estado. Así, si alguna vez SÍ hay una segunda llamada de fondo, ya no se nota
+    // como un número que cambia solo.
+    let current = true;
+    const onErr = (label) => (err) => { if (current) setLoadError((prev) => prev || `${label}: ${err.message}`); };
+    api.get('/api/metrics').then((d) => { if (current) setMetrics(d); }).catch(onErr('Métricas'));
+    api.get('/api/forecast?months=3').then((d) => { if (current) setForecast(d); }).catch(onErr('Forecast'));
+    api.get('/api/insights/feed?limit=30').then((d) => { if (current) setFeed(d); }).catch(onErr('Feed'));
+    api.get('/api/metrics/meetings?weeks=8').then((d) => { if (current) setMeetings(d); }).catch(onErr('Reuniones'));
+    api.get('/api/metrics/products').then((d) => { if (current) setProductMetrics(d); }).catch(onErr('Productos'));
     api.get('/api/pipelines').then((list) => {
+      if (!current) return;
       setPipelines(list);
       if (list.length) setPipelineId(list[0].id);
       setPipelinesLoaded(true);
     }).catch(onErr('Pipelines'));
+    return () => { current = false; };
   }, []);
 
   useEffect(() => {
