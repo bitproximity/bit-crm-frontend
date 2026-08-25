@@ -51,6 +51,8 @@ export default function Metrics() {
   const [productMetrics, setProductMetrics] = useState(null);
   const [expandedProduct, setExpandedProduct] = useState(null);
 
+  const [pipelinesLoaded, setPipelinesLoaded] = useState(false);
+
   useEffect(() => {
     const onErr = (label) => (err) => setLoadError((prev) => prev || `${label}: ${err.message}`);
     api.get('/api/metrics').then(setMetrics).catch(onErr('Métricas'));
@@ -61,10 +63,15 @@ export default function Metrics() {
     api.get('/api/pipelines').then((list) => {
       setPipelines(list);
       if (list.length) setPipelineId(list[0].id);
+      setPipelinesLoaded(true);
     }).catch(onErr('Pipelines'));
   }, []);
 
   useEffect(() => {
+    // Espera a que se resuelva el pipeline por defecto antes de pedir el dashboard —
+    // si no, se pide dos veces: primero "todos los pipelines" (pipelineId aún null) y
+    // después el pipeline real, y se ve como un dato "de paso" que cambia solo.
+    if (!pipelinesLoaded) return;
     const qs = pipelineId ? `?pipeline_id=${pipelineId}` : '';
     api.get(`/api/insights/dashboard${qs}`).then(setDashboard).catch(console.error);
     if (pipelineId) {
@@ -74,7 +81,7 @@ export default function Metrics() {
       setFunnel(null);
       setVelocity(null);
     }
-  }, [pipelineId]);
+  }, [pipelineId, pipelinesLoaded]);
 
   if (loadError) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{loadError}</div>;
   if (!metrics || !forecast) return <SkeletonPage />;
