@@ -531,15 +531,37 @@ export default function B2bMeetings() {
                   <div className="flex items-center gap-1.5 text-green-300 text-xs mb-1"><CalendarCheck size={12} /> Realizadas</div>
                   <div className="text-xl sm:text-2xl font-headline font-semibold text-green-300 truncate">{dashboard.total_realized}</div>
                 </div>
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
+                <div
+                  onClick={() => document.getElementById('reuniones-por-mes')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                  className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0 cursor-pointer hover:border-brand-violet/50 transition"
+                  title="Ver el detalle completo"
+                >
                   <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><History size={12} /> Histórico</div>
                   {dashboard.by_month.length > 0 ? (
-                    <div className="flex items-end gap-[2px] h-8 mt-1">
-                      {dashboard.by_month.slice(-12).map((row) => {
-                        const max = Math.max(...dashboard.by_month.map((r) => r.count), 1);
-                        return <div key={row.month} title={`${row.month}: ${row.count}`} className="flex-1 bg-gradient-to-t from-brand-violet to-brand-magenta rounded-sm" style={{ height: `${Math.max((row.count / max) * 100, 6)}%` }} />;
-                      })}
-                    </div>
+                    <>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xl sm:text-2xl font-headline font-semibold truncate">
+                          {dashboard.by_month.reduce((sum, r) => sum + r.count, 0)}
+                        </span>
+                        {dashboard.by_month.length >= 2 && (() => {
+                          const last = dashboard.by_month[dashboard.by_month.length - 1].count;
+                          const prev = dashboard.by_month[dashboard.by_month.length - 2].count;
+                          if (prev === 0) return null;
+                          const diff = Math.round(((last - prev) / prev) * 100);
+                          return (
+                            <span className={`text-[10px] font-tech flex-shrink-0 ${diff >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                              {diff >= 0 ? '▲' : '▼'} {Math.abs(diff)}%
+                            </span>
+                          );
+                        })()}
+                      </div>
+                      <div className="flex items-end gap-[2px] h-6 mt-1.5">
+                        {dashboard.by_month.slice(-12).map((row) => {
+                          const max = Math.max(...dashboard.by_month.map((r) => r.count), 1);
+                          return <div key={row.month} title={`${row.month}: ${row.count}`} className="flex-1 bg-gradient-to-t from-brand-violet to-brand-magenta rounded-sm" style={{ height: `${Math.max((row.count / max) * 100, 6)}%` }} />;
+                        })}
+                      </div>
+                    </>
                   ) : (
                     <div className="text-xl sm:text-2xl font-headline font-semibold text-brand-muted">—</div>
                   )}
@@ -581,7 +603,7 @@ export default function B2bMeetings() {
               </div>
 
               <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6 min-w-0">
-                <div className="text-sm font-manrope font-medium mb-4">Reuniones por mes</div>
+                <div id="reuniones-por-mes" className="text-sm font-manrope font-medium mb-4">Reuniones por mes</div>
                 {dashboard.by_month.length > 0 ? (
                   <div className="overflow-x-auto">
                     <div className="flex items-end gap-1.5 h-32" style={{ minWidth: `${dashboard.by_month.length * 32}px` }}>
