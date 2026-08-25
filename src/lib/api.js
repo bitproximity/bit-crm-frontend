@@ -26,10 +26,25 @@ async function request(path, options = {}, _retried = false) {
     if (mergedHeaders[key] === undefined) delete mergedHeaders[key];
   });
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: mergedHeaders,
-  });
+  // Defensa extra: si el backend genuinamente nunca responde (una petición colgada
+  // de verdad, no solo lenta), corta sola a los 30s en vez de dejar la pantalla
+  // cargando para siempre sin ningún aviso.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: mergedHeaders,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('El servidor tardó demasiado en responder. Intenta de nuevo.');
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
