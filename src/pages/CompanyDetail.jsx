@@ -6,6 +6,7 @@ import { ChevronLeft, Building2, MapPin, Users, DollarSign, Phone, Linkedin, Fil
 import EnrichButtons from '../components/EnrichButtons';
 import { useConfirm } from '../components/ConfirmModal';
 import { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
+import ContactDetailPanel from '../components/ContactDetailPanel';
 
 export default function CompanyDetail() {
   const { id } = useParams();
@@ -13,6 +14,7 @@ export default function CompanyDetail() {
   const confirm = useConfirm();
   const [company, setCompany] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState(null);
   const [form, setForm] = useState({ name: '', industry: '', country: '', company_type: 'otro' });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -155,42 +157,74 @@ export default function CompanyDetail() {
           </div>
         )}
 
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="flex items-center gap-2 mb-3">
             <Users size={15} className="text-brand-muted" />
             <span className="font-manrope font-medium text-sm">Contactos ({(company.contacts || []).length})</span>
           </div>
           <div className="space-y-2">
-            {(company.contacts || []).map((c) => (
-              <div key={c.id} className="text-sm bg-brand-bg rounded-lg px-3 py-2">
-                <div>{c.first_name} {c.last_name}</div>
-                {c.email && <div className="text-xs text-brand-muted">{c.email}</div>}
+            {(company.contacts || []).map((c, i) => {
+              const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim();
+              const initials = fullName.split(' ').filter(Boolean).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => setSelectedContactId(c.id)}
+                  className="flex items-center gap-2.5 text-sm bg-brand-bg rounded-lg px-3 py-2.5 cursor-pointer row-hover stagger-item"
+                  style={{ animationDelay: `${Math.min(i, 15) * 25}ms` }}
+                >
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center text-[10px] font-tech font-semibold flex-shrink-0">
+                    {initials || '?'}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate">{fullName || 'Sin nombre'}</div>
+                    {c.email && <div className="text-xs text-brand-muted truncate">{c.email}</div>}
+                  </div>
+                </div>
+              );
+            })}
+            {(company.contacts || []).length === 0 && (
+              <div className="text-brand-muted text-xs text-center py-6 border border-dashed border-brand-border rounded-lg">
+                Sin contactos todavía.
               </div>
-            ))}
-            {(company.contacts || []).length === 0 && <div className="text-brand-muted text-xs">Sin contactos todavía.</div>}
+            )}
           </div>
         </div>
 
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="flex items-center gap-2 mb-3">
             <DollarSign size={15} className="text-brand-muted" />
             <span className="font-manrope font-medium text-sm">Tratos ({(company.deals || []).length})</span>
           </div>
           <div className="space-y-2">
-            {(company.deals || []).map((d) => (
+            {(company.deals || []).map((d, i) => (
               <div
                 key={d.id}
                 onClick={() => navigate(`/deals/${d.id}`)}
-                className="text-sm bg-brand-bg rounded-lg px-3 py-2 cursor-pointer row-hover flex items-center justify-between"
+                className="text-sm bg-brand-bg rounded-lg px-3 py-2.5 cursor-pointer row-hover flex items-center justify-between stagger-item"
+                style={{ animationDelay: `${Math.min(i, 15) * 25}ms` }}
               >
-                <span>{d.title}</span>
-                <span className="text-brand-ice font-tech text-xs">{d.currency} {Number(d.value || 0).toLocaleString()}</span>
+                <span className="truncate">{d.title}</span>
+                <span className="text-brand-ice font-tech text-xs flex-shrink-0 ml-2">{d.currency} {Number(d.value || 0).toLocaleString()}</span>
               </div>
             ))}
-            {(company.deals || []).length === 0 && <div className="text-brand-muted text-xs">Sin tratos todavía.</div>}
+            {(company.deals || []).length === 0 && (
+              <div className="text-brand-muted text-xs text-center py-6 border border-dashed border-brand-border rounded-lg">
+                Sin tratos todavía.
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {selectedContactId && (
+        <ContactDetailPanel
+          contactId={selectedContactId}
+          onClose={() => setSelectedContactId(null)}
+          onDeleted={() => { setSelectedContactId(null); load(); }}
+          onSaved={load}
+        />
+      )}
     </div>
   );
 }
