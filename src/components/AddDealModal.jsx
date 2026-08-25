@@ -106,6 +106,17 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
     return () => clearTimeout(t);
   }, [companyQuery, selectedCompany, open]);
 
+  // El Valor sigue el total de los productos añadidos (mismo criterio que el resto del
+  // CRM) — se recalcula solo al agregar/quitar un producto, sin esperar a Guardar.
+  // IMPORTANTE: este hook tiene que ir ANTES del "if (!open) return null" de abajo —
+  // un hook después de un return condicional rompe las reglas de hooks de React
+  // (React error #310) en cuanto el modal pasa de cerrado a abierto.
+  useEffect(() => {
+    if (lineItems.length === 0) return;
+    const total = lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0), 0);
+    setValue(String(total));
+  }, [lineItems]);
+
   if (!open) return null;
 
   const pickContact = (c) => {
@@ -143,14 +154,6 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
     }
     setTagInput('');
   };
-
-  // El Valor sigue el total de los productos añadidos (mismo criterio que el resto del
-  // CRM) — se recalcula solo al agregar/quitar un producto, sin esperar a Guardar.
-  useEffect(() => {
-    if (lineItems.length === 0) return;
-    const total = lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0), 0);
-    setValue(String(total));
-  }, [lineItems]);
 
   const addLineItem = () => {
     if (productForm.product_id) {
