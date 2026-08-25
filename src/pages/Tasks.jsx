@@ -128,7 +128,7 @@ export default function Tasks() {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [team, setTeam] = useState([]);
-  const [view, setView] = useState('proyecto');
+  const [view, setView] = useState('tablero');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', due_date: '', assignee_id: '', project_id: '' });
   const [expanded, setExpanded] = useState({});
