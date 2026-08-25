@@ -69,7 +69,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="font-headline text-2xl font-semibold mb-1">
+      <h1 className="font-headline text-xl font-semibold mb-1">
         {greeting()}{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''} <span className="inline-block">👋</span>
       </h1>
       <p className="text-brand-muted text-sm mb-6">Esto es lo que está pasando en Bit Proximity hoy.</p>
