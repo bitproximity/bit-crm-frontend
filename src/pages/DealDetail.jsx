@@ -8,9 +8,9 @@ import DateTimePicker from '../components/DateTimePicker';
 import ProductsModal from '../components/ProductsModal';
 import ContactDetailPanel from '../components/ContactDetailPanel';
 import {
-  ChevronLeft, ChevronDown, MoreHorizontal, Tag, Calendar, Building2, User,
+  ChevronLeft, ChevronDown, MoreHorizontal, Tag as TagIcon, Calendar, Building2, User,
   Plus, X, Mail, Phone, Video, StickyNote, FileText as FileTextIcon, Paperclip,
-  Pencil, Trash2,
+  Pencil, Trash2, RefreshCcw,
 } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
@@ -21,6 +21,7 @@ const ACTIVITY_TYPES = [
   { key: 'email', label: 'Email', icon: Mail },
   { key: 'whatsapp', label: 'WhatsApp', icon: Phone },
   { key: 'tarea', label: 'Tarea', icon: FileTextIcon },
+  { key: 'followup', label: 'Follow up', icon: RefreshCcw },
 ];
 
 function initials(name) {
@@ -827,38 +828,47 @@ export default function DealDetail() {
 
               <div className="relative">
                 <div className="flex items-start gap-2 text-brand-muted">
-                  <Tag size={14} className="flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 flex flex-wrap gap-1">
+                  <TagIcon size={14} className="flex-shrink-0 mt-1" />
+                  <div className="flex-1 flex flex-wrap gap-1.5">
                     {(deal.tags || []).map((t) => (
-                      <span key={t.id} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-violet/20 text-brand-ice text-xs">
+                      <span key={t.id} className="group flex items-center gap-1 pl-2 pr-1 py-1 rounded-full bg-brand-violet/15 border border-brand-violet/20 text-brand-ice text-xs">
                         {t.name}
-                        <button onClick={() => toggleTag(t)} className="hover:text-white">×</button>
+                        <button onClick={() => toggleTag(t)} className="icon-btn w-3.5 h-3.5 rounded-full flex items-center justify-center text-brand-muted hover:text-white hover:bg-brand-violet/30 transition">
+                          <X size={9} />
+                        </button>
                       </span>
                     ))}
-                    <button onClick={() => setTagMenuOpen(!tagMenuOpen)} className="text-xs text-brand-ice hover:underline">
-                      + Añadir etiquetas
+                    <button
+                      onClick={() => setTagMenuOpen(!tagMenuOpen)}
+                      className="flex items-center gap-1 px-2 py-1 rounded-full border border-dashed border-brand-border text-xs text-brand-muted hover:text-brand-ice hover:border-brand-violet transition"
+                    >
+                      <Plus size={11} /> Añadir
                     </button>
                   </div>
                 </div>
                 {tagMenuOpen && (
-                  <div className="absolute z-10 mt-1 left-6 w-56 bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden">
+                  <div className="absolute z-10 mt-1.5 left-6 w-56 bg-brand-bg border border-brand-border rounded-xl shadow-xl overflow-hidden dropdown-in">
                     <input
                       autoFocus value={tagInput} onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createTagFromInput(); } }}
                       placeholder="Buscar o crear..."
-                      className="w-full px-3 py-2 bg-transparent border-b border-brand-border text-sm focus:outline-none"
+                      className="w-full px-3 py-2.5 bg-transparent border-b border-brand-border text-sm focus:outline-none"
                     />
-                    <div className="max-h-40 overflow-y-auto">
+                    <div className="max-h-40 overflow-y-auto py-1">
                       {allTags.filter((t) => t.name.toLowerCase().includes(tagInput.toLowerCase())).map((t) => (
-                        <button key={t.id} onClick={() => toggleTag(t)} className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center justify-between">
-                          {t.name}
-                          {(deal.tags || []).some((dt) => dt.id === t.id) && <span className="text-brand-violet">✓</span>}
+                        <button key={t.id} onClick={() => toggleTag(t)} className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center gap-2">
+                          <TagIcon size={11} className="text-brand-muted flex-shrink-0" />
+                          <span className="flex-1">{t.name}</span>
+                          {(deal.tags || []).some((dt) => dt.id === t.id) && <span className="text-brand-violet flex-shrink-0">✓</span>}
                         </button>
                       ))}
                       {tagInput.trim() && !allTags.some((t) => t.name.toLowerCase() === tagInput.trim().toLowerCase()) && (
-                        <button onClick={createTagFromInput} className="w-full text-left px-3 py-2 text-sm text-brand-ice hover:bg-brand-panel transition flex items-center gap-1.5">
+                        <button onClick={createTagFromInput} className="w-full text-left px-3 py-2 text-sm text-brand-ice hover:bg-brand-panel transition flex items-center gap-1.5 border-t border-brand-border">
                           <Plus size={13} /> Crear "{tagInput.trim()}"
                         </button>
+                      )}
+                      {allTags.filter((t) => t.name.toLowerCase().includes(tagInput.toLowerCase())).length === 0 && !tagInput.trim() && (
+                        <div className="px-3 py-3 text-xs text-brand-muted">Sin etiquetas todavía.</div>
                       )}
                     </div>
                   </div>

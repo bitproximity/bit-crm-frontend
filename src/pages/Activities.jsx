@@ -3,13 +3,13 @@ import { api } from '../lib/api';
 import DateTimePicker from '../components/DateTimePicker';
 import { csvToActivities } from '../lib/csv';
 import { useConfirm } from '../components/ConfirmModal';
-import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check, Upload, X, Trash2, LayoutGrid, List } from 'lucide-react';
+import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check, Upload, X, Trash2, LayoutGrid, List, RefreshCcw } from 'lucide-react';
 
 const TYPE_ICONS = {
-  llamada: Phone, email: Mail, reunion: Users, whatsapp: MessageCircle, nota: StickyNote, tarea: CheckSquare,
+  llamada: Phone, email: Mail, reunion: Users, whatsapp: MessageCircle, nota: StickyNote, tarea: CheckSquare, followup: RefreshCcw,
 };
 const TYPE_LABELS = {
-  llamada: 'Llamada', email: 'Email', reunion: 'Reunión', whatsapp: 'WhatsApp', nota: 'Nota', tarea: 'Tarea',
+  llamada: 'Llamada', email: 'Email', reunion: 'Reunión', whatsapp: 'WhatsApp', nota: 'Nota', tarea: 'Tarea', followup: 'Follow up',
 };
 const COLUMNS = [
   { key: 'pendiente', label: 'Pendientes', color: '#6B7280', dot: 'bg-gray-400' },
