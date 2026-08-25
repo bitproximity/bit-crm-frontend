@@ -3,10 +3,16 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
-import { Flag, Trash2, FileText } from 'lucide-react';
+import { Flag, Trash2, FileText, ChevronDown } from 'lucide-react';
 import { STATUSES, PRIORITY_COLORS, Avatar, dueBadge, InlineAddRow, TaskDetailModal } from './Tasks';
 
 const PROJECT_STATUSES = ['activo', 'pausado', 'completado', 'cancelado'];
+const STATUS_STYLES = {
+  activo: 'bg-green-500/20 text-green-300',
+  pausado: 'bg-yellow-500/20 text-yellow-300',
+  completado: 'bg-blue-500/20 text-blue-300',
+  cancelado: 'bg-red-500/20 text-red-300',
+};
 
 export default function ProjectDetail() {
   const { id } = useParams();
@@ -18,6 +24,7 @@ export default function ProjectDetail() {
   const [expanded, setExpanded] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [nameEditing, setNameEditing] = useState(false);
+  const [statusEditing, setStatusEditing] = useState(false);
   const [nameValue, setNameValue] = useState('');
   const [docs, setDocs] = useState([]);
 
@@ -105,13 +112,29 @@ export default function ProjectDetail() {
           </h1>
         )}
         <div className="flex items-center gap-2">
-          <select
-            value={project.status}
-            onChange={(e) => changeProjectStatus(e.target.value)}
-            className="text-xs px-2 py-1 rounded-full bg-brand-violet/20 text-brand-ice font-tech uppercase border-none focus:outline-none cursor-pointer"
-          >
-            {PROJECT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <div className="relative">
+            <button
+              onClick={() => setStatusEditing((v) => !v)}
+              className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-tech uppercase cursor-pointer transition hover:opacity-80 ${STATUS_STYLES[project.status] || 'bg-brand-bg text-brand-muted'}`}
+            >
+              {project.status}
+              <ChevronDown size={11} />
+            </button>
+            {statusEditing && (
+              <div className="absolute left-0 mt-1.5 w-40 bg-brand-bg border border-brand-border rounded-lg shadow-xl dropdown-in z-20 overflow-hidden">
+                {PROJECT_STATUSES.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => { changeProjectStatus(s); setStatusEditing(false); }}
+                    className="w-full flex items-center justify-between px-3 py-2 text-xs uppercase font-tech hover:bg-brand-panel transition"
+                  >
+                    <span className={`px-2 py-0.5 rounded-full ${STATUS_STYLES[s]}`}>{s}</span>
+                    {s === project.status && <span className="text-brand-violet">✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button onClick={deleteProject} className="text-brand-muted hover:text-red-400" title="Eliminar proyecto">
             <Trash2 size={15} />
           </button>
