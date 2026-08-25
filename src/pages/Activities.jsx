@@ -94,9 +94,23 @@ export default function Activities() {
   // a Pendientes/Vencidas marca done=false (la fecha decide sola en cuál de esas dos cae).
   const onColumnDrop = async (columnKey, activityId) => {
     if (!activityId) return;
-    const done = columnKey === 'completada';
-    setActivities((prev) => prev.map((a) => (a.id === activityId ? { ...a, done } : a)));
-    await api.patch(`/api/activities/${activityId}`, { done });
+    const activity = activities.find((a) => a.id === activityId);
+    if (!activity) return;
+
+    const payload = { done: columnKey === 'completada' };
+    // Pendientes/Vencidas se calculan solo de la fecha — si la tarjeta ya está vencida y la
+    // sueltas en "Pendientes" (o al revés), hay que ajustar la fecha para que se quede ahí
+    // en vez de "rebotar" sola a la columna que le corresponde por su fecha original.
+    if (columnKey === 'pendiente') {
+      const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(9, 0, 0, 0);
+      if (activity.due_date && new Date(activity.due_date) < new Date()) payload.due_date = tomorrow.toISOString();
+    } else if (columnKey === 'vencida') {
+      const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); yesterday.setHours(9, 0, 0, 0);
+      if (!activity.due_date || new Date(activity.due_date) >= new Date()) payload.due_date = yesterday.toISOString();
+    }
+
+    setActivities((prev) => prev.map((a) => (a.id === activityId ? { ...a, ...payload } : a)));
+    await api.patch(`/api/activities/${activityId}`, payload);
   };
 
 
