@@ -22,6 +22,7 @@ function initials(name) {
 export default function Deals() {
   const navigate = useNavigate();
   const [pipelines, setPipelines] = useState([]);
+  const [exchangeRates, setExchangeRates] = useState({});
   const [pipelineId, setPipelineIdRaw] = useState(() => localStorage.getItem('bitcrm_last_pipeline_id') || null);
   const setPipelineId = (id) => {
     setPipelineIdRaw(id);
@@ -63,6 +64,11 @@ export default function Deals() {
   useEffect(() => {
     loadPipelines().catch(console.error);
     api.get('/api/settings/deal_card_fields').then(setCardFields).catch(() => {});
+    // Tipos de cambio para convertir tratos en otras monedas (COP, PYG, DOP, etc.) a USD
+    // antes de sumarlos por etapa — si no, mezclar monedas sin convertir da totales sin sentido.
+    api.get('/api/exchange-rates').then((rates) => {
+      setExchangeRates(Object.fromEntries(rates.map((r) => [r.currency, Number(r.rate_to_usd)])));
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -136,8 +142,10 @@ export default function Deals() {
     ? deals.filter((d) => d.title.toLowerCase().includes(search.toLowerCase()) || d.companies?.name?.toLowerCase().includes(search.toLowerCase()))
     : deals;
 
+  const toUsd = (value, currency) => Number(value || 0) * (exchangeRates[currency] ?? (currency === 'USD' || !currency ? 1 : 0));
+
   const stageTotal = (stageId) =>
-    filteredDeals.filter((d) => d.stage_id === stageId).reduce((sum, d) => sum + Number(d.value || 0), 0);
+    filteredDeals.filter((d) => d.stage_id === stageId).reduce((sum, d) => sum + toUsd(d.value, d.currency), 0);
 
   const contactName = (d) => (d.contacts ? `${d.contacts.first_name || ''} ${d.contacts.last_name || ''}`.trim() : null);
 
@@ -271,7 +279,7 @@ export default function Deals() {
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-brand-muted mb-3 px-1">
                   <DollarSign size={12} />
-                  <span className="font-tech">${stageTotal(stage.id).toLocaleString('es-CO')}</span>
+                  <span className="font-tech">${Math.round(stageTotal(stage.id)).toLocaleString('es-CO')} USD</span>
                   <span>· {stageDeals.length} tratos</span>
                 </div>
 
@@ -384,13 +392,17 @@ export default function Deals() {
 
       {/* ── VISTA VALOR (ordenado por valor, con total corrido) ── */}
       {view === 'value' && (() => {
-        const sorted = [...filteredDeals].sort((a, b) => Number(b.value || 0) - Number(a.value || 0));
-        const total = sorted.reduce((sum, d) => sum + Number(d.value || 0), 0);
+        // Se ordena y se acumula en USD (convertido) — si no, un trato en COP con un
+        // número grande (ej. 2.450.000) se vería como el más valioso aunque en dólares
+        // reales sea de los más chicos, y el % iría mal por mezclar monedas.
+        const sorted = [...filteredDeals].sort((a, b) => toUsd(b.value, b.currency) - toUsd(a.value, a.currency));
+        const total = sorted.reduce((sum, d) => sum + toUsd(d.value, d.currency), 0);
         let running = 0;
         // El acumulado depende del orden completo, así que se calcula sobre TODO antes de recortar para renderizar.
         const withRunning = sorted.map((deal) => {
-          running += Number(deal.value || 0);
-          const pct = total ? Math.round((Number(deal.value || 0) / total) * 100) : 0;
+          const usdValue = toUsd(deal.value, deal.currency);
+          running += usdValue;
+          const pct = total ? Math.round((usdValue / total) * 100) : 0;
           return { deal, running, pct };
         });
         const visible = withRunning.slice(0, flatVisibleCount);
@@ -425,7 +437,7 @@ export default function Deals() {
                       <td className="px-4 py-3 text-brand-muted text-xs">{deal.pipeline_stages?.name}</td>
                       <td className="px-4 py-3 text-brand-ice font-tech">{deal.currency} {Number(deal.value).toLocaleString('es-CO')}</td>
                       <td className="px-4 py-3 text-brand-muted font-tech">{pct}%</td>
-                      <td className="px-4 py-3 text-brand-muted font-tech">${running.toLocaleString('es-CO')}</td>
+                      <td className="px-4 py-3 text-brand-muted font-tech">${Math.round(running).toLocaleString('es-CO')} USD</td>
                     </tr>
                   ))}
                   {sorted.length === 0 && (
