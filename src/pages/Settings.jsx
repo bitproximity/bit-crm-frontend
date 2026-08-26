@@ -13,6 +13,7 @@ export default function Settings() {
       <TeamAdmin />
       <CustomFieldsAdmin />
       <PipelinesAdmin />
+      <ExchangeRatesAdmin />
       <McpKeysAdmin />
     </div>
   );
@@ -497,6 +498,89 @@ function PipelinesAdmin() {
     </div>
   );
 }
+function ExchangeRatesAdmin() {
+  const ALL_CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
+  const [rates, setRates] = useState(null);
+  const [editingCurrency, setEditingCurrency] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = () => api.get('/api/exchange-rates').then(setRates).catch((err) => setError(err.message));
+
+  useEffect(() => { load(); }, []);
+
+  const startEdit = (currency, current) => {
+    setEditingCurrency(currency);
+    setEditValue(current != null ? String(current) : '');
+  };
+
+  const save = async (currency) => {
+    const value = Number(editValue);
+    if (!value || value <= 0) { setError('El tipo de cambio tiene que ser un número mayor a 0.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await api.post('/api/exchange-rates', { currency, rate_to_usd: value });
+      setEditingCurrency(null);
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar.');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mt-4">
+      <div className="font-manrope font-medium mb-1">Tipos de cambio</div>
+      <p className="text-brand-muted text-sm mb-4">
+        A cuánto equivale 1 unidad de cada moneda en USD — se usa para sumar tratos de distintas
+        monedas en el pipeline (Total por etapa, Vista Valor) sin mezclarlos sin convertir.
+      </p>
+
+      {error && (
+        <div className="mb-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-1.5">
+        {ALL_CURRENCIES.map((currency) => {
+          const row = rates?.find((r) => r.currency === currency);
+          const isUsd = currency === 'USD';
+          return (
+            <div key={currency} className="flex items-center justify-between bg-brand-bg rounded-lg px-3 py-2.5">
+              <span className="font-tech text-sm">{currency}</span>
+              {editingCurrency === currency ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-brand-muted">1 {currency} =</span>
+                  <input
+                    autoFocus type="number" step="any" value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && save(currency)}
+                    className="w-28 px-2 py-1 rounded bg-brand-panel border border-brand-border text-sm font-tech"
+                  />
+                  <span className="text-xs text-brand-muted">USD</span>
+                  <button onClick={() => save(currency)} disabled={saving} className="text-xs text-brand-ice hover:underline disabled:opacity-50">Guardar</button>
+                  <button onClick={() => setEditingCurrency(null)} className="text-xs text-brand-muted hover:underline">Cancelar</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => !isUsd && startEdit(currency, row?.rate_to_usd)}
+                  disabled={isUsd}
+                  className={`text-sm font-tech ${isUsd ? 'text-brand-muted cursor-default' : row ? 'text-brand-ice hover:underline' : 'text-yellow-300 hover:underline'}`}
+                >
+                  {isUsd ? '1 USD (fijo)' : row ? `1 ${currency} = ${row.rate_to_usd} USD` : 'Sin configurar — click para agregar'}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TeamAdmin() {
   const confirm = useConfirm();
   const [members, setMembers] = useState([]);
