@@ -8,8 +8,35 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(undefined); // undefined = cargando
   const [profile, setProfile] = useState(null);
   const [profileError, setProfileError] = useState('');
+  const [profileNetworkError, setProfileNetworkError] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const lastFetchedUserId = useRef(null);
+
+  const fetchProfile = async () => {
+    setProfileLoading(true);
+    // Reintenta un par de veces con espera creciente antes de rendirse — un "Failed to
+    // fetch" suele ser el servidor despertando (ej. tras estar inactivo), no un rechazo
+    // real; sin este reintento, esa demora de arranque se veía como "cuenta no autorizada".
+    const delays = [0, 1500, 3500];
+    for (let i = 0; i < delays.length; i++) {
+      if (delays[i]) await new Promise((r) => setTimeout(r, delays[i]));
+      try {
+        const p = await api.get('/api/team/me');
+        setProfile(p);
+        setProfileError('');
+        setProfileNetworkError(false);
+        setProfileLoading(false);
+        return;
+      } catch (err) {
+        const isNetworkError = /failed to fetch|networkerror|tardó demasiado/i.test(err.message || '');
+        if (isNetworkError && i < delays.length - 1) continue; // reintenta solo si fue de red, no si fue un 403 real
+        setProfile(null);
+        setProfileError(err.message || 'Error desconocido consultando tu perfil.');
+        setProfileNetworkError(isNetworkError);
+      }
+    }
+    setProfileLoading(false);
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -36,17 +63,13 @@ export function AuthProvider({ children }) {
     if (lastFetchedUserId.current === session.user.id) return;
     lastFetchedUserId.current = session.user.id;
 
-    setProfileLoading(true);
-    api.get('/api/team/me')
-      .then((p) => { setProfile(p); setProfileError(''); })
-      .catch((err) => { setProfile(null); setProfileError(err.message || 'Error desconocido consultando tu perfil.'); })
-      .finally(() => setProfileLoading(false));
+    fetchProfile();
   }, [session]);
 
   const signOut = () => supabase.auth.signOut();
 
   return (
-    <AuthContext.Provider value={{ session, profile, profileError, profileLoading, signOut, loading: session === undefined }}>
+    <AuthContext.Provider value={{ session, profile, profileError, profileNetworkError, profileLoading, signOut, retryProfile: fetchProfile, loading: session === undefined }}>
       {children}
     </AuthContext.Provider>
   );

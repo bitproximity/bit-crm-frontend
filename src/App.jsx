@@ -43,7 +43,7 @@ function PublicOnlyRoute({ children }) {
 }
 
 function PrivateRoutes() {
-  const { session, profile, profileError, profileLoading, loading, signOut } = useAuth();
+  const { session, profile, profileError, profileNetworkError, profileLoading, loading, signOut, retryProfile } = useAuth();
 
   if (loading || (session && profileLoading)) {
     return <div className="min-h-screen flex items-center justify-center text-neutral-500">Cargando...</div>;
@@ -55,11 +55,27 @@ function PrivateRoutes() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-brand-bg text-brand-white px-4">
         <div className="max-w-sm text-center">
-          <p className="font-headline text-lg mb-2">Cuenta no autorizada</p>
-          <p className="text-brand-muted text-sm mb-4">
-            Tu cuenta ({session.user.email}) inició sesión correctamente, pero todavía no está
-            habilitada en el equipo de Bit CRM. Pide a un admin que la agregue.
-          </p>
+          {profileNetworkError ? (
+            <>
+              <p className="font-headline text-lg mb-2">No se pudo conectar con el servidor</p>
+              <p className="text-brand-muted text-sm mb-4">
+                Iniciaste sesión bien, pero no logramos comunicarnos con el servidor de Bit CRM
+                (puede estar despertando tras estar inactivo). No es un problema de tu cuenta.
+              </p>
+              <button onClick={retryProfile} className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium mb-3">
+                Reintentar
+              </button>
+              <br />
+            </>
+          ) : (
+            <>
+              <p className="font-headline text-lg mb-2">Cuenta no autorizada</p>
+              <p className="text-brand-muted text-sm mb-4">
+                Tu cuenta ({session.user.email}) inició sesión correctamente, pero todavía no está
+                habilitada en el equipo de Bit CRM. Pide a un admin que la agregue.
+              </p>
+            </>
+          )}
           {profileError && (
             <p className="text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4 text-left">
               Detalle técnico: {profileError}
