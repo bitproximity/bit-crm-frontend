@@ -586,7 +586,7 @@ export default function B2bMeetings() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
                   <div className="text-sm font-manrope font-medium mb-4">Reuniones por industria</div>
                   <div className="space-y-2">
@@ -626,6 +626,20 @@ export default function B2bMeetings() {
                       </div>
                     ))}
                     {dashboard.by_city.length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
+                  </div>
+                </div>
+
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
+                  <div className="text-sm font-manrope font-medium mb-4">Reuniones por cargo</div>
+                  <div className="space-y-2">
+                    {dashboard.by_position.map((row, i) => (
+                      <div key={row.name} className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                        <span className="text-xs text-brand-muted flex-1 truncate">{row.name}</span>
+                        <span className="text-xs font-tech">{row.count}</span>
+                      </div>
+                    ))}
+                    {dashboard.by_position.length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
                   </div>
                 </div>
               </div>
