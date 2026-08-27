@@ -14,6 +14,14 @@ import {
 } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
+const LOST_REASONS = [
+  'No tiene presupuesto',
+  'No avanzamos con el demo',
+  'Cambio de prioridades',
+  'Se mantiene con el proveedor actual',
+  'Dejó de responder',
+];
+
 const ACTIVITY_TYPES = [
   { key: 'nota', label: 'Nota', icon: StickyNote },
   { key: 'llamada', label: 'Llamada', icon: Phone },
@@ -249,10 +257,23 @@ export default function DealDetail() {
     setPipelinePopoverOpen(false);
     refreshDeal();
   };
-  const markLost = async () => {
-    const reason = window.prompt('Motivo de la pérdida (opcional):') || '';
-    await api.post(`/api/deals/${id}/lose`, { reason });
-    refreshDeal();
+  const [showLostModal, setShowLostModal] = useState(false);
+  const [lostReason, setLostReason] = useState('');
+  const [lostReasonOther, setLostReasonOther] = useState('');
+  const [losingDeal, setLosingDeal] = useState(false);
+
+  const confirmMarkLost = async () => {
+    const reason = lostReason === 'Otro' ? lostReasonOther.trim() : lostReason;
+    setLosingDeal(true);
+    try {
+      await api.post(`/api/deals/${id}/lose`, { reason });
+      setShowLostModal(false);
+      setLostReason('');
+      setLostReasonOther('');
+      refreshDeal();
+    } finally {
+      setLosingDeal(false);
+    }
   };
 
   const reopenDeal = async () => {
@@ -650,7 +671,7 @@ export default function DealDetail() {
                 <button onClick={markWon} className="px-4 py-2 rounded-lg bg-green-500/20 text-green-300 text-sm font-medium hover:bg-green-500/30 transition">
                   Ganado
                 </button>
-                <button onClick={markLost} className="px-4 py-2 rounded-lg bg-red-500/20 text-red-300 text-sm font-medium hover:bg-red-500/30 transition">
+                <button onClick={() => setShowLostModal(true)} className="px-4 py-2 rounded-lg bg-red-500/20 text-red-300 text-sm font-medium hover:bg-red-500/30 transition">
                   Perdido
                 </button>
               </>
@@ -1264,6 +1285,55 @@ export default function DealDetail() {
           onDeleted={() => { setViewingContactId(null); refreshDeal(); }}
           onSaved={load}
         />
+      )}
+
+      {showLostModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 overlay-in" onClick={() => setShowLostModal(false)} />
+          <div className="relative w-full max-w-md bg-brand-panel border border-brand-border rounded-2xl shadow-2xl overflow-hidden modal-in">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
+              <span className="font-headline text-base font-semibold">Marcar como perdido</span>
+              <button onClick={() => setShowLostModal(false)} className="text-brand-muted hover:text-brand-white"><X size={18} /></button>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-brand-muted mb-3">¿Cuál fue el motivo?</p>
+              <div className="space-y-1.5">
+                {LOST_REASONS.map((reason) => (
+                  <label
+                    key={reason}
+                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition ${lostReason === reason ? 'border-red-400/50 bg-red-500/10 text-red-200' : 'border-brand-border bg-brand-bg hover:border-brand-muted'}`}
+                  >
+                    <input type="radio" name="lostReason" checked={lostReason === reason} onChange={() => setLostReason(reason)} className="accent-red-400" />
+                    <span className="text-sm">{reason}</span>
+                  </label>
+                ))}
+                <label
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition ${lostReason === 'Otro' ? 'border-red-400/50 bg-red-500/10 text-red-200' : 'border-brand-border bg-brand-bg hover:border-brand-muted'}`}
+                >
+                  <input type="radio" name="lostReason" checked={lostReason === 'Otro'} onChange={() => setLostReason('Otro')} className="accent-red-400" />
+                  <span className="text-sm">Otro</span>
+                </label>
+              </div>
+              {lostReason === 'Otro' && (
+                <input
+                  autoFocus value={lostReasonOther} onChange={(e) => setLostReasonOther(e.target.value)}
+                  placeholder="Escribe el motivo..."
+                  className="w-full mt-2 px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
+                />
+              )}
+            </div>
+            <div className="p-4 border-t border-brand-border flex justify-end gap-2">
+              <button onClick={() => setShowLostModal(false)} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">Cancelar</button>
+              <button
+                onClick={confirmMarkLost}
+                disabled={losingDeal || !lostReason || (lostReason === 'Otro' && !lostReasonOther.trim())}
+                className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium disabled:opacity-50 transition"
+              >
+                {losingDeal ? 'Guardando...' : 'Marcar como perdido'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
