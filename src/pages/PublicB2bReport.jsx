@@ -87,7 +87,7 @@ export default function PublicB2bReport() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
           <div className="bg-brand-panel border border-brand-border rounded-xl p-5 print-card">
             <div className="text-sm font-manrope font-medium mb-4 print-text-black">Reuniones por industria</div>
             <div className="space-y-2">
@@ -114,6 +114,19 @@ export default function PublicB2bReport() {
               {report.by_country.length === 0 && <div className="text-brand-muted text-xs print-text-muted">Sin datos todavía.</div>}
             </div>
           </div>
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 print-card">
+            <div className="text-sm font-manrope font-medium mb-4 print-text-black">Reuniones por ciudad</div>
+            <div className="space-y-2">
+              {report.by_city.map((row, i) => (
+                <div key={row.name} className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                  <span className="text-xs text-brand-muted flex-1 truncate print-text-muted">{row.name}</span>
+                  <span className="text-xs font-tech print-text-black">{row.count}</span>
+                </div>
+              ))}
+              {report.by_city.length === 0 && <div className="text-brand-muted text-xs print-text-muted">Sin datos todavía.</div>}
+            </div>
+          </div>
         </div>
 
         <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden print-card">
@@ -123,6 +136,7 @@ export default function PublicB2bReport() {
                 <th className="px-4 py-3 font-manrope font-normal">Empresa</th>
                 <th className="px-4 py-3 font-manrope font-normal">Industria</th>
                 <th className="px-4 py-3 font-manrope font-normal">País</th>
+                <th className="px-4 py-3 font-manrope font-normal">Ciudad</th>
                 <th className="px-4 py-3 font-manrope font-normal">Fecha reunión</th>
                 <th className="px-4 py-3 font-manrope font-normal">Estado</th>
               </tr>
@@ -133,6 +147,7 @@ export default function PublicB2bReport() {
                   <td className="px-4 py-3 print-text-black">{r.target_company}</td>
                   <td className="px-4 py-3 text-brand-muted print-text-muted">{r.industry || '—'}</td>
                   <td className="px-4 py-3 text-brand-muted print-text-muted">{r.country || '—'}</td>
+                  <td className="px-4 py-3 text-brand-muted print-text-muted">{r.city || '—'}</td>
                   <td className="px-4 py-3 text-brand-muted font-tech text-xs print-text-muted">{r.meeting_date ? new Date(r.meeting_date).toLocaleDateString() : '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${r.status === 'reunion_agendada' || r.status === 'reunion_realizada' ? 'bg-green-500/15 text-green-300' : 'bg-brand-bg text-brand-muted'}`}>

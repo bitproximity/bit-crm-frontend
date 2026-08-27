@@ -34,6 +34,7 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
     executive: record?.executive || '',
     industry: record?.industry || '',
     country: record?.country || '',
+    city: record?.city || '',
     status: record?.status || 'contactado',
     meeting_date: record?.meeting_date ? new Date(record.meeting_date).toISOString() : '',
     realized_date: record?.realized_date ? new Date(record.realized_date).toISOString() : '',
@@ -196,6 +197,10 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
                 {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+          </div>
+          <div>
+            <label className={labelClass}>Ciudad</label>
+            <input value={form.city} onChange={set('city')} placeholder="Ej. Bogotá, Ciudad de México..." className={inputClass} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

@@ -40,6 +40,7 @@ const FIELD_MAP = {
   ejecutivo: 'executive', executive: 'executive', responsable: 'executive', vendedor: 'executive',
   industria: 'industry', industry: 'industry', sector: 'industry',
   pais: 'country', país: 'country', country: 'country',
+  ciudad: 'city', city: 'city',
   fecha: 'contacted_at', contacted_at: 'contacted_at', fecha_contacto: 'contacted_at',
   fecha_reunion: 'meeting_date', meeting_date: 'meeting_date', fecha_reunión: 'meeting_date',
   fecha_programada: 'meeting_date', fecha_realizada: 'realized_date', realized_date: 'realized_date',
@@ -82,7 +83,7 @@ export default function B2bMeetings() {
   const [clientId, setClientId] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [records, setRecords] = useState([]);
-  const EMPTY_FILTERS = { search: '', status: '', country: '', executive: '', industry: '', dateFrom: '', dateTo: '' };
+  const EMPTY_FILTERS = { search: '', status: '', country: '', city: '', executive: '', industry: '', dateFrom: '', dateTo: '' };
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [error, setError] = useState('');
   const [importResult, setImportResult] = useState(null);
@@ -227,6 +228,7 @@ export default function B2bMeetings() {
 
   const normalizeCountry = (c) => (c || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const distinctExecutives = [...new Set(records.map((r) => r.executive).filter(Boolean))].sort();
+  const distinctCities = [...new Set(records.map((r) => r.city).filter(Boolean))].sort();
   const hasActiveFilters = Object.values(filters).some((v) => v !== '');
   const filteredRecords = records.filter((r) => {
     if (filters.search) {
@@ -235,6 +237,7 @@ export default function B2bMeetings() {
     }
     if (filters.status && r.status !== filters.status) return false;
     if (filters.country && normalizeCountry(r.country) !== normalizeCountry(filters.country)) return false;
+    if (filters.city && normalizeCountry(r.city) !== normalizeCountry(filters.city)) return false;
     if (filters.executive && r.executive !== filters.executive) return false;
     if (filters.industry && r.industry !== filters.industry) return false;
     if (filters.dateFrom && (!r.meeting_date || r.meeting_date < filters.dateFrom)) return false;
@@ -583,7 +586,7 @@ export default function B2bMeetings() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
                   <div className="text-sm font-manrope font-medium mb-4">Reuniones por industria</div>
                   <div className="space-y-2">
@@ -609,6 +612,20 @@ export default function B2bMeetings() {
                       </div>
                     ))}
                     {dashboard.by_country.length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
+                  </div>
+                </div>
+
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
+                  <div className="text-sm font-manrope font-medium mb-4">Reuniones por ciudad</div>
+                  <div className="space-y-2">
+                    {dashboard.by_city.map((row, i) => (
+                      <div key={row.name} className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                        <span className="text-xs text-brand-muted flex-1 truncate">{row.name}</span>
+                        <span className="text-xs font-tech">{row.count}</span>
+                      </div>
+                    ))}
+                    {dashboard.by_city.length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
                   </div>
                 </div>
               </div>
@@ -690,6 +707,13 @@ export default function B2bMeetings() {
               </select>
             </div>
             <div>
+              <label className="block text-[10px] text-brand-muted mb-1">Ciudad</label>
+              <select value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
+                <option value="">Todas</option>
+                {distinctCities.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
               <label className="block text-[10px] text-brand-muted mb-1">Industria</label>
               <select value={filters.industry} onChange={(e) => setFilters({ ...filters, industry: e.target.value })} className="px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
                 <option value="">Todas</option>
@@ -728,6 +752,7 @@ export default function B2bMeetings() {
                   <th className="px-4 py-3 font-manrope font-normal">Ejecutivo</th>
                   <th className="px-4 py-3 font-manrope font-normal">Industria</th>
                   <th className="px-4 py-3 font-manrope font-normal">País</th>
+                  <th className="px-4 py-3 font-manrope font-normal">Ciudad</th>
                   <th className="px-4 py-3 font-manrope font-normal">Fecha reunión</th>
                   <th className="px-4 py-3 font-manrope font-normal">Estado</th>
                   <th className="px-4 py-3"></th>
@@ -741,6 +766,7 @@ export default function B2bMeetings() {
                     <td className="px-4 py-3 text-brand-muted">{r.executive || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.industry || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.country || '—'}</td>
+                    <td className="px-4 py-3 text-brand-muted">{r.city || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted font-tech text-xs">{r.meeting_date ? new Date(r.meeting_date).toLocaleDateString() : '—'}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${STATUS_STYLE[r.status] || 'bg-brand-bg text-brand-muted'}`}>
