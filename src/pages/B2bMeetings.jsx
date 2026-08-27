@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, CalendarClock, History,
-  Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2, ChevronDown, MoreHorizontal,
+  Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2, ChevronDown, MoreHorizontal, Download,
 } from 'lucide-react';
 import B2bRecordModal, { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
 import DateTimePicker from '../components/DateTimePicker';
@@ -176,6 +176,11 @@ export default function B2bMeetings() {
     await navigator.clipboard?.writeText(url).catch(() => {});
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const openExportPdf = async () => {
+    const { token } = await api.post(`/api/b2b/clients/${clientId}/share-link`, {});
+    window.open(`${window.location.origin}/public/b2b/${token}`, '_blank');
   };
 
   const clearClientRecords = async () => {
@@ -477,9 +482,15 @@ export default function B2bMeetings() {
                 {actionsMenuOpen && (
                   <div onClick={(e) => e.stopPropagation()} className="absolute right-0 z-20 mt-1.5 w-56 bg-brand-bg border border-brand-border rounded-xl shadow-xl dropdown-in overflow-hidden">
                     <button
+                      onClick={() => { setActionsMenuOpen(false); openExportPdf(); }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-brand-panel transition"
+                    >
+                      <Download size={14} className="text-brand-muted flex-shrink-0" /> Exportar PDF
+                    </button>
+                    <button
                       onClick={() => { setActionsMenuOpen(false); exportToContacts(); }}
                       disabled={exporting}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-brand-panel transition disabled:opacity-50"
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-brand-panel transition disabled:opacity-50 border-t border-brand-border"
                     >
                       <ListPlus size={14} className="text-brand-muted flex-shrink-0" /> {exporting ? 'Enviando...' : 'Ver en Listas'}
                     </button>
