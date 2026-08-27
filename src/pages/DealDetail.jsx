@@ -222,6 +222,11 @@ export default function DealDetail() {
     return () => clearTimeout(t);
   }, [contactQuery, contactEditing, selectedContactPick]);
 
+  const [showLostModal, setShowLostModal] = useState(false);
+  const [lostReason, setLostReason] = useState('');
+  const [lostReasonOther, setLostReasonOther] = useState('');
+  const [losingDeal, setLosingDeal] = useState(false);
+
   if (loadError) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{loadError}</div>;
   if (loading || !deal) return <SkeletonPage />;
 
@@ -257,10 +262,6 @@ export default function DealDetail() {
     setPipelinePopoverOpen(false);
     refreshDeal();
   };
-  const [showLostModal, setShowLostModal] = useState(false);
-  const [lostReason, setLostReason] = useState('');
-  const [lostReasonOther, setLostReasonOther] = useState('');
-  const [losingDeal, setLosingDeal] = useState(false);
 
   const confirmMarkLost = async () => {
     const reason = lostReason === 'Otro' ? lostReasonOther.trim() : lostReason;
