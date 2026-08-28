@@ -141,6 +141,32 @@ export default function B2bMeetings() {
 
   const [addClientError, setAddClientError] = useState('');
   const [creatingCompany, setCreatingCompany] = useState(false);
+  const [editingClient, setEditingClient] = useState(null);
+  const [editClientForm, setEditClientForm] = useState({ name: '', industry: '', country: '' });
+  const [savingClient, setSavingClient] = useState(false);
+  const [editClientError, setEditClientError] = useState('');
+
+  const openEditClient = (c) => {
+    setEditingClient(c);
+    setEditClientForm({ name: c.name || '', industry: c.industry || '', country: c.country || '' });
+    setEditClientError('');
+    setClientMenuOpen(false);
+  };
+
+  const saveEditClient = async () => {
+    if (!editClientForm.name.trim()) { setEditClientError('El nombre no puede quedar vacío.'); return; }
+    setSavingClient(true);
+    setEditClientError('');
+    try {
+      await api.patch(`/api/companies/${editingClient.id}`, editClientForm);
+      const list = await api.get('/api/b2b/clients');
+      setClients(list);
+      setEditingClient(null);
+    } catch (err) {
+      setEditClientError(err.message || 'No se pudo guardar.');
+    }
+    setSavingClient(false);
+  };
 
   const addClient = async (companyId) => {
     setAddClientError('');
@@ -402,14 +428,22 @@ export default function B2bMeetings() {
             <div onClick={(e) => e.stopPropagation()} className="absolute z-20 mt-1.5 w-64 bg-brand-bg border border-brand-border rounded-xl shadow-xl dropdown-in overflow-hidden">
               <div className="max-h-64 overflow-y-auto py-1">
                 {clients.map((c) => (
-                  <button
+                  <div
                     key={c.id}
-                    onClick={() => { setClientId(c.id); setClientMenuOpen(false); }}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-brand-panel transition ${c.id === clientId ? 'text-brand-ice' : ''}`}
+                    className={`group flex items-center justify-between px-3 py-2 text-sm hover:bg-brand-panel transition ${c.id === clientId ? 'text-brand-ice' : ''}`}
                   >
-                    <span className="truncate">{c.name}</span>
-                    {c.id === clientId && <Check size={13} className="text-brand-violet flex-shrink-0" />}
-                  </button>
+                    <button onClick={() => { setClientId(c.id); setClientMenuOpen(false); }} className="flex-1 text-left truncate flex items-center gap-2">
+                      <span className="truncate">{c.name}</span>
+                      {c.id === clientId && <Check size={13} className="text-brand-violet flex-shrink-0" />}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openEditClient(c); }}
+                      className="icon-btn p-1 rounded text-brand-muted opacity-0 group-hover:opacity-100 hover:text-brand-ice transition flex-shrink-0"
+                      title="Editar marca"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                  </div>
                 ))}
                 {clients.length === 0 && <div className="px-3 py-3 text-xs text-brand-muted">Sin marcas todavía.</div>}
               </div>
@@ -846,6 +880,65 @@ export default function B2bMeetings() {
           onClose={() => setModalOpen(false)}
           onSaved={onSaved}
         />
+      )}
+
+      {editingClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 overlay-in" onClick={() => setEditingClient(null)} />
+          <div className="relative w-full max-w-sm bg-brand-panel border border-brand-border rounded-2xl shadow-2xl overflow-hidden modal-in">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-brand-border">
+              <span className="font-headline text-base font-semibold">Editar marca</span>
+              <button onClick={() => setEditingClient(null)} className="text-brand-muted hover:text-brand-white"><X size={18} /></button>
+            </div>
+            <div className="p-5 space-y-3">
+              {editClientError && (
+                <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+                  {editClientError}
+                </div>
+              )}
+              <div>
+                <label className="block text-xs text-brand-muted mb-1.5">Nombre</label>
+                <input
+                  autoFocus value={editClientForm.name}
+                  onChange={(e) => setEditClientForm({ ...editClientForm, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-brand-muted mb-1.5">Industria</label>
+                <select
+                  value={editClientForm.industry}
+                  onChange={(e) => setEditClientForm({ ...editClientForm, industry: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
+                >
+                  <option value="">Sin especificar</option>
+                  {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-brand-muted mb-1.5">País</label>
+                <select
+                  value={editClientForm.country}
+                  onChange={(e) => setEditClientForm({ ...editClientForm, country: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
+                >
+                  <option value="">Sin especificar</option>
+                  {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="p-4 border-t border-brand-border flex justify-end gap-2">
+              <button onClick={() => setEditingClient(null)} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">Cancelar</button>
+              <button
+                onClick={saveEditClient}
+                disabled={savingClient}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50"
+              >
+                {savingClient ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
