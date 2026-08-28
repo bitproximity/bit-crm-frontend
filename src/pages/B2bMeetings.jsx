@@ -139,14 +139,38 @@ export default function B2bMeetings() {
     return () => clearTimeout(t);
   }, [companySearch]);
 
+  const [addClientError, setAddClientError] = useState('');
+  const [creatingCompany, setCreatingCompany] = useState(false);
+
   const addClient = async (companyId) => {
-    await api.post('/api/b2b/clients', { company_id: companyId });
-    setShowAddClient(false);
-    setCompanySearch('');
-    setCompanyResults([]);
-    const list = await api.get('/api/b2b/clients');
-    setClients(list);
-    setClientId(companyId);
+    setAddClientError('');
+    try {
+      await api.post('/api/b2b/clients', { company_id: companyId });
+      setShowAddClient(false);
+      setCompanySearch('');
+      setCompanyResults([]);
+      const list = await api.get('/api/b2b/clients');
+      setClients(list);
+      setClientId(companyId);
+    } catch (err) {
+      setAddClientError(err.message || 'No se pudo agregar la marca.');
+    }
+  };
+
+  // La marca todavía no existe como Empresa en el CRM — se crea al vuelo y de una se
+  // agrega como cliente de Bit Prospect, en vez de obligar a ir primero a Empresas.
+  const createAndAddClient = async () => {
+    const name = companySearch.trim();
+    if (!name) return;
+    setCreatingCompany(true);
+    setAddClientError('');
+    try {
+      const company = await api.post('/api/companies', { name });
+      await addClient(company.id);
+    } catch (err) {
+      setAddClientError(err.message || 'No se pudo crear la empresa.');
+    }
+    setCreatingCompany(false);
   };
 
   const [mergeByCompany, setMergeByCompany] = useState(true);
@@ -391,7 +415,7 @@ export default function B2bMeetings() {
               </div>
               <div className="border-t border-brand-border">
                 <button
-                  onClick={() => { setShowAddClient(!showAddClient); setClientMenuOpen(false); }}
+                  onClick={() => { setShowAddClient(!showAddClient); setClientMenuOpen(false); setAddClientError(''); }}
                   className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-brand-ice hover:bg-brand-panel transition"
                 >
                   <Plus size={14} /> Agregar marca
@@ -430,6 +454,11 @@ export default function B2bMeetings() {
               className="w-full pl-9 pr-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
             />
           </div>
+          {addClientError && (
+            <div className="mt-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+              {addClientError}
+            </div>
+          )}
           {companyResults.length > 0 && (
             <div className="mt-1 bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden">
               {companyResults.map((c) => (
@@ -438,6 +467,15 @@ export default function B2bMeetings() {
                 </button>
               ))}
             </div>
+          )}
+          {companySearch.trim() && companyResults.length === 0 && (
+            <button
+              onClick={createAndAddClient}
+              disabled={creatingCompany}
+              className="mt-2 w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-brand-bg border border-dashed border-brand-border hover:border-brand-violet text-sm text-brand-ice transition disabled:opacity-50"
+            >
+              <Plus size={14} /> {creatingCompany ? 'Creando...' : `Crear "${companySearch.trim()}" como empresa nueva`}
+            </button>
           )}
         </div>
       )}
