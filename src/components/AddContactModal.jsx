@@ -6,12 +6,12 @@ import { INDUSTRY_OPTIONS, POSITION_OPTIONS, COUNTRY_OPTIONS } from './B2bRecord
 const PHONE_TYPES = ['Trabajo', 'Personal', 'Móvil', 'Otro'];
 const EMAIL_TYPES = ['Trabajo', 'Personal', 'Otro'];
 
-export default function AddContactModal({ onClose, onCreated }) {
+export default function AddContactModal({ onClose, onCreated, presetCompany }) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [companyQuery, setCompanyQuery] = useState('');
+  const [companyQuery, setCompanyQuery] = useState(presetCompany?.name || '');
   const [companyResults, setCompanyResults] = useState([]);
-  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedCompany, setSelectedCompany] = useState(presetCompany || null);
   const [industry, setIndustry] = useState('');
   const [country, setCountry] = useState('');
   const [position, setPosition] = useState('');

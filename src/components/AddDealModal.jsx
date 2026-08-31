@@ -6,7 +6,7 @@ import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS } from './B2bRecord
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
-export default function AddDealModal({ open, onClose, pipelines, pipelineId, onCreated, onImportClick }) {
+export default function AddDealModal({ open, onClose, pipelines, pipelineId, onCreated, onImportClick, presetCompany }) {
   const [title, setTitle] = useState('');
   const [value, setValue] = useState('');
   const [currency, setCurrency] = useState('USD');
@@ -23,9 +23,9 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
   const [contactPosition, setContactPosition] = useState('');
   const [contactCountry, setContactCountry] = useState('');
 
-  const [companyQuery, setCompanyQuery] = useState('');
+  const [companyQuery, setCompanyQuery] = useState(presetCompany?.name || '');
   const [companyResults, setCompanyResults] = useState([]);
-  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedCompany, setSelectedCompany] = useState(presetCompany || null);
   const [industry, setIndustry] = useState('');
 
   const [allTags, setAllTags] = useState([]);

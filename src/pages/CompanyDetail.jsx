@@ -2,11 +2,13 @@ import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ChevronLeft, Building2, MapPin, Users, DollarSign, Phone, Linkedin, FileText, Trash2 } from 'lucide-react';
+import { ChevronLeft, Building2, MapPin, Users, DollarSign, Phone, Linkedin, FileText, Trash2, Plus } from 'lucide-react';
 import EnrichButtons from '../components/EnrichButtons';
 import { useConfirm } from '../components/ConfirmModal';
 import { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
 import ContactDetailPanel from '../components/ContactDetailPanel';
+import AddContactModal from '../components/AddContactModal';
+import AddDealModal from '../components/AddDealModal';
 
 export default function CompanyDetail() {
   const { id } = useParams();
@@ -15,6 +17,10 @@ export default function CompanyDetail() {
   const [company, setCompany] = useState(null);
   const [editing, setEditing] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState(null);
+  const [showAddContact, setShowAddContact] = useState(false);
+  const [showAddDeal, setShowAddDeal] = useState(false);
+  const [pipelines, setPipelines] = useState([]);
+  const [exchangeRates, setExchangeRates] = useState({});
   const [form, setForm] = useState({ name: '', industry: '', country: '', company_type: 'otro' });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -32,6 +38,12 @@ export default function CompanyDetail() {
   }).catch((err) => { setError(err.message || 'No se pudo cargar la empresa.'); setLoading(false); });
 
   useEffect(() => { load(); }, [id]);
+  useEffect(() => { api.get('/api/pipelines').then(setPipelines).catch(() => setPipelines([])); }, []);
+  useEffect(() => {
+    api.get('/api/exchange-rates').then((rates) => {
+      setExchangeRates(Object.fromEntries(rates.map((r) => [r.currency, Number(r.rate_to_usd)])));
+    }).catch(() => {});
+  }, []);
 
   const save = async (e) => {
     e.preventDefault();
@@ -60,6 +72,11 @@ export default function CompanyDetail() {
   if (error) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{error}</div>;
   if (loading || !company) return <SkeletonPage />;
 
+  const toUsd = (value, currency) => Number(value || 0) * (exchangeRates[currency] ?? (currency === 'USD' || !currency ? 1 : 0));
+  const openDealsValue = Math.round(
+    (company.deals || []).filter((d) => !d.status || d.status === 'abierto').reduce((sum, d) => sum + toUsd(d.value, d.currency), 0)
+  );
+
   const inputClass = 'w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet';
   const labelClass = 'block text-xs text-brand-muted mb-1.5';
 
@@ -69,18 +86,23 @@ export default function CompanyDetail() {
         <ChevronLeft size={14} /> Empresas
       </Link>
 
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center flex-shrink-0">
             <Building2 size={22} />
           </div>
           <div>
             <h1 className="font-headline text-xl font-semibold">{company.name}</h1>
-            <div className="flex items-center gap-2 text-xs text-brand-muted mt-1">
+            <div className="flex items-center gap-2 text-xs text-brand-muted mt-1 flex-wrap">
               <span className="px-2 py-0.5 rounded-full bg-brand-violet/15 text-brand-ice font-tech">
                 {company.industry || 'Sin especificar'}
               </span>
               {company.country && <span className="flex items-center gap-1"><MapPin size={11} /> {company.country}</span>}
+              {openDealsValue > 0 && (
+                <span className="flex items-center gap-1 text-green-300">
+                  <DollarSign size={11} /> ${openDealsValue.toLocaleString()} en tratos abiertos
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -158,9 +180,14 @@ export default function CompanyDetail() {
         )}
 
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
-          <div className="flex items-center gap-2 mb-3">
-            <Users size={15} className="text-brand-muted" />
-            <span className="font-manrope font-medium text-sm">Contactos ({(company.contacts || []).length})</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Users size={15} className="text-brand-muted" />
+              <span className="font-manrope font-medium text-sm">Contactos ({(company.contacts || []).length})</span>
+            </div>
+            <button onClick={() => setShowAddContact(true)} className="icon-btn p-1 rounded text-brand-muted hover:text-brand-ice transition" title="Nuevo contacto">
+              <Plus size={15} />
+            </button>
           </div>
           <div className="space-y-2">
             {(company.contacts || []).map((c, i) => {
@@ -192,9 +219,14 @@ export default function CompanyDetail() {
         </div>
 
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
-          <div className="flex items-center gap-2 mb-3">
-            <DollarSign size={15} className="text-brand-muted" />
-            <span className="font-manrope font-medium text-sm">Tratos ({(company.deals || []).length})</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <DollarSign size={15} className="text-brand-muted" />
+              <span className="font-manrope font-medium text-sm">Tratos ({(company.deals || []).length})</span>
+            </div>
+            <button onClick={() => setShowAddDeal(true)} className="icon-btn p-1 rounded text-brand-muted hover:text-brand-ice transition" title="Nuevo trato">
+              <Plus size={15} />
+            </button>
           </div>
           <div className="space-y-2">
             {(company.deals || []).map((d, i) => (
@@ -223,6 +255,25 @@ export default function CompanyDetail() {
           onClose={() => setSelectedContactId(null)}
           onDeleted={() => { setSelectedContactId(null); load(); }}
           onSaved={load}
+        />
+      )}
+
+      {showAddContact && (
+        <AddContactModal
+          presetCompany={{ id: company.id, name: company.name }}
+          onClose={() => setShowAddContact(false)}
+          onCreated={() => { setShowAddContact(false); load(); }}
+        />
+      )}
+
+      {showAddDeal && (
+        <AddDealModal
+          open={showAddDeal}
+          pipelines={pipelines}
+          pipelineId={pipelines[0]?.id}
+          presetCompany={{ id: company.id, name: company.name, industry: company.industry }}
+          onClose={() => setShowAddDeal(false)}
+          onCreated={() => { setShowAddDeal(false); load(); }}
         />
       )}
     </div>
