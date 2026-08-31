@@ -159,20 +159,7 @@ export default function PublicB2bReport() {
           <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-8 print-card">
             <div className="text-sm font-manrope font-medium mb-1 print-text-black">Reuniones de reactivación</div>
             <p className="text-brand-muted text-xs mb-4 print-text-muted">Cuentas frías que se están retomando.</p>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <div className="text-brand-muted text-xs mb-1 print-text-muted">Total</div>
-                <div className="text-xl font-headline font-semibold print-text-black">{report.total_reactivations}</div>
-              </div>
-              <div>
-                <div className="text-brand-muted text-xs mb-1 print-text-muted">Programadas</div>
-                <div className="text-xl font-headline font-semibold text-brand-ice print-text-black">{report.total_reactivations_scheduled}</div>
-              </div>
-              <div>
-                <div className="text-brand-muted text-xs mb-1 print-text-muted">Realizadas</div>
-                <div className="text-xl font-headline font-semibold text-green-300 print-text-black">{report.total_reactivations_realized}</div>
-              </div>
-            </div>
+            <div className="text-2xl font-headline font-semibold text-orange-300 print-text-black">{report.total_reactivations}</div>
           </div>
         )}
 

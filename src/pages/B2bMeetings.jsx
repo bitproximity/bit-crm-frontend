@@ -621,9 +621,6 @@ export default function B2bMeetings() {
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
                   <div className="flex items-center gap-1.5 text-orange-300 text-xs mb-1"><RefreshCcw size={12} /> Reactivadas</div>
                   <div className="text-xl sm:text-2xl font-headline font-semibold text-orange-300 truncate">{dashboard.total_reactivations}</div>
-                  {dashboard.total_reactivations > 0 && (
-                    <div className="text-[10px] text-brand-muted font-tech mt-0.5">{dashboard.total_reactivations_scheduled} prog. · {dashboard.total_reactivations_realized} real.</div>
-                  )}
                 </div>
                 <div
                   onClick={() => document.getElementById('reuniones-por-mes')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
@@ -751,8 +748,7 @@ export default function B2bMeetings() {
                   const months = [...new Set([
                     ...dashboard.by_month_scheduled.map((r) => r.month),
                     ...dashboard.by_month_realized.map((r) => r.month),
-                    ...dashboard.by_month_reactivations_scheduled.map((r) => r.month),
-                    ...dashboard.by_month_reactivations_realized.map((r) => r.month),
+                    ...dashboard.by_month_reactivations.map((r) => r.month),
                   ])].sort();
                   if (months.length === 0) return <div className="text-brand-muted text-xs">Sin datos todavía.</div>;
                   const getCount = (arr, month) => arr.find((r) => r.month === month)?.count || 0;
@@ -760,7 +756,7 @@ export default function B2bMeetings() {
                     ...months.map((m) => Math.max(
                       getCount(dashboard.by_month_scheduled, m),
                       getCount(dashboard.by_month_realized, m),
-                      getCount(dashboard.by_month_reactivations_scheduled, m) + getCount(dashboard.by_month_reactivations_realized, m),
+                      getCount(dashboard.by_month_reactivations, m),
                     )),
                     1
                   );
@@ -770,7 +766,7 @@ export default function B2bMeetings() {
                         {months.map((month) => {
                           const scheduled = getCount(dashboard.by_month_scheduled, month);
                           const realized = getCount(dashboard.by_month_realized, month);
-                          const reactivated = getCount(dashboard.by_month_reactivations_scheduled, month) + getCount(dashboard.by_month_reactivations_realized, month);
+                          const reactivated = getCount(dashboard.by_month_reactivations, month);
                           return (
                             <div key={month} className="flex-1 flex flex-col items-center justify-end h-full min-w-[60px]">
                               <div className="flex items-end gap-1 w-full justify-center flex-1">
@@ -896,6 +892,7 @@ export default function B2bMeetings() {
                   <th className="px-4 py-3 font-manrope font-normal">Contacto</th>
                   <th className="px-4 py-3 font-manrope font-normal">Ejecutivo</th>
                   <th className="px-4 py-3 font-manrope font-normal">Comercial</th>
+                  <th className="px-4 py-3 font-manrope font-normal">F. reactivada</th>
                   <th className="px-4 py-3 font-manrope font-normal">Industria</th>
                   <th className="px-4 py-3 font-manrope font-normal">País</th>
                   <th className="px-4 py-3 font-manrope font-normal">Ciudad</th>
@@ -911,6 +908,7 @@ export default function B2bMeetings() {
                     <td className="px-4 py-3 text-brand-muted">{r.target_contact || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.executive || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.commercial || '—'}</td>
+                    <td className="px-4 py-3 text-orange-300 font-tech text-xs">{r.reactivated_date ? new Date(r.reactivated_date).toLocaleDateString() : '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.industry || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.country || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.city || '—'}</td>

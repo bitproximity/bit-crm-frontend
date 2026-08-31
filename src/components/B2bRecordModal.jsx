@@ -40,6 +40,7 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
     status: record?.status || 'contactado',
     meeting_date: record?.meeting_date ? new Date(record.meeting_date).toISOString() : '',
     realized_date: record?.realized_date ? new Date(record.realized_date).toISOString() : '',
+    reactivated_date: record?.reactivated_date ? new Date(record.reactivated_date).toISOString() : '',
     notes: record?.notes || '',
   });
   const [saving, setSaving] = useState(false);
@@ -62,6 +63,7 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
         ...form,
         meeting_date: form.meeting_date ? form.meeting_date.slice(0, 10) : null,
         realized_date: form.realized_date ? form.realized_date.slice(0, 10) : null,
+        reactivated_date: form.reactivated_date ? form.reactivated_date.slice(0, 10) : null,
       };
       if (record) {
         await api.patch(`/api/b2b/records/${record.id}`, payload);
@@ -219,6 +221,10 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
               <label className={labelClass}>Fecha realizada</label>
               <DateTimePicker value={form.realized_date} onChange={(v) => setForm({ ...form, realized_date: v })} className="w-full" />
             </div>
+          </div>
+          <div>
+            <label className={labelClass}>Fecha reactivada</label>
+            <DateTimePicker value={form.reactivated_date} onChange={(v) => setForm({ ...form, reactivated_date: v })} className="w-full" />
           </div>
           <div>
             <label className={labelClass}>Notas</label>
