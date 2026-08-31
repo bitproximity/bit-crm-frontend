@@ -69,6 +69,22 @@ export default function CompanyDetail() {
     }
   };
 
+  const deleteContactFromList = async (c) => {
+    const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'este contacto';
+    const ok = await confirm({
+      title: 'Eliminar contacto',
+      message: `¿Eliminar a "${fullName}"? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/api/contacts/${c.id}`);
+      load();
+    } catch (err) {
+      alert(err.message || 'No se pudo eliminar el contacto.');
+    }
+  };
+
   if (error) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{error}</div>;
   if (loading || !company) return <SkeletonPage />;
 
@@ -197,16 +213,23 @@ export default function CompanyDetail() {
                 <div
                   key={c.id}
                   onClick={() => setSelectedContactId(c.id)}
-                  className="flex items-center gap-2.5 text-sm bg-brand-bg rounded-lg px-3 py-2.5 cursor-pointer row-hover stagger-item"
+                  className="group flex items-center gap-2.5 text-sm bg-brand-bg rounded-lg px-3 py-2.5 cursor-pointer row-hover stagger-item"
                   style={{ animationDelay: `${Math.min(i, 15) * 25}ms` }}
                 >
                   <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center text-[10px] font-tech font-semibold flex-shrink-0">
                     {initials || '?'}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="truncate">{fullName || 'Sin nombre'}</div>
                     {c.email && <div className="text-xs text-brand-muted truncate">{c.email}</div>}
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteContactFromList(c); }}
+                    className="icon-btn p-1.5 rounded-lg text-brand-muted opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/10 transition flex-shrink-0"
+                    title="Eliminar contacto"
+                  >
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               );
             })}
