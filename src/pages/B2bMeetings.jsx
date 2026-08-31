@@ -659,7 +659,7 @@ export default function B2bMeetings() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
                   <div className="text-sm font-manrope font-medium mb-4">Reuniones por industria</div>
                   <div className="space-y-2">
@@ -715,7 +715,42 @@ export default function B2bMeetings() {
                     {dashboard.by_position.length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
                   </div>
                 </div>
+
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
+                  <div className="text-sm font-manrope font-medium mb-4">Reuniones por comercial</div>
+                  <div className="space-y-2">
+                    {dashboard.by_commercial.map((row, i) => (
+                      <div key={row.name} className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                        <span className="text-xs text-brand-muted flex-1 truncate">{row.name}</span>
+                        <span className="text-xs font-tech">{row.count}</span>
+                      </div>
+                    ))}
+                    {dashboard.by_commercial.length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
+                  </div>
+                </div>
               </div>
+
+              {dashboard.total_reactivations > 0 && (
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6">
+                  <div className="text-sm font-manrope font-medium mb-1">Reuniones de reactivación</div>
+                  <p className="text-brand-muted text-xs mb-4">Cuentas frías que se están retomando.</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <div className="text-brand-muted text-xs mb-1">Total</div>
+                      <div className="text-xl font-headline font-semibold">{dashboard.total_reactivations}</div>
+                    </div>
+                    <div>
+                      <div className="text-brand-muted text-xs mb-1">Programadas</div>
+                      <div className="text-xl font-headline font-semibold text-brand-ice">{dashboard.total_reactivations_scheduled}</div>
+                    </div>
+                    <div>
+                      <div className="text-brand-muted text-xs mb-1">Realizadas</div>
+                      <div className="text-xl font-headline font-semibold text-green-300">{dashboard.total_reactivations_realized}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6 min-w-0">
                 <div id="reuniones-por-mes" className="text-sm font-manrope font-medium mb-4">Reuniones por mes</div>
