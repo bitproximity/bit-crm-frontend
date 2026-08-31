@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
-import { Boxes, ChevronRight, ChevronDown, FolderKanban, Plus } from 'lucide-react';
+import { Boxes, ChevronRight, ChevronDown, FolderKanban, Plus, Trash2 } from 'lucide-react';
 
 const COLORS = ['#8500FF', '#E000FF', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6', '#ef4444'];
 
@@ -86,7 +86,7 @@ export default function Spaces() {
         <h1 className="font-headline text-xl font-semibold">Espacios</h1>
         <button
           onClick={() => setShowNewSpace(!showNewSpace)}
-          className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 rounded-lg text-sm flex items-center gap-1.5"
+          className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 rounded-lg text-sm font-medium flex items-center gap-1.5"
         >
           <Plus size={14} /> Nuevo espacio
         </button>
@@ -120,60 +120,76 @@ export default function Spaces() {
       )}
 
       <div className="space-y-2">
-        {spaces.map((s) => (
-          <div key={s.id} className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
+        {spaces.map((s, i) => (
+          <div
+            key={s.id}
+            className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden panel-depth stagger-item"
+            style={{ animationDelay: `${Math.min(i, 20) * 30}ms` }}
+          >
+            <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, ${s.color}, ${s.color}22)` }} />
             <div
               onClick={() => toggleExpand(s.id)}
-              className="flex items-center justify-between px-4 py-3 cursor-pointer row-hover"
+              className="flex items-center justify-between px-4 py-3.5 cursor-pointer row-hover group"
             >
-              <div className="flex items-center gap-2.5">
-                {expanded[s.id] ? <ChevronDown size={15} className="text-brand-muted" /> : <ChevronRight size={15} className="text-brand-muted" />}
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${s.color}25` }}>
-                  <Boxes size={14} style={{ color: s.color }} />
+              <div className="flex items-center gap-3">
+                <span className="text-brand-muted transition-transform" style={{ transform: expanded[s.id] ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
+                  <ChevronDown size={15} />
+                </span>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg" style={{ background: `linear-gradient(135deg, ${s.color}, ${s.color}99)`, boxShadow: `0 4px 12px ${s.color}30` }}>
+                  <Boxes size={16} className="text-white" />
                 </div>
-                <span className="font-manrope font-medium">{s.name}</span>
-                <span className="text-xs text-brand-muted font-tech">{s.project_count} proyectos</span>
+                <div>
+                  <div className="font-manrope font-medium">{s.name}</div>
+                  <span className="text-xs text-brand-muted font-tech">{s.project_count} proyecto{s.project_count === 1 ? '' : 's'}</span>
+                </div>
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); deleteSpace(s.id); }}
-                className="text-brand-muted hover:text-red-400 text-xs px-2"
+                className="icon-btn p-1.5 rounded-lg text-brand-muted opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/10 transition"
+                title="Eliminar espacio"
               >
-                Eliminar
+                <Trash2 size={14} />
               </button>
             </div>
 
             {expanded[s.id] && (
-              <div className="border-t border-brand-border p-3 space-y-1.5">
-                {(projectsBySpace[s.id] || []).map((p) => (
+              <div className="border-t border-brand-border p-3 space-y-1.5 dropdown-in">
+                {(projectsBySpace[s.id] || []).map((p, pi) => (
                   <div
                     key={p.id}
                     onClick={() => navigate(`/projects/${p.id}`)}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer row-hover"
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer row-hover stagger-item"
+                    style={{ animationDelay: `${Math.min(pi, 15) * 20}ms` }}
                   >
                     <div className="flex items-center gap-2.5">
-                      <FolderKanban size={14} className="text-brand-muted" />
+                      <span className="w-6 h-6 rounded-lg bg-brand-bg flex items-center justify-center flex-shrink-0">
+                        <FolderKanban size={12} className="text-brand-muted" />
+                      </span>
                       <span className="text-sm">{p.name}</span>
                     </div>
+                    <ChevronRight size={13} className="text-brand-muted" />
                   </div>
                 ))}
                 {(projectsBySpace[s.id] || []).length === 0 && (
-                  <div className="text-brand-muted text-xs px-3 py-2">Sin proyectos en este espacio todavía.</div>
+                  <div className="text-brand-muted text-xs px-3 py-3 text-center border border-dashed border-brand-border rounded-lg">
+                    Sin proyectos en este espacio todavía.
+                  </div>
                 )}
 
                 {newProjectFor === s.id ? (
-                  <form onSubmit={(e) => createProject(e, s.id)} className="flex gap-2 px-3 pt-2">
+                  <form onSubmit={(e) => createProject(e, s.id)} className="flex gap-2 px-1 pt-2">
                     <input
                       autoFocus placeholder="Nombre del proyecto" required
                       value={projectForm.name} onChange={(e) => setProjectForm({ ...projectForm, name: e.target.value })}
-                      className="flex-1 px-2 py-1.5 rounded bg-brand-bg border border-brand-border text-xs"
+                      className="flex-1 px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none focus:border-brand-violet"
                     />
-                    <button className="px-3 py-1.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded text-xs font-medium">Crear</button>
+                    <button className="px-3 py-1.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-xs font-medium">Crear</button>
                     <button type="button" onClick={() => setNewProjectFor(null)} className="text-xs text-brand-muted hover:underline">Cancelar</button>
                   </form>
                 ) : (
                   <button
                     onClick={() => setNewProjectFor(s.id)}
-                    className="flex items-center gap-1.5 text-xs text-brand-ice hover:underline px-3 pt-1"
+                    className="flex items-center gap-1.5 text-xs text-brand-ice hover:underline px-1 pt-1"
                   >
                     <Plus size={12} /> Añadir proyecto
                   </button>

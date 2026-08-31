@@ -140,30 +140,54 @@ export default function ProjectDetail() {
           </button>
         </div>
       </div>
-      <p className="text-brand-muted text-sm mb-6">{project.description || project.companies?.name}</p>
+      <p className="text-brand-muted text-sm mb-2">{project.description || project.companies?.name}</p>
+
+      {(project.tasks || []).length > 0 && (() => {
+        const total = project.tasks.length;
+        const done = tasksByStatus('completada').length;
+        const pct = Math.round((done / total) * 100);
+        return (
+          <div className="mb-6 max-w-sm">
+            <div className="flex justify-between text-xs text-brand-muted mb-1.5 font-tech">
+              <span>{done} de {total} tareas completadas</span>
+              <span>{pct}%</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-brand-violet to-green-400 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {STATUSES.map((status) => (
+        {STATUSES.map((status, colIndex) => (
           <div
             key={status.key}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => updateStatus(e.dataTransfer.getData('taskId'), status.key)}
-            className="bg-brand-panel/60 border border-brand-border rounded-xl p-3"
+            className="bg-brand-panel/60 border border-brand-border rounded-xl overflow-hidden stagger-item"
+            style={{ animationDelay: `${colIndex * 50}ms` }}
           >
+            <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, ${status.color}, ${status.color}22)` }} />
+            <div className="p-3">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-manrope font-medium">{status.label}</span>
+              <span className="flex items-center gap-2 text-sm font-manrope font-medium">
+                <span className={`w-2 h-2 rounded-full ${status.dot} flex-shrink-0`} />
+                {status.label}
+              </span>
               <span className="text-brand-muted font-tech text-xs bg-brand-bg px-2 py-0.5 rounded-full">
                 {tasksByStatus(status.key).length}
               </span>
             </div>
 
             <div className="space-y-2">
-              {tasksByStatus(status.key).map((task) => (
+              {tasksByStatus(status.key).map((task, ti) => (
                 <div
                   key={task.id}
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
-                  className="card-elevated rounded-lg p-2.5 cursor-pointer"
+                  className="card-elevated rounded-lg p-2.5 cursor-pointer stagger-item"
+                  style={{ animationDelay: `${Math.min(ti, 15) * 25}ms` }}
                 >
                   <div className="flex items-center gap-2" onClick={() => setSelectedTaskId(task.id)}>
                     {subtasksByParent[task.id]?.length > 0 && (
@@ -200,6 +224,7 @@ export default function ProjectDetail() {
             </div>
             <div className="mt-1 px-1">
               <InlineAddRow onSubmit={(title) => quickCreate(title, status.key)} />
+            </div>
             </div>
           </div>
         ))}

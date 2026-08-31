@@ -12,7 +12,7 @@ const STATUS_OPTIONS = [
   { key: 'no_interesado', label: 'No interesado' },
 ];
 
-export const INDUSTRY_OPTIONS = ['Restaurantes', 'Retail', 'Salud', 'Banca', 'Centros Comerciales', 'Educación', 'Entretenimiento', 'Hotelería', 'Automotriz', 'Gas & Oil', 'Servicios', 'Aseguradoras', 'Food & Beverage', 'Agrícola'];
+export const INDUSTRY_OPTIONS = ['Restaurantes', 'Retail', 'Salud', 'Banca', 'Centros Comerciales', 'Educación', 'Entretenimiento', 'Hotelería', 'Automotriz', 'Gas & Oil', 'Servicios', 'Aseguradoras', 'Food & Beverage', 'Agrícola', 'Supermercados', 'Retail Fashion', 'Energía', 'Puertos Marítimos', 'Gobierno'];
 
 export const COUNTRY_OPTIONS = [
   'Argentina', 'Bolivia', 'Chile', 'Colombia', 'Costa Rica', 'Ecuador',
