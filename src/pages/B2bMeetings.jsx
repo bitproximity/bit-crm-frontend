@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, CalendarClock, History,
-  Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2, ChevronDown, MoreHorizontal, Download,
+  Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2, ChevronDown, MoreHorizontal, Download, RefreshCcw,
 } from 'lucide-react';
 import B2bRecordModal, { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
 import DateTimePicker from '../components/DateTimePicker';
@@ -605,7 +605,7 @@ export default function B2bMeetings() {
 
           {dashboard && (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4 mb-6">
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
                   <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><Users size={12} /> Contactados</div>
                   <div className="text-xl sm:text-2xl font-headline font-semibold truncate">{dashboard.total_contacted}</div>
@@ -617,6 +617,13 @@ export default function B2bMeetings() {
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
                   <div className="flex items-center gap-1.5 text-green-300 text-xs mb-1"><CalendarCheck size={12} /> Realizadas</div>
                   <div className="text-xl sm:text-2xl font-headline font-semibold text-green-300 truncate">{dashboard.total_realized}</div>
+                </div>
+                <div className="bg-brand-panel border border-brand-border rounded-xl p-3 sm:p-4 panel-depth min-w-0">
+                  <div className="flex items-center gap-1.5 text-orange-300 text-xs mb-1"><RefreshCcw size={12} /> Reactivadas</div>
+                  <div className="text-xl sm:text-2xl font-headline font-semibold text-orange-300 truncate">{dashboard.total_reactivations}</div>
+                  {dashboard.total_reactivations > 0 && (
+                    <div className="text-[10px] text-brand-muted font-tech mt-0.5">{dashboard.total_reactivations_scheduled} prog. · {dashboard.total_reactivations_realized} real.</div>
+                  )}
                 </div>
                 <div
                   onClick={() => document.getElementById('reuniones-por-mes')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
@@ -731,47 +738,63 @@ export default function B2bMeetings() {
                 </div>
               </div>
 
-              {dashboard.total_reactivations > 0 && (
-                <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6">
-                  <div className="text-sm font-manrope font-medium mb-1">Reuniones de reactivación</div>
-                  <p className="text-brand-muted text-xs mb-4">Cuentas frías que se están retomando.</p>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <div className="text-brand-muted text-xs mb-1">Total</div>
-                      <div className="text-xl font-headline font-semibold">{dashboard.total_reactivations}</div>
-                    </div>
-                    <div>
-                      <div className="text-brand-muted text-xs mb-1">Programadas</div>
-                      <div className="text-xl font-headline font-semibold text-brand-ice">{dashboard.total_reactivations_scheduled}</div>
-                    </div>
-                    <div>
-                      <div className="text-brand-muted text-xs mb-1">Realizadas</div>
-                      <div className="text-xl font-headline font-semibold text-green-300">{dashboard.total_reactivations_realized}</div>
-                    </div>
+              <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6 min-w-0">
+                <div id="reuniones-por-mes" className="flex items-center justify-between mb-4">
+                  <div className="text-sm font-manrope font-medium">Reuniones por mes</div>
+                  <div className="flex items-center gap-3 text-[10px] text-brand-muted">
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-brand-ice" /> Programadas</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400" /> Realizadas</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-400" /> Reactivadas</span>
                   </div>
                 </div>
-              )}
-
-              <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6 min-w-0">
-                <div id="reuniones-por-mes" className="text-sm font-manrope font-medium mb-4">Reuniones por mes</div>
-                {dashboard.by_month.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <div className="flex items-end gap-1.5 h-32" style={{ minWidth: `${dashboard.by_month.length * 32}px` }}>
-                      {dashboard.by_month.map((row) => {
-                        const max = Math.max(...dashboard.by_month.map((r) => r.count), 1);
-                        return (
-                          <div key={row.month} className="flex-1 flex flex-col items-center justify-end h-full min-w-[24px]">
-                            <div className="text-[9px] text-brand-muted font-tech mb-1">{row.count}</div>
-                            <div className="w-full bg-gradient-to-t from-brand-violet to-brand-magenta rounded-t" style={{ height: `${(row.count / max) * 100}%` }} />
-                            <div className="text-[9px] text-brand-muted font-tech mt-1">{monthLabel(row.month)}</div>
-                          </div>
-                        );
-                      })}
+                {(() => {
+                  const months = [...new Set([
+                    ...dashboard.by_month_scheduled.map((r) => r.month),
+                    ...dashboard.by_month_realized.map((r) => r.month),
+                    ...dashboard.by_month_reactivations_scheduled.map((r) => r.month),
+                    ...dashboard.by_month_reactivations_realized.map((r) => r.month),
+                  ])].sort();
+                  if (months.length === 0) return <div className="text-brand-muted text-xs">Sin datos todavía.</div>;
+                  const getCount = (arr, month) => arr.find((r) => r.month === month)?.count || 0;
+                  const max = Math.max(
+                    ...months.map((m) => Math.max(
+                      getCount(dashboard.by_month_scheduled, m),
+                      getCount(dashboard.by_month_realized, m),
+                      getCount(dashboard.by_month_reactivations_scheduled, m) + getCount(dashboard.by_month_reactivations_realized, m),
+                    )),
+                    1
+                  );
+                  return (
+                    <div className="overflow-x-auto">
+                      <div className="flex items-end gap-3 h-36" style={{ minWidth: `${months.length * 70}px` }}>
+                        {months.map((month) => {
+                          const scheduled = getCount(dashboard.by_month_scheduled, month);
+                          const realized = getCount(dashboard.by_month_realized, month);
+                          const reactivated = getCount(dashboard.by_month_reactivations_scheduled, month) + getCount(dashboard.by_month_reactivations_realized, month);
+                          return (
+                            <div key={month} className="flex-1 flex flex-col items-center justify-end h-full min-w-[60px]">
+                              <div className="flex items-end gap-1 w-full justify-center flex-1">
+                                <div className="w-3 flex flex-col items-center justify-end h-full">
+                                  <div className="text-[8px] text-brand-muted font-tech mb-0.5">{scheduled || ''}</div>
+                                  <div className="w-full bg-brand-ice rounded-t" style={{ height: `${(scheduled / max) * 100}%`, minHeight: scheduled ? '3px' : 0 }} />
+                                </div>
+                                <div className="w-3 flex flex-col items-center justify-end h-full">
+                                  <div className="text-[8px] text-brand-muted font-tech mb-0.5">{realized || ''}</div>
+                                  <div className="w-full bg-green-400 rounded-t" style={{ height: `${(realized / max) * 100}%`, minHeight: realized ? '3px' : 0 }} />
+                                </div>
+                                <div className="w-3 flex flex-col items-center justify-end h-full">
+                                  <div className="text-[8px] text-brand-muted font-tech mb-0.5">{reactivated || ''}</div>
+                                  <div className="w-full bg-orange-400 rounded-t" style={{ height: `${(reactivated / max) * 100}%`, minHeight: reactivated ? '3px' : 0 }} />
+                                </div>
+                              </div>
+                              <div className="text-[9px] text-brand-muted font-tech mt-1.5">{monthLabel(month)}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-brand-muted text-xs">Sin datos todavía.</div>
-                )}
+                  );
+                })()}
               </div>
 
               {dashboard.by_person && dashboard.by_person.length > 0 && (
