@@ -366,8 +366,8 @@ export default function B2bMeetings() {
                     </tr>
                   </thead>
                   <tbody>
-                    {leaderboard.by_person.map((p, i) => {
-                      const detail = leaderboard.by_person_by_client.find((d) => d.name === p.name);
+                    {(leaderboard.by_person || []).map((p, i) => {
+                      const detail = (leaderboard.by_person_by_client || []).find((d) => d.name === p.name);
                       const isOpen = expandedPerson === p.name;
                       return (
                         <>
@@ -389,7 +389,7 @@ export default function B2bMeetings() {
                             <tr key={`${i}-detail`} className="bg-brand-bg/40">
                               <td colSpan={5} className="px-5 py-3">
                                 <div className="flex flex-wrap gap-2">
-                                  {detail.clients.map((c) => (
+                                  {(detail.clients || []).map((c) => (
                                     <div key={c.client} className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-xs">
                                       <span className="text-brand-white">{c.client}</span>
                                       <span className="text-brand-muted ml-2">{c.contacted} contactados · {c.meetings} reuniones</span>
@@ -402,7 +402,7 @@ export default function B2bMeetings() {
                         </>
                       );
                     })}
-                    {leaderboard.by_person.length === 0 && (
+                    {(leaderboard.by_person || []).length === 0 && (
                       <tr><td colSpan={5} className="px-5 py-10 text-center text-brand-muted text-sm">Sin datos cargados todavía por nadie del equipo.</td></tr>
                     )}
                   </tbody>
@@ -628,15 +628,15 @@ export default function B2bMeetings() {
                   title="Ver el detalle completo"
                 >
                   <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><History size={12} /> Histórico</div>
-                  {dashboard.by_month.length > 0 ? (
+                  {(dashboard.by_month || []).length > 0 ? (
                     <>
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-xl sm:text-2xl font-headline font-semibold truncate">
-                          {dashboard.by_month.reduce((sum, r) => sum + r.count, 0)}
+                          {(dashboard.by_month || []).reduce((sum, r) => sum + r.count, 0)}
                         </span>
-                        {dashboard.by_month.length >= 2 && (() => {
-                          const last = dashboard.by_month[dashboard.by_month.length - 1].count;
-                          const prev = dashboard.by_month[dashboard.by_month.length - 2].count;
+                        {(dashboard.by_month || []).length >= 2 && (() => {
+                          const last = (dashboard.by_month || [])[(dashboard.by_month || []).length - 1].count;
+                          const prev = (dashboard.by_month || [])[(dashboard.by_month || []).length - 2].count;
                           if (prev === 0) return null;
                           const diff = Math.round(((last - prev) / prev) * 100);
                           return (
@@ -647,8 +647,8 @@ export default function B2bMeetings() {
                         })()}
                       </div>
                       <div className="flex items-end gap-[2px] h-6 mt-1.5">
-                        {dashboard.by_month.slice(-12).map((row) => {
-                          const max = Math.max(...dashboard.by_month.map((r) => r.count), 1);
+                        {(dashboard.by_month || []).slice(-12).map((row) => {
+                          const max = Math.max(...(dashboard.by_month || []).map((r) => r.count), 1);
                           return <div key={row.month} title={`${row.month}: ${row.count}`} className="flex-1 bg-gradient-to-t from-brand-violet to-brand-magenta rounded-sm" style={{ height: `${Math.max((row.count / max) * 100, 6)}%` }} />;
                         })}
                       </div>
@@ -667,70 +667,70 @@ export default function B2bMeetings() {
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
                   <div className="text-sm font-manrope font-medium mb-4">Reuniones por industria</div>
                   <div className="space-y-2">
-                    {dashboard.by_industry.map((row, i) => (
+                    {(dashboard.by_industry || []).map((row, i) => (
                       <div key={row.name} className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                         <span className="text-xs text-brand-muted flex-1 truncate">{row.name}</span>
                         <span className="text-xs font-tech">{row.count}</span>
                       </div>
                     ))}
-                    {dashboard.by_industry.length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
+                    {(dashboard.by_industry || []).length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
                   </div>
                 </div>
 
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
                   <div className="text-sm font-manrope font-medium mb-4">Reuniones por país</div>
                   <div className="space-y-2">
-                    {dashboard.by_country.map((row, i) => (
+                    {(dashboard.by_country || []).map((row, i) => (
                       <div key={row.name} className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                         <span className="text-xs text-brand-muted flex-1 truncate">{row.name}</span>
                         <span className="text-xs font-tech">{row.count}</span>
                       </div>
                     ))}
-                    {dashboard.by_country.length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
+                    {(dashboard.by_country || []).length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
                   </div>
                 </div>
 
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
                   <div className="text-sm font-manrope font-medium mb-4">Reuniones por ciudad</div>
                   <div className="space-y-2">
-                    {dashboard.by_city.map((row, i) => (
+                    {(dashboard.by_city || []).map((row, i) => (
                       <div key={row.name} className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                         <span className="text-xs text-brand-muted flex-1 truncate">{row.name}</span>
                         <span className="text-xs font-tech">{row.count}</span>
                       </div>
                     ))}
-                    {dashboard.by_city.length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
+                    {(dashboard.by_city || []).length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
                   </div>
                 </div>
 
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
                   <div className="text-sm font-manrope font-medium mb-4">Reuniones por cargo</div>
                   <div className="space-y-2">
-                    {dashboard.by_position.map((row, i) => (
+                    {(dashboard.by_position || []).map((row, i) => (
                       <div key={row.name} className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                         <span className="text-xs text-brand-muted flex-1 truncate">{row.name}</span>
                         <span className="text-xs font-tech">{row.count}</span>
                       </div>
                     ))}
-                    {dashboard.by_position.length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
+                    {(dashboard.by_position || []).length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
                   </div>
                 </div>
 
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-5 min-w-0">
                   <div className="text-sm font-manrope font-medium mb-4">Reuniones por comercial</div>
                   <div className="space-y-2">
-                    {dashboard.by_commercial.map((row, i) => (
+                    {(dashboard.by_commercial || []).map((row, i) => (
                       <div key={row.name} className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                         <span className="text-xs text-brand-muted flex-1 truncate">{row.name}</span>
                         <span className="text-xs font-tech">{row.count}</span>
                       </div>
                     ))}
-                    {dashboard.by_commercial.length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
+                    {(dashboard.by_commercial || []).length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
                   </div>
                 </div>
               </div>
@@ -746,17 +746,17 @@ export default function B2bMeetings() {
                 </div>
                 {(() => {
                   const months = [...new Set([
-                    ...dashboard.by_month_scheduled.map((r) => r.month),
-                    ...dashboard.by_month_realized.map((r) => r.month),
-                    ...dashboard.by_month_reactivations.map((r) => r.month),
+                    ...(dashboard.by_month_scheduled || []).map((r) => r.month),
+                    ...(dashboard.by_month_realized || []).map((r) => r.month),
+                    ...(dashboard.by_month_reactivations || []).map((r) => r.month),
                   ])].sort();
                   if (months.length === 0) return <div className="text-brand-muted text-xs">Sin datos todavía.</div>;
                   const getCount = (arr, month) => arr.find((r) => r.month === month)?.count || 0;
                   const max = Math.max(
                     ...months.map((m) => Math.max(
-                      getCount(dashboard.by_month_scheduled, m),
-                      getCount(dashboard.by_month_realized, m),
-                      getCount(dashboard.by_month_reactivations, m),
+                      getCount(dashboard.by_month_scheduled || [], m),
+                      getCount(dashboard.by_month_realized || [], m),
+                      getCount(dashboard.by_month_reactivations || [], m),
                     )),
                     1
                   );
@@ -764,9 +764,9 @@ export default function B2bMeetings() {
                     <div className="overflow-x-auto">
                       <div className="flex items-end gap-3 h-36" style={{ minWidth: `${months.length * 70}px` }}>
                         {months.map((month) => {
-                          const scheduled = getCount(dashboard.by_month_scheduled, month);
-                          const realized = getCount(dashboard.by_month_realized, month);
-                          const reactivated = getCount(dashboard.by_month_reactivations, month);
+                          const scheduled = getCount(dashboard.by_month_scheduled || [], month);
+                          const realized = getCount(dashboard.by_month_realized || [], month);
+                          const reactivated = getCount(dashboard.by_month_reactivations || [], month);
                           return (
                             <div key={month} className="flex-1 flex flex-col items-center justify-end h-full min-w-[60px]">
                               <div className="flex items-end gap-1 w-full justify-center flex-1">
@@ -793,7 +793,7 @@ export default function B2bMeetings() {
                 })()}
               </div>
 
-              {dashboard.by_person && dashboard.by_person.length > 0 && (
+              {dashboard.by_person && (dashboard.by_person || []).length > 0 && (
                 <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden mb-6">
                   <div className="px-5 py-4 border-b border-brand-border flex items-center gap-2">
                     <Users size={15} className="text-brand-ice" />
@@ -809,7 +809,7 @@ export default function B2bMeetings() {
                       </tr>
                     </thead>
                     <tbody>
-                      {dashboard.by_person.map((p, i) => (
+                      {(dashboard.by_person || []).map((p, i) => (
                         <tr key={i} className="border-t border-brand-border">
                           <td className="px-5 py-2.5">{p.name}</td>
                           <td className="px-5 py-2.5 text-brand-muted font-tech">{p.contacted}</td>
