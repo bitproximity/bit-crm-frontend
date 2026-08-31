@@ -98,6 +98,7 @@ export default function DealDetail() {
   const [savingPipeline, setSavingPipeline] = useState(false);
 
   const [noteText, setNoteText] = useState('');
+  const [noteMentionQuery, setNoteMentionQuery] = useState(null);
   const [activityForm, setActivityForm] = useState({ type: 'llamada', title: '', due_date: '' });
   const [activityCalendarWarning, setActivityCalendarWarning] = useState('');
   const [editingActivityId, setEditingActivityId] = useState(null);
@@ -300,11 +301,31 @@ export default function DealDetail() {
     navigate('/deals');
   };
 
+  const onNoteTextChange = (e) => {
+    const value = e.target.value;
+    setNoteText(value);
+    const cursor = e.target.selectionStart;
+    const beforeCursor = value.slice(0, cursor);
+    const match = beforeCursor.match(/@([a-zA-ZÀ-ÿ]*)$/);
+    setNoteMentionQuery(match ? match[1] : null);
+  };
+
+  const insertNoteMention = (member) => {
+    const beforeMention = noteText.replace(/@([a-zA-ZÀ-ÿ]*)$/, '');
+    setNoteText(`${beforeMention}@${member.full_name} `);
+    setNoteMentionQuery(null);
+  };
+
+  const noteMentionResults = noteMentionQuery !== null
+    ? team.filter((m) => m.full_name.toLowerCase().includes(noteMentionQuery.toLowerCase())).slice(0, 5)
+    : [];
+
   const addNote = async (e) => {
     e.preventDefault();
     if (!noteText.trim()) return;
     await api.post('/api/activities', { entity_type: 'deal', entity_id: id, type: 'nota', summary: noteText, title: noteText.slice(0, 60) });
     setNoteText('');
+    setNoteMentionQuery(null);
     refreshDeal();
   };
 
@@ -968,8 +989,27 @@ export default function DealDetail() {
 
           {tab === 'notas' && (
             <div className="mb-6">
-              <form onSubmit={addNote} className="flex gap-2 mb-4">
-                <input value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Toma una nota..." className={`${inputClass} flex-1`} />
+              <form onSubmit={addNote} className="relative flex gap-2 mb-4">
+                <input
+                  value={noteText}
+                  onChange={onNoteTextChange}
+                  placeholder="Toma una nota... (usa @ para mencionar a alguien)"
+                  className={`${inputClass} flex-1`}
+                />
+                {noteMentionResults.length > 0 && (
+                  <div className="absolute z-10 top-full mt-1 left-0 w-64 bg-brand-bg border border-brand-border rounded-lg shadow-xl dropdown-in overflow-hidden">
+                    {noteMentionResults.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => insertNoteMention(m)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition"
+                      >
+                        {m.full_name}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">Agregar</button>
               </form>
               <div className="space-y-2">
