@@ -8,6 +8,7 @@ const STATUS_OPTIONS = [
   { key: 'contactado', label: 'Contactado' },
   { key: 'reunion_agendada', label: 'Reunión agendada' },
   { key: 'reunion_realizada', label: 'Reunión realizada' },
+  { key: 'reunion_reactivacion', label: 'Reunión de reactivación' },
   { key: 'no_interesado', label: 'No interesado' },
 ];
 
@@ -35,6 +36,7 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
     industry: record?.industry || '',
     country: record?.country || '',
     city: record?.city || '',
+    commercial: record?.commercial || '',
     status: record?.status || 'contactado',
     meeting_date: record?.meeting_date ? new Date(record.meeting_date).toISOString() : '',
     realized_date: record?.realized_date ? new Date(record.realized_date).toISOString() : '',
@@ -147,7 +149,7 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
                 value={form.status}
                 onChange={(e) => {
                   const status = e.target.value;
-                  const shouldPrefillRealized = status === 'reunion_realizada' && !form.realized_date;
+                  const shouldPrefillRealized = (status === 'reunion_realizada' || status === 'reunion_reactivacion') && !form.realized_date;
                   setForm({ ...form, status, realized_date: shouldPrefillRealized ? new Date().toISOString() : form.realized_date });
                 }}
                 className={inputClass}
@@ -198,9 +200,15 @@ export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
               </select>
             </div>
           </div>
-          <div>
-            <label className={labelClass}>Ciudad</label>
-            <input value={form.city} onChange={set('city')} placeholder="Ej. Bogotá, Ciudad de México..." className={inputClass} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Ciudad</label>
+              <input value={form.city} onChange={set('city')} placeholder="Ej. Bogotá, Ciudad de México..." className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Comercial</label>
+              <input value={form.commercial} onChange={set('commercial')} placeholder="Nombre de quien gestionó" className={inputClass} />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

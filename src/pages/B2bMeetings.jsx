@@ -38,6 +38,7 @@ const FIELD_MAP = {
   correo: 'target_email', email: 'target_email', mail: 'target_email',
   numero: 'target_phone', número: 'target_phone', telefono: 'target_phone', teléfono: 'target_phone', celular: 'target_phone',
   ejecutivo: 'executive', executive: 'executive', responsable: 'executive', vendedor: 'executive',
+  comercial: 'commercial',
   industria: 'industry', industry: 'industry', sector: 'industry',
   pais: 'country', país: 'country', country: 'country',
   ciudad: 'city', city: 'city',
@@ -836,6 +837,7 @@ export default function B2bMeetings() {
                   <th className="px-4 py-3 font-manrope font-normal">Empresa</th>
                   <th className="px-4 py-3 font-manrope font-normal">Contacto</th>
                   <th className="px-4 py-3 font-manrope font-normal">Ejecutivo</th>
+                  <th className="px-4 py-3 font-manrope font-normal">Comercial</th>
                   <th className="px-4 py-3 font-manrope font-normal">Industria</th>
                   <th className="px-4 py-3 font-manrope font-normal">País</th>
                   <th className="px-4 py-3 font-manrope font-normal">Ciudad</th>
@@ -850,6 +852,7 @@ export default function B2bMeetings() {
                     <td className="px-4 py-3">{r.target_company}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.target_contact || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.executive || '—'}</td>
+                    <td className="px-4 py-3 text-brand-muted">{r.commercial || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.industry || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.country || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.city || '—'}</td>
