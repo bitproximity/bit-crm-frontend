@@ -5,6 +5,7 @@ import {
   Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2, ChevronDown, MoreHorizontal, Download, RefreshCcw,
 } from 'lucide-react';
 import B2bRecordModal, { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
+import MeetingsByMonthChart from '../components/MeetingsByMonthChart';
 import DateTimePicker from '../components/DateTimePicker';
 import { useConfirm } from '../components/ConfirmModal';
 
@@ -735,62 +736,12 @@ export default function B2bMeetings() {
                 </div>
               </div>
 
-              <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6 min-w-0">
-                <div id="reuniones-por-mes" className="flex items-center justify-between mb-4">
-                  <div className="text-sm font-manrope font-medium">Reuniones por mes</div>
-                  <div className="flex items-center gap-3 text-[10px] text-brand-muted">
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-brand-ice" /> Programadas</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400" /> Realizadas</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-400" /> Reactivadas</span>
-                  </div>
-                </div>
-                {(() => {
-                  const months = [...new Set([
-                    ...(dashboard.by_month_scheduled || []).map((r) => r.month),
-                    ...(dashboard.by_month_realized || []).map((r) => r.month),
-                    ...(dashboard.by_month_reactivations || []).map((r) => r.month),
-                  ])].sort();
-                  if (months.length === 0) return <div className="text-brand-muted text-xs">Sin datos todavía.</div>;
-                  const getCount = (arr, month) => arr.find((r) => r.month === month)?.count || 0;
-                  const max = Math.max(
-                    ...months.map((m) => Math.max(
-                      getCount(dashboard.by_month_scheduled || [], m),
-                      getCount(dashboard.by_month_realized || [], m),
-                      getCount(dashboard.by_month_reactivations || [], m),
-                    )),
-                    1
-                  );
-                  return (
-                    <div className="overflow-x-auto">
-                      <div className="flex items-end gap-3 h-36" style={{ minWidth: `${months.length * 70}px` }}>
-                        {months.map((month) => {
-                          const scheduled = getCount(dashboard.by_month_scheduled || [], month);
-                          const realized = getCount(dashboard.by_month_realized || [], month);
-                          const reactivated = getCount(dashboard.by_month_reactivations || [], month);
-                          return (
-                            <div key={month} className="flex-1 flex flex-col items-center justify-end h-full min-w-[60px]">
-                              <div className="flex items-end gap-1 w-full justify-center flex-1">
-                                <div className="w-3 flex flex-col items-center justify-end h-full">
-                                  <div className="text-[8px] text-brand-muted font-tech mb-0.5">{scheduled || ''}</div>
-                                  <div className="w-full bg-brand-ice rounded-t" style={{ height: `${(scheduled / max) * 100}%`, minHeight: scheduled ? '3px' : 0 }} />
-                                </div>
-                                <div className="w-3 flex flex-col items-center justify-end h-full">
-                                  <div className="text-[8px] text-brand-muted font-tech mb-0.5">{realized || ''}</div>
-                                  <div className="w-full bg-green-400 rounded-t" style={{ height: `${(realized / max) * 100}%`, minHeight: realized ? '3px' : 0 }} />
-                                </div>
-                                <div className="w-3 flex flex-col items-center justify-end h-full">
-                                  <div className="text-[8px] text-brand-muted font-tech mb-0.5">{reactivated || ''}</div>
-                                  <div className="w-full bg-orange-400 rounded-t" style={{ height: `${(reactivated / max) * 100}%`, minHeight: reactivated ? '3px' : 0 }} />
-                                </div>
-                              </div>
-                              <div className="text-[9px] text-brand-muted font-tech mt-1.5">{monthLabel(month)}</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
+              <div id="reuniones-por-mes" className="mb-6">
+                <MeetingsByMonthChart
+                  scheduled={dashboard.by_month_scheduled || []}
+                  realized={dashboard.by_month_realized || []}
+                  reactivated={dashboard.by_month_reactivations || []}
+                />
               </div>
 
               {dashboard.by_person && (dashboard.by_person || []).length > 0 && (

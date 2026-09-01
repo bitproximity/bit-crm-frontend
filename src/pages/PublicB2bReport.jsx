@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Users, TrendingUp, Percent, CalendarCheck, Download } from 'lucide-react';
+import MeetingsByMonthChart from '../components/MeetingsByMonthChart';
 
 export default function PublicB2bReport() {
   const { token } = useParams();
@@ -162,6 +163,15 @@ export default function PublicB2bReport() {
             <div className="text-2xl font-headline font-semibold text-orange-300 print-text-black">{report.total_reactivations}</div>
           </div>
         )}
+
+        <div className="mb-8 print:break-inside-avoid">
+          <MeetingsByMonthChart
+            scheduled={report.by_month_scheduled || []}
+            realized={report.by_month_realized || []}
+            reactivated={report.by_month_reactivations || []}
+            printMode
+          />
+        </div>
 
         <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden print-card">
           <table className="w-full text-sm">
