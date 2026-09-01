@@ -1,8 +1,9 @@
 import { SkeletonPage } from '../components/Skeleton';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Percent, TrendingUp, Filter, Gauge, Package2, ListChecks, Activity, Users, Clock, PieChart, DollarSign, Trophy, Globe, Briefcase } from 'lucide-react';
+import { colorForName } from '../lib/avatar';
 
 function Bar({ label, value, max, suffix = '', prefix = '' }) {
   const pct = max ? Math.round((value / max) * 100) : 0;
@@ -126,13 +127,20 @@ export default function Metrics() {
             </div>
             {(() => {
               const pipelineNames = dashboard.pipelines.map((p) => p.name);
-              const COLORS = ['#8500FF', '#E000FF', '#D9F6FF', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6'];
-              const colorByPipeline = Object.fromEntries(pipelineNames.map((n, i) => [n, COLORS[i % COLORS.length]]));
-              const max = Math.max(...dashboard.deals_by_month.map((m) => m.total), 1);
+              const colorByPipeline = Object.fromEntries(pipelineNames.map((n) => [n, colorForName(n)]));
+              // FIX "huecos": no tiene sentido mostrar sep-dic vacíos cuando todavía no llegan —
+              // son meses futuros del año en curso, no ceros reales. Se recortan del gráfico
+              // (si se está viendo un año pasado, sí se muestran los 12 completos).
+              const isCurrentYear = dashboard.year === new Date().getFullYear();
+              const currentMonthKey = dashboard.deals_by_month.find((x) => x.is_current_month)?.month;
+              const visibleMonths = isCurrentYear && currentMonthKey
+                ? dashboard.deals_by_month.filter((m) => m.month <= currentMonthKey)
+                : dashboard.deals_by_month;
+              const max = Math.max(...visibleMonths.map((m) => m.total), 1);
               return (
                 <>
                   <div className="flex items-end gap-2 h-48">
-                    {dashboard.deals_by_month.map((m) => (
+                    {visibleMonths.map((m) => (
                       <div
                         key={m.month}
                         onClick={() => m.total > 0 && navigate(dealsListUrl({ status: 'abierto,ganado,perdido', created_month: m.month }))}
@@ -141,7 +149,10 @@ export default function Metrics() {
                         {m.total > 0 && (
                           <div className="text-[10px] text-brand-muted font-tech mb-1 group-hover:text-brand-ice transition">${(m.total / 1000).toFixed(1)}K</div>
                         )}
-                        <div className={`w-full flex flex-col-reverse rounded-t-md overflow-hidden transition ${m.total > 0 ? 'group-hover:opacity-80' : ''}`} style={{ height: `${Math.max((m.total / max) * 100, m.total > 0 ? 3 : 0)}%` }}>
+                        <div
+                          className={`w-full flex flex-col-reverse rounded-t-md overflow-hidden transition ${m.total > 0 ? 'group-hover:opacity-80' : ''} ${m.is_current_month ? 'outline outline-1 outline-brand-ice/40' : ''}`}
+                          style={{ height: `${Math.max((m.total / max) * 100, m.total > 0 ? 3 : 0)}%` }}
+                        >
                           {Object.entries(m.by_pipeline).map(([pName, val]) => (
                             <div
                               key={pName}
@@ -154,10 +165,15 @@ export default function Metrics() {
                     ))}
                   </div>
                   <div className="flex justify-between mt-2">
-                    {dashboard.deals_by_month.map((m) => (
-                      <div key={m.month} className="flex-1 text-center text-[10px] text-brand-muted font-tech">{m.label}</div>
+                    {visibleMonths.map((m) => (
+                      <div key={m.month} className={`flex-1 text-center text-[10px] font-tech ${m.is_current_month ? 'text-brand-ice' : 'text-brand-muted'}`}>
+                        {m.label}{m.is_current_month ? ' •' : ''}
+                      </div>
                     ))}
                   </div>
+                  {visibleMonths.some((m) => m.is_current_month) && (
+                    <div className="text-[10px] text-brand-muted mt-1">• mes en curso, todavía no termina</div>
+                  )}
                   <div className="flex flex-wrap gap-x-3 gap-y-1 mt-4">
                     {pipelineNames.map((n) => (
                       <div key={n} className="flex items-center gap-1.5 text-xs text-brand-muted">
@@ -183,6 +199,20 @@ export default function Metrics() {
               <div className="text-3xl font-headline font-semibold">{dashboard.deal_duration_avg_days} días</div>
               <div className="text-xs text-brand-muted mt-2">Duración promedio (días)</div>
             </div>
+            {/* Se agrega el desglose ganados vs. perdidos — antes este panel quedaba con mucho
+                espacio vacío alrededor de un solo número, y esta comparación es información
+                accionable: si los perdidos tardan más que los ganados, se está tardando
+                demasiado en descartar tratos que no van a avanzar. */}
+            <div className="grid grid-cols-2 gap-3 pt-4 mt-4 border-t border-brand-border">
+              <div className="text-center">
+                <div className="text-lg font-headline font-semibold text-green-400">{dashboard.deal_duration_avg_days_won}d</div>
+                <div className="text-[11px] text-brand-muted mt-0.5">Ganados</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-headline font-semibold text-red-400">{dashboard.deal_duration_avg_days_lost}d</div>
+                <div className="text-[11px] text-brand-muted mt-0.5">Perdidos</div>
+              </div>
+            </div>
           </div>
 
           {/* Deals lost by reasons */}
@@ -193,12 +223,11 @@ export default function Metrics() {
             {dashboard.lost_total === 0 ? (
               <div className="text-brand-muted text-sm">Sin tratos perdidos todavía.</div>
             ) : (() => {
-              const COLORS = ['#f59e0b', '#ef4444', '#8500FF', '#3b82f6', '#22c55e', '#ec4899'];
               let cumulative = 0;
-              const gradientParts = dashboard.deals_lost_by_reason.map((r, i) => {
+              const gradientParts = dashboard.deals_lost_by_reason.map((r) => {
                 const start = cumulative;
                 cumulative += r.pct;
-                return `${COLORS[i % COLORS.length]} ${start}% ${cumulative}%`;
+                return `${colorForName(r.reason)} ${start}% ${cumulative}%`;
               });
               return (
                 <div className="flex items-center gap-4">
@@ -207,13 +236,13 @@ export default function Metrics() {
                     style={{ background: `conic-gradient(${gradientParts.join(', ')})` }}
                   />
                   <div className="space-y-1.5 min-w-0">
-                    {dashboard.deals_lost_by_reason.map((r, i) => (
+                    {dashboard.deals_lost_by_reason.map((r) => (
                       <div
                         key={r.reason}
                         onClick={() => navigate(dealsListUrl({ status: 'perdido', lost_reason: r.reason }))}
                         className="flex items-center gap-1.5 text-xs cursor-pointer hover:bg-brand-bg rounded px-1 -mx-1 py-0.5 transition"
                       >
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: colorForName(r.reason) }} />
                         <span className="text-brand-muted truncate">{r.reason}</span>
                         <span className="text-brand-white font-tech flex-shrink-0">{r.count}</span>
                       </div>
@@ -248,11 +277,16 @@ export default function Metrics() {
               <TrendingUp size={15} className="text-brand-muted" /> Tratos ganados a lo largo del tiempo
             </div>
             {(() => {
-              const max = Math.max(...dashboard.deals_won_by_month.map((m) => m.value), 1);
+              const isCurrentYear = dashboard.year === new Date().getFullYear();
+              const currentMonthKey = dashboard.deals_won_by_month.find((x) => x.is_current_month)?.month;
+              const visibleMonths = isCurrentYear && currentMonthKey
+                ? dashboard.deals_won_by_month.filter((m) => m.month <= currentMonthKey)
+                : dashboard.deals_won_by_month;
+              const max = Math.max(...visibleMonths.map((m) => m.value), 1);
               return (
                 <>
                   <div className="flex items-end gap-2 h-40">
-                    {dashboard.deals_won_by_month.map((m) => (
+                    {visibleMonths.map((m) => (
                       <div
                         key={m.month}
                         onClick={() => m.value > 0 && navigate(dealsListUrl({ status: 'ganado', closed_month: m.month }))}
@@ -260,15 +294,15 @@ export default function Metrics() {
                       >
                         {m.value > 0 && <div className="text-[10px] text-brand-muted font-tech mb-1 group-hover:text-brand-ice transition">${(m.value / 1000).toFixed(1)}K</div>}
                         <div
-                          className="w-full bg-gradient-to-t from-brand-violet to-brand-magenta rounded-t-md group-hover:opacity-80 transition"
+                          className={`w-full bg-gradient-to-t from-brand-violet to-brand-magenta rounded-t-md group-hover:opacity-80 transition ${m.is_current_month ? 'outline outline-1 outline-brand-ice/40' : ''}`}
                           style={{ height: `${Math.max((m.value / max) * 100, m.value > 0 ? 3 : 0)}%` }}
                         />
                       </div>
                     ))}
                   </div>
                   <div className="flex justify-between mt-2">
-                    {dashboard.deals_won_by_month.map((m) => (
-                      <div key={m.month} className="flex-1 text-center text-[10px] text-brand-muted font-tech">{m.label}</div>
+                    {visibleMonths.map((m) => (
+                      <div key={m.month} className={`flex-1 text-center text-[10px] font-tech ${m.is_current_month ? 'text-brand-ice' : 'text-brand-muted'}`}>{m.label}</div>
                     ))}
                   </div>
                 </>
@@ -451,9 +485,8 @@ export default function Metrics() {
                   {productMetrics.products.map((p, i) => {
                     const isOpen = expandedProduct === p.name;
                     return (
-                      <>
+                      <Fragment key={p.product_id || p.name}>
                         <tr
-                          key={p.product_id || p.name}
                           onClick={() => setExpandedProduct(isOpen ? null : p.name)}
                           className="border-t border-brand-border cursor-pointer row-hover"
                         >
@@ -466,7 +499,7 @@ export default function Metrics() {
                           <td className="py-2.5 text-brand-muted text-xs text-right">{isOpen ? '▲' : '▼'} país / industria</td>
                         </tr>
                         {isOpen && (
-                          <tr key={`${p.name}-detail`} className="bg-brand-bg/40">
+                          <tr className="bg-brand-bg/40">
                             <td colSpan={4} className="py-4 px-2">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
@@ -499,7 +532,7 @@ export default function Metrics() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </tbody>
