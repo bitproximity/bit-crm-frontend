@@ -27,6 +27,7 @@ const ACTION_LABELS = {
   stage_changed: 'movió de etapa',
   status_changed: 'cambió el estado de',
   assigned: 'asignó',
+  imported: 'importó una base a Bit Prospect en',
 };
 
 const ENTITY_LABELS = {
@@ -35,6 +36,7 @@ const ENTITY_LABELS = {
   deal: 'deal',
   task: 'tarea',
   project: 'proyecto',
+  b2b_record: 'registro de Bit Prospect',
 };
 
 export default function Metrics() {
