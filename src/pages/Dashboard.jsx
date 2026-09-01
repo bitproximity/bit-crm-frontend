@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { TrendingUp, DollarSign, Trophy, AlertCircle, ListTodo, Calendar, MapPin, Video, ExternalLink, PieChart } from 'lucide-react';
+import { TrendingUp, DollarSign, Trophy, AlertCircle, ListTodo, Calendar, MapPin, Video, ExternalLink, PieChart, ListChecks, XCircle, PlusCircle, Crown, Package } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -13,12 +13,12 @@ function Card({ icon: Icon, label, value, accent, iconColor, barColor, onClick, 
     >
       <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${barColor || '#8500FF'}, ${barColor || '#8500FF'}22)` }} />
       <div className="flex items-center justify-between mb-3">
-        <div className="text-brand-muted text-sm font-manrope">{label}</div>
+        <div className="text-brand-muted text-sm font-manrope truncate pr-2">{label}</div>
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3 ${iconColor || 'bg-brand-violet/10'}`}>
           <Icon size={16} className="text-brand-ice" />
         </div>
       </div>
-      <div className={`${big ? 'text-4xl' : 'text-2xl'} font-headline font-semibold ${accent ? 'bg-gradient-to-r from-brand-violet to-brand-magenta bg-clip-text text-transparent' : 'text-brand-white'}`}>
+      <div className={`${big ? 'text-4xl' : 'text-2xl'} font-headline font-semibold truncate ${accent ? 'bg-gradient-to-r from-brand-violet to-brand-magenta bg-clip-text text-transparent' : 'text-brand-white'}`}>
         {value}
       </div>
     </div>
@@ -113,6 +113,55 @@ export default function Dashboard() {
           </>
         )}
       </div>
+
+      {data && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6">
+          <Card
+            icon={ListChecks}
+            label="Tareas pendientes (equipo)"
+            value={data.team_pending_tasks}
+            iconColor="bg-cyan-500/10"
+            barColor="#22D3EE"
+            onClick={() => navigate('/tasks')}
+            index={5}
+          />
+          <Card
+            icon={PlusCircle}
+            label="Deals nuevos (este mes)"
+            value={data.new_deals_this_month}
+            iconColor="bg-violet-500/10"
+            barColor="#8500FF"
+            onClick={() => navigate('/deals-list?created_month=current')}
+            index={6}
+          />
+          <Card
+            icon={XCircle}
+            label="Tratos perdidos (este mes)"
+            value={data.lost_this_month}
+            iconColor="bg-red-500/10"
+            barColor="#EF4444"
+            onClick={() => navigate('/deals-list?status=perdido&period=this_month')}
+            index={7}
+          />
+          <Card
+            icon={Crown}
+            label={data.top_pipeline_by_sales ? `Pipeline líder ($${data.top_pipeline_by_sales.value_usd.toLocaleString()})` : 'Pipeline líder en ventas'}
+            value={data.top_pipeline_by_sales?.name || 'Sin datos'}
+            iconColor="bg-amber-500/10"
+            barColor="#F59E0B"
+            index={8}
+          />
+          <Card
+            icon={Package}
+            label={data.top_product_by_sales ? `Producto líder ($${data.top_product_by_sales.revenue_usd.toLocaleString()})` : 'Producto/servicio líder'}
+            value={data.top_product_by_sales?.name || 'Sin datos'}
+            iconColor="bg-emerald-500/10"
+            barColor="#10B981"
+            onClick={() => navigate('/products')}
+            index={9}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Próximos eventos de Google Calendar */}
