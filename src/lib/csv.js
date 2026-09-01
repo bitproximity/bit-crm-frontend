@@ -69,7 +69,28 @@ const DEAL_HEADER_MAP = {
   email: 'contact_email', correo: 'contact_email',
   organización: 'company_name', organizacion: 'company_name', organization: 'company_name', empresa: 'company_name', company: 'company_name',
   probabilidad: 'probability', probability: 'probability',
+  // FIX: Pipedrive exporta el estado del trato (Ganado/Perdido/Abierto) en una columna
+  // que antes no se mapeaba a nada — se perdía en la importación y TODO quedaba como
+  // "abierto" sin importar si en Pipedrive ya estaba ganado o perdido.
+  estado: 'status_raw', status: 'status_raw', 'trato - estado': 'status_raw', 'deal - status': 'status_raw',
+  'fecha de cierre': 'closed_at_raw', 'close date': 'closed_at_raw', 'closed date': 'closed_at_raw',
+  'fecha en la que se ganó': 'closed_at_raw', 'fecha en la que se perdió': 'closed_at_raw',
+  'won time': 'closed_at_raw', 'lost time': 'closed_at_raw',
+  'razón de la pérdida': 'lost_reason', 'razon de la perdida': 'lost_reason', 'lost reason': 'lost_reason',
 };
+
+// Normaliza los valores de estado que trae Pipedrive (español/inglés) a los tres
+// valores canónicos que usa el backend: 'abierto' | 'ganado' | 'perdido'.
+const DEAL_STATUS_MAP = {
+  ganado: 'ganado', gano: 'ganado', won: 'ganado', win: 'ganado', 'closed won': 'ganado',
+  perdido: 'perdido', lost: 'perdido', 'closed lost': 'perdido',
+  abierto: 'abierto', open: 'abierto', 'en curso': 'abierto',
+};
+
+function normalizeDealStatus(raw) {
+  if (!raw) return undefined;
+  return DEAL_STATUS_MAP[raw.trim().toLowerCase()] || undefined;
+}
 
 export function csvToDeals(text) {
   const rows = parseCsv(text);
@@ -82,6 +103,17 @@ export function csvToDeals(text) {
     headers.forEach((key, i) => {
       if (key && row[i] !== undefined && row[i] !== '') obj[key] = row[i].trim();
     });
+
+    if (obj.status_raw) {
+      const normalized = normalizeDealStatus(obj.status_raw);
+      if (normalized) obj.status = normalized;
+      delete obj.status_raw;
+    }
+    if (obj.closed_at_raw) {
+      obj.closed_at = obj.closed_at_raw;
+      delete obj.closed_at_raw;
+    }
+
     return obj;
   }).filter((d) => d.title);
 }
