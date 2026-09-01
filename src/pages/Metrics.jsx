@@ -381,11 +381,40 @@ export default function Metrics() {
 
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="font-manrope font-medium mb-4 flex items-center gap-2"><ListChecks size={15} /> Tareas por estado</div>
-          {Object.entries(metrics.tasks_by_status).map(([status, count]) => (
-            <Bar key={status} label={status} value={count} max={maxTaskCount} />
+          {/* Se muestran los 4 estados posibles siempre, no solo los que ya tienen tareas —
+              antes con pocos datos (ej. solo "pendiente" y "bloqueada") esta tarjeta quedaba
+              con 2 filas junto a "Pipeline por etapa" con 6, dejando un hueco vacío al lado. */}
+          {['pendiente', 'en_progreso', 'bloqueada', 'completada'].map((status) => (
+            <Bar key={status} label={status} value={metrics.tasks_by_status[status] || 0} max={maxTaskCount} />
           ))}
         </div>
       </div>
+
+      {/* Avance de proyectos activos — ya lo calculaba el backend pero nunca se mostraba */}
+      {metrics.project_progress.length > 0 && (
+        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-4">
+          <div className="font-manrope font-medium mb-1 flex items-center gap-2"><Briefcase size={15} /> Avance de proyectos activos</div>
+          <p className="text-xs text-brand-muted mb-4">{metrics.project_progress.length} proyectos activos, % de tareas completadas. Los más atrasados primero.</p>
+          <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+            {[...metrics.project_progress]
+              .sort((a, b) => a.progress_pct - b.progress_pct)
+              .map((p) => (
+                <div key={p.project_id} onClick={() => navigate(`/projects/${p.project_id}`)} className="cursor-pointer group">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-brand-muted truncate group-hover:text-brand-white transition">{p.name}</span>
+                    <span className="text-brand-ice font-tech flex-shrink-0 ml-2">{p.completed_tasks}/{p.total_tasks} · {p.progress_pct}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${p.progress_pct === 100 ? 'bg-green-400' : p.progress_pct === 0 ? 'bg-red-400/70' : 'bg-gradient-to-r from-brand-violet to-brand-magenta'}`}
+                      style={{ width: `${Math.max(p.progress_pct, p.total_tasks > 0 ? 2 : 0)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Reuniones agendadas */}
       {meetings && (
