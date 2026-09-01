@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { FolderKanban, Calendar, Plus, X, Building2, DollarSign } from 'lucide-react';
+import { colorForName, initials } from '../lib/avatar';
 
 const PROJECT_TYPES = [
   { key: 'onboarding_cliente', label: 'Onboarding de cliente' },
@@ -143,6 +144,8 @@ function NewProjectModal({ onClose, onCreated }) {
   );
 }
 
+const typeLabel = (key) => PROJECT_TYPES.find((t) => t.key === key)?.label || key;
+
 export default function Projects() {
   const [projects, setProjects] = useState([]);
   const [showNew, setShowNew] = useState(false);
@@ -177,12 +180,15 @@ export default function Projects() {
             style={{ animationDelay: `${Math.min(i, 20) * 25}ms` }}
           >
             <div className="flex items-start gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center flex-shrink-0">
-                <FolderKanban size={18} />
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-headline font-semibold text-sm text-white"
+                style={{ background: `linear-gradient(135deg, ${colorForName(p.name)}, ${colorForName(p.name)}99)` }}
+              >
+                {initials(p.name) || <FolderKanban size={18} />}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-manrope font-medium truncate">{p.name}</div>
-                <div className="text-xs text-brand-muted truncate">{p.companies?.name || p.type}</div>
+                <div className="text-xs text-brand-muted truncate">{p.companies?.name || typeLabel(p.type)}</div>
               </div>
               <span className={`px-2 py-0.5 rounded-full text-xs font-tech flex-shrink-0 ${statusColor[p.status]}`}>
                 {p.status}

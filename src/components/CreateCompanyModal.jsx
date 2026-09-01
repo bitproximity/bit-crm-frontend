@@ -1,17 +1,11 @@
 import { useState } from 'react';
 import { Building2, MapPin, X, Loader2 } from 'lucide-react';
 import { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from './B2bRecordModal';
+import { colorForName, initials } from '../lib/avatar';
 
 const inputClass =
   'w-full px-3.5 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm placeholder:text-brand-muted/70 focus:outline-none focus:border-brand-violet transition-colors';
 const labelClass = 'block text-xs font-medium text-brand-muted mb-1.5';
-
-function initials(name) {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '';
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-  return (words[0][0] + words[1][0]).toUpperCase();
-}
 
 export default function CreateCompanyModal({ onClose, onCreated }) {
   const [form, setForm] = useState({ name: '', industry: '', country: '', company_type: 'otro' });
@@ -50,9 +44,10 @@ export default function CreateCompanyModal({ onClose, onCreated }) {
           {/* Avatar con iniciales en vivo — el mismo gradiente que va a tener la tarjeta real */}
           <div className="flex items-center gap-3">
             <div
-              className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 font-headline font-semibold text-lg transition-all duration-300 ${
-                hasName ? 'bg-gradient-to-br from-brand-violet to-brand-magenta' : 'bg-brand-bg border border-dashed border-brand-border text-brand-muted'
+              className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 font-headline font-semibold text-lg text-white transition-all duration-300 ${
+                hasName ? '' : 'bg-brand-bg border border-dashed border-brand-border text-brand-muted'
               }`}
+              style={hasName ? { background: `linear-gradient(135deg, ${colorForName(form.name)}, ${colorForName(form.name)}99)` } : undefined}
             >
               {hasName ? initials(form.name) : <Building2 size={22} />}
             </div>
@@ -95,8 +90,11 @@ export default function CreateCompanyModal({ onClose, onCreated }) {
             <label className={labelClass}>Así se va a ver</label>
             <div className="card-elevated rounded-xl p-4 pointer-events-none">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center flex-shrink-0">
-                  <Building2 size={18} />
+                <div
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-headline font-semibold text-sm text-white ${hasName ? '' : 'bg-brand-bg border border-dashed border-brand-border text-brand-muted'}`}
+                  style={hasName ? { background: `linear-gradient(135deg, ${colorForName(form.name)}, ${colorForName(form.name)}99)` } : undefined}
+                >
+                  {hasName ? initials(form.name) : <Building2 size={18} />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-manrope font-medium truncate">{hasName ? form.name : 'Nombre de la empresa'}</div>

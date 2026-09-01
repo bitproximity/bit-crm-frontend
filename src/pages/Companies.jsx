@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Building2, Search, Plus, MapPin } from 'lucide-react';
+import { Search, Plus, MapPin } from 'lucide-react';
 import CreateCompanyModal from '../components/CreateCompanyModal';
+import { colorForName, initials } from '../lib/avatar';
 
 export default function Companies() {
   const navigate = useNavigate();
@@ -64,8 +65,11 @@ export default function Companies() {
             style={{ animationDelay: `${Math.min(i, 20) * 25}ms` }}
           >
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center flex-shrink-0">
-                <Building2 size={18} />
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-headline font-semibold text-sm text-white"
+                style={{ background: `linear-gradient(135deg, ${colorForName(c.name)}, ${colorForName(c.name)}99)` }}
+              >
+                {initials(c.name)}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-manrope font-medium truncate">{c.name}</div>
