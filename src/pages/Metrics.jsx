@@ -198,19 +198,20 @@ export default function Metrics() {
             <div className="flex-1 flex flex-col items-center justify-center text-center">
               <div className="text-3xl font-headline font-semibold">{dashboard.deal_duration_avg_days} días</div>
               <div className="text-xs text-brand-muted mt-2">Duración promedio (días)</div>
-            </div>
-            {/* Se agrega el desglose ganados vs. perdidos — antes este panel quedaba con mucho
-                espacio vacío alrededor de un solo número, y esta comparación es información
-                accionable: si los perdidos tardan más que los ganados, se está tardando
-                demasiado en descartar tratos que no van a avanzar. */}
-            <div className="grid grid-cols-2 gap-3 pt-4 mt-4 border-t border-brand-border">
-              <div className="text-center">
-                <div className="text-lg font-headline font-semibold text-green-400">{dashboard.deal_duration_avg_days_won}d</div>
-                <div className="text-[11px] text-brand-muted mt-0.5">Ganados</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-headline font-semibold text-red-400">{dashboard.deal_duration_avg_days_lost}d</div>
-                <div className="text-[11px] text-brand-muted mt-0.5">Perdidos</div>
+              {/* Desglose ganados vs. perdidos dentro del mismo bloque centrado — antes vivía
+                  como hermano DESPUÉS de este flex-1, así que cuando la tarjeta era alta
+                  (ej. con "Todos los pipelines", donde el gráfico de al lado crece por la
+                  leyenda de 12 pipelines), "229 días" quedaba centrado arriba y el desglose
+                  se iba al fondo de la tarjeta, dejando un hueco enorme en el medio. */}
+              <div className="grid grid-cols-2 gap-6 pt-4 mt-4 border-t border-brand-border w-full max-w-[220px]">
+                <div className="text-center">
+                  <div className="text-lg font-headline font-semibold text-green-400">{dashboard.deal_duration_avg_days_won}d</div>
+                  <div className="text-[11px] text-brand-muted mt-0.5">Ganados</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-headline font-semibold text-red-400">{dashboard.deal_duration_avg_days_lost}d</div>
+                  <div className="text-[11px] text-brand-muted mt-0.5">Perdidos</div>
+                </div>
               </div>
             </div>
           </div>
