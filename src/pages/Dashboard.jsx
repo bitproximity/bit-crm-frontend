@@ -131,7 +131,7 @@ export default function Dashboard() {
             value={data.new_deals_this_month}
             iconColor="bg-violet-500/10"
             barColor="#8500FF"
-            onClick={() => navigate('/deals-list?created_month=current')}
+            onClick={() => navigate(`/deals-list?created_month=${new Date().toISOString().slice(0, 7)}`)}
             index={6}
           />
           <Card
