@@ -38,6 +38,12 @@ async function request(path, options = {}, _retried = false) {
       ...options,
       headers: mergedHeaders,
       signal: controller.signal,
+      // "cache: no-store" le dice al navegador (y a cualquier proxy/CDN en el medio,
+      // como Cloudflare) que nunca sirva una respuesta guardada para esta petición —
+      // siempre va contra el servidor de verdad. Sin esto, algunas pantallas (ej. el
+      // Dashboard) podían quedar mostrando números viejos aunque el dato real ya
+      // hubiera cambiado, porque el navegador reutilizaba una respuesta anterior.
+      cache: 'no-store',
     });
   } catch (err) {
     if (err.name === 'AbortError') throw new Error('El servidor tardó demasiado en responder. Intenta de nuevo.');
