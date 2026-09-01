@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { FolderKanban, Calendar, Plus, X, Building2, DollarSign } from 'lucide-react';
+import { FolderKanban, Calendar, Plus, X, Building2, DollarSign, LayoutGrid, List } from 'lucide-react';
 import { colorForName, initials } from '../lib/avatar';
 
 const PROJECT_TYPES = [
@@ -147,8 +147,10 @@ function NewProjectModal({ onClose, onCreated }) {
 const typeLabel = (key) => PROJECT_TYPES.find((t) => t.key === key)?.label || key;
 
 export default function Projects() {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [showNew, setShowNew] = useState(false);
+  const [view, setView] = useState('lista');
 
   const load = () => api.get('/api/projects').then(setProjects).catch(console.error);
 
@@ -171,6 +173,73 @@ export default function Projects() {
       </div>
       <p className="text-brand-muted text-sm mb-6">{projects.length} proyectos</p>
 
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex bg-brand-panel border border-brand-border rounded-xl p-1">
+          <button
+            onClick={() => setView('lista')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-tech flex items-center gap-1.5 transition ${view === 'lista' ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
+          >
+            <List size={13} /> Lista
+          </button>
+          <button
+            onClick={() => setView('tarjetas')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-tech flex items-center gap-1.5 transition ${view === 'tarjetas' ? 'bg-gradient-to-r from-brand-violet to-brand-magenta' : 'text-brand-muted hover:text-brand-white'}`}
+          >
+            <LayoutGrid size={13} /> Tarjetas
+          </button>
+        </div>
+      </div>
+
+      {view === 'lista' && (
+        <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-brand-panel/80 text-brand-muted text-left">
+              <tr>
+                <th className="px-4 py-3 font-manrope font-normal">Nombre</th>
+                <th className="px-4 py-3 font-manrope font-normal">Empresa / Tipo</th>
+                <th className="px-4 py-3 font-manrope font-normal">Estado</th>
+                <th className="px-4 py-3 font-manrope font-normal">Tareas</th>
+                <th className="px-4 py-3 font-manrope font-normal">Vence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((p, i) => (
+                <tr
+                  key={p.id}
+                  onClick={() => navigate(`/projects/${p.id}`)}
+                  className="border-t border-brand-border row-hover cursor-pointer stagger-item"
+                  style={{ animationDelay: `${Math.min(i, 25) * 15}ms` }}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-tech font-semibold text-white flex-shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${colorForName(p.name)}, ${colorForName(p.name)}99)` }}
+                      >
+                        {initials(p.name) || <FolderKanban size={12} />}
+                      </div>
+                      <span className="truncate max-w-xs">{p.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-brand-muted truncate max-w-xs">{p.companies?.name || typeLabel(p.type)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${statusColor[p.status]}`}>{p.status}</span>
+                  </td>
+                  <td className="px-4 py-3 text-brand-muted font-tech">{p.total_tasks}</td>
+                  <td className="px-4 py-3 text-brand-muted">
+                    {p.due_date ? new Date(p.due_date).toLocaleDateString() : '—'}
+                  </td>
+                </tr>
+              ))}
+              {projects.length === 0 && (
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-brand-muted text-sm">Sin proyectos aún.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {view === 'tarjetas' && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {projects.map((p, i) => (
           <Link
@@ -212,6 +281,7 @@ export default function Projects() {
           </div>
         )}
       </div>
+      )}
 
       {showNew && (
         <NewProjectModal
