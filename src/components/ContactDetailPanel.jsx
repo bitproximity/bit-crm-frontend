@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Mail, RefreshCw, Phone, X, Pencil, MapPin, Tag as TagIcon, Trash2 } from 'lucide-react';
 import EnrichButtons from './EnrichButtons';
+import GmailMessageRow from './GmailMessageRow';
 import { useConfirm } from './ConfirmModal';
 import { POSITION_OPTIONS, COUNTRY_OPTIONS } from './B2bRecordModal';
 
@@ -380,15 +381,7 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
               )}
 
               <div className="space-y-2 mt-2">
-                {emails.map((e, i) => (
-                  <div key={e.id} className="bg-brand-bg border border-brand-border rounded-xl p-3.5 stagger-item hover:border-brand-violet/40 hover:shadow-md transition" style={{ animationDelay: `${Math.min(i, 15) * 25}ms` }}>
-                    <div className="text-sm font-manrope mb-0.5 text-brand-white">{e.subject || '(sin asunto)'}</div>
-                    <div className="text-xs text-brand-muted mb-1.5 line-clamp-2">{e.snippet}</div>
-                    <div className="text-xs text-brand-muted font-tech">
-                      {e.sent_at ? new Date(e.sent_at).toLocaleString() : ''}
-                    </div>
-                  </div>
-                ))}
+                {emails.map((e, i) => <GmailMessageRow key={e.id} message={e} index={i} />)}
                 {gmailStatus?.connected && contact.email && emails.length === 0 && (
                   <div className="flex flex-col items-center gap-2 text-brand-muted text-xs py-8 text-center border border-dashed border-brand-border rounded-xl">
                     <Mail size={20} className="text-brand-border" />

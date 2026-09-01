@@ -7,6 +7,7 @@ import { InvoiceDetailModal } from './Invoicing';
 import DateTimePicker from '../components/DateTimePicker';
 import ProductsModal from '../components/ProductsModal';
 import ContactDetailPanel from '../components/ContactDetailPanel';
+import GmailMessageRow from '../components/GmailMessageRow';
 import {
   ChevronLeft, ChevronDown, MoreHorizontal, Tag as TagIcon, Calendar, Building2, User,
   Plus, X, Mail, Phone, Video, StickyNote, FileText as FileTextIcon, Paperclip,
@@ -1127,14 +1128,12 @@ export default function DealDetail() {
                     {gmailSyncing ? 'Sincronizando...' : 'Sincronizar correos con ' + deal.contacts.email}
                   </button>
                   <div className="space-y-2">
-                    {gmailMessages.map((m) => (
-                      <div key={m.id} className="bg-brand-panel border border-brand-border rounded-lg p-3 text-sm panel-depth">
-                        <div className="font-medium">{m.subject || '(sin asunto)'}</div>
-                        <div className="text-xs text-brand-muted mt-1">{m.snippet}</div>
-                        <div className="text-xs text-brand-muted font-tech mt-1">{m.from_email} · {m.sent_at ? new Date(m.sent_at).toLocaleString() : ''}</div>
+                    {gmailMessages.map((m, i) => <GmailMessageRow key={m.id} message={m} index={i} />)}
+                    {gmailMessages.length === 0 && (
+                      <div className="flex flex-col items-center gap-2 text-brand-muted text-sm py-8 text-center border border-dashed border-brand-border rounded-xl">
+                        Sin correos sincronizados todavía.
                       </div>
-                    ))}
-                    {gmailMessages.length === 0 && <div className="text-brand-muted text-sm">Sin correos sincronizados todavía.</div>}
+                    )}
                   </div>
                 </>
               )}
