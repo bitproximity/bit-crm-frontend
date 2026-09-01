@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Building2, Search, Plus, MapPin } from 'lucide-react';
-import { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
+import CreateCompanyModal from '../components/CreateCompanyModal';
 
 export default function Companies() {
   const navigate = useNavigate();
   const [companies, setCompanies] = useState([]);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', industry: '', country: '', company_type: 'otro' });
 
   const load = () =>
     api.get(`/api/companies${search ? `?search=${encodeURIComponent(search)}` : ''}`)
@@ -21,10 +20,8 @@ export default function Companies() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const createCompany = async (e) => {
-    e.preventDefault();
+  const createCompany = async (form) => {
     await api.post('/api/companies', form);
-    setForm({ name: '', industry: '', country: '', company_type: 'otro' });
     setShowForm(false);
     load();
   };
@@ -47,7 +44,7 @@ export default function Companies() {
           />
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => setShowForm(true)}
           className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 rounded-lg text-sm font-medium flex items-center gap-1.5 ml-auto"
         >
           <Plus size={14} /> Nueva empresa
@@ -55,24 +52,7 @@ export default function Companies() {
       </div>
 
       {showForm && (
-        <form onSubmit={createCompany} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 grid grid-cols-3 gap-3">
-          <input placeholder="Nombre" required value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" />
-          <select value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm">
-            <option value="">Industria (sin especificar)</option>
-            {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
-          </select>
-          <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm">
-            <option value="">País (sin especificar)</option>
-            {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <button className="col-span-3 px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
-            Crear
-          </button>
-        </form>
+        <CreateCompanyModal onClose={() => setShowForm(false)} onCreated={createCompany} />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
