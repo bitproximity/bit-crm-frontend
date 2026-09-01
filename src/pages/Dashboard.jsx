@@ -61,10 +61,26 @@ export default function Dashboard() {
   const { profile } = useAuth();
 
   useEffect(() => {
-    api.get('/api/dashboard').then(setData).catch(console.error);
+    const loadDashboard = () => api.get('/api/dashboard').then(setData).catch(console.error);
+    loadDashboard();
     api.get('/api/gmail/calendar/events?days=7')
       .then(setEvents)
       .catch((err) => setEventsError(err.message || 'No se pudo cargar tu calendario'));
+
+    // "Sincronizar en tiempo real" sin necesitar websockets: se refresca solo al volver
+    // a esta pestaña (ej. terminaste algo en otra pestaña o app y regresas acá) y cada
+    // 60s mientras la pantalla está visible y abierta — así los números nunca quedan
+    // pegados en lo que había al momento de entrar.
+    const onVisible = () => { if (document.visibilityState === 'visible') loadDashboard(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', loadDashboard);
+    const interval = setInterval(() => { if (document.visibilityState === 'visible') loadDashboard(); }, 60000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', loadDashboard);
+      clearInterval(interval);
+    };
   }, []);
 
   return (
