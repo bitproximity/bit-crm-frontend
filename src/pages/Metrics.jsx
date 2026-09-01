@@ -6,7 +6,7 @@ import { Percent, TrendingUp, Filter, Gauge, Package2, ListChecks, Activity, Use
 import { colorForName } from '../lib/avatar';
 
 function Bar({ label, value, max, suffix = '', prefix = '' }) {
-  const pct = max ? Math.round((value / max) * 100) : 0;
+  const pct = max ? Math.max(Math.round((value / max) * 100), value > 0 ? 2 : 0) : 0;
   return (
     <div className="mb-3">
       <div className="flex justify-between text-xs text-brand-muted font-tech mb-1">
