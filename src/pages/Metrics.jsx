@@ -56,6 +56,13 @@ export default function Metrics() {
 
   const [pipelinesLoaded, setPipelinesLoaded] = useState(false);
 
+  const setPipelineIdPersist = (id) => {
+    setPipelineId(id);
+    // Recuerda el pipeline elegido (o "todos") entre navegaciones — antes siempre volvía
+    // a caer en el primer pipeline de la lista (WiFi Marketing) al salir y volver a Métricas.
+    localStorage.setItem('bitcrm_metrics_pipeline_id', id || 'all');
+  };
+
   useEffect(() => {
     // Guarda contra respuestas "viejas" pisando a las nuevas si este efecto llegara a
     // correr más de una vez (ej. remount) — solo la corrida más reciente puede escribir
@@ -71,7 +78,10 @@ export default function Metrics() {
     api.get('/api/pipelines').then((list) => {
       if (!current) return;
       setPipelines(list);
-      if (list.length) setPipelineId(list[0].id);
+      const stored = localStorage.getItem('bitcrm_metrics_pipeline_id');
+      if (stored === 'all') setPipelineId(null);
+      else if (stored && list.some((p) => p.id === stored)) setPipelineId(stored);
+      else if (list.length) setPipelineId(list[0].id);
       setPipelinesLoaded(true);
     }).catch(onErr('Pipelines'));
     return () => { current = false; };
@@ -112,7 +122,7 @@ export default function Metrics() {
         <h1 className="font-headline text-xl font-semibold">Métricas</h1>
         <select
           value={pipelineId || ''}
-          onChange={(e) => setPipelineId(e.target.value || null)}
+          onChange={(e) => setPipelineIdPersist(e.target.value || null)}
           className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-sm font-tech"
         >
           <option value="">Todos los pipelines</option>
