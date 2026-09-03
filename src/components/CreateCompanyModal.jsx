@@ -16,7 +16,7 @@ export default function CreateCompanyModal({ onClose, onCreated }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) return;
+    if (!form.name.trim() || !form.country) return;
     setSaving(true);
     setError('');
     try {
@@ -75,9 +75,9 @@ export default function CreateCompanyModal({ onClose, onCreated }) {
               </select>
             </div>
             <div>
-              <label className={labelClass}>País</label>
-              <select value={form.country} onChange={set('country')} className={inputClass}>
-                <option value="">Sin especificar</option>
+              <label className={labelClass}>País <span className="text-red-400">*</span></label>
+              <select required value={form.country} onChange={set('country')} className={inputClass}>
+                <option value="" disabled>Elegir país...</option>
                 {COUNTRY_OPTIONS.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
@@ -123,7 +123,7 @@ export default function CreateCompanyModal({ onClose, onCreated }) {
             </button>
             <button
               type="submit"
-              disabled={!hasName || saving}
+              disabled={!hasName || !form.country || saving}
               className="flex-1 px-4 py-2.5 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-opacity"
             >
               {saving ? <Loader2 size={15} className="animate-spin" /> : null}
