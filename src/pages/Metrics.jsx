@@ -282,6 +282,31 @@ export default function Metrics() {
             )}
             <div className="text-3xl font-headline font-semibold">${dashboard.won_avg_value.current.toLocaleString()}</div>
             <div className="text-xs text-brand-muted mt-2">{dashboard.won_avg_value.count} tratos ganados este año</div>
+
+            {/* País líder en ventas — llena el hueco que quedaba en esta tarjeta */}
+            {dashboard.sales_by_country.length > 0 && (
+              <div className="pt-4 mt-4 border-t border-brand-border">
+                <div className="flex items-center gap-1.5 text-xs text-brand-muted uppercase tracking-wide mb-3">
+                  <Globe size={12} /> Ventas por país (histórico)
+                </div>
+                <div className="space-y-2">
+                  {dashboard.sales_by_country.slice(0, 5).map((c, i) => (
+                    <div key={c.name}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className={i === 0 ? 'text-brand-white' : 'text-brand-muted'}>{i === 0 ? '🏆 ' : ''}{c.name}</span>
+                        <span className="text-brand-ice font-tech">${c.value_usd.toLocaleString()}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta"
+                          style={{ width: `${Math.max((c.value_usd / dashboard.sales_by_country[0].value_usd) * 100, 2)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Deals won over time */}

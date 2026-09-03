@@ -644,6 +644,26 @@ function TeamAdmin() {
     }
   };
 
+  const [deletingId, setDeletingId] = useState(null);
+
+  const deletePermanently = async (id, name) => {
+    const ok = await confirm({
+      title: 'Eliminar definitivamente',
+      message: `Esto borra el perfil de ${name} y su cuenta de acceso para siempre — no se puede deshacer. Los tratos, tareas y documentos que haya creado se quedan, pero van a dejar de mostrar su nombre. ¿Continuar?`,
+      confirmLabel: 'Eliminar definitivamente',
+    });
+    if (!ok) return;
+    setDeletingId(id);
+    setError('');
+    try {
+      await api.delete(`/api/team/${id}/permanent`);
+      load();
+    } catch (err) {
+      setError(err.message || 'No se pudo eliminar definitivamente.');
+    }
+    setDeletingId(null);
+  };
+
   const [resendingId, setResendingId] = useState(null);
   const [resentId, setResentId] = useState(null);
 
@@ -729,7 +749,16 @@ function TeamAdmin() {
                   <button onClick={() => deactivate(m.id, m.full_name)} className="text-xs text-brand-muted hover:text-red-400">Quitar acceso</button>
                 </>
               ) : (
-                <button onClick={() => reactivate(m.id)} className="text-xs text-brand-ice hover:underline">Reactivar</button>
+                <>
+                  <button onClick={() => reactivate(m.id)} className="text-xs text-brand-ice hover:underline">Reactivar</button>
+                  <button
+                    onClick={() => deletePermanently(m.id, m.full_name)}
+                    disabled={deletingId === m.id}
+                    className="text-xs text-brand-muted hover:text-red-400 disabled:opacity-50"
+                  >
+                    {deletingId === m.id ? 'Eliminando...' : 'Eliminar definitivamente'}
+                  </button>
+                </>
               )}
             </div>
           </div>
