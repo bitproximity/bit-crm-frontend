@@ -9,6 +9,7 @@ const TITLES = {
   ganado: 'Tratos ganados',
   perdido: 'Tratos perdidos',
   'ganado,perdido': 'Tratos cerrados (ganados y perdidos)',
+  'abierto,ganado,perdido': 'Deals nuevos',
 };
 
 const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -24,6 +25,7 @@ export default function DealsList() {
   const navigate = useNavigate();
   const [deals, setDeals] = useState(null);
   const [error, setError] = useState('');
+  const [rates, setRates] = useState({});
 
   const status = params.get('status') || 'abierto';
   const period = params.get('period'); // 'this_month' opcional (retrocompatibilidad)
@@ -32,6 +34,13 @@ export default function DealsList() {
   const closedMonth = params.get('closed_month');
   const closedYear = params.get('closed_year');
   const lostReason = params.get('lost_reason');
+  const country = params.get('country');
+
+  useEffect(() => {
+    api.get('/api/exchange-rates').then((rows) => {
+      setRates(Object.fromEntries((rows || []).map((r) => [r.currency, Number(r.rate_to_usd)])));
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     setDeals(null);
@@ -41,6 +50,7 @@ export default function DealsList() {
     if (closedMonth) qs.set('closed_month', closedMonth);
     if (closedYear) qs.set('closed_year', closedYear);
     if (lostReason) qs.set('lost_reason', lostReason);
+    if (country) qs.set('country', country);
 
     api
       .get(`/api/deals?${qs.toString()}`)
@@ -57,7 +67,7 @@ export default function DealsList() {
         setDeals(filtered);
       })
       .catch((err) => setError(err.message || 'No se pudieron cargar los tratos.'));
-  }, [status, period, pipelineId, createdMonth, closedMonth, closedYear, lostReason]);
+  }, [status, period, pipelineId, createdMonth, closedMonth, closedYear, lostReason, country]);
 
   const key = period === 'this_month' && status === 'ganado' ? 'ganado_mes' : status;
   let title = TITLES[key] || 'Tratos';
@@ -66,9 +76,14 @@ export default function DealsList() {
   if (closedMonth) subParts.push(`cerrados en ${monthLabel(closedMonth)}`);
   if (closedYear) subParts.push(`cerrados en ${closedYear}`);
   if (lostReason) subParts.push(`motivo: "${lostReason === '(sin motivo)' ? 'sin motivo especificado' : lostReason}"`);
+  if (country) subParts.push(`país: ${country}`);
   if (subParts.length) title += ` — ${subParts.join(', ')}`;
 
-  const totalValue = (deals || []).reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+  // FIX: sumaba d.value crudo de distintas monedas sin convertir a USD — mismo bug ya
+  // arreglado en Pipeline/Empresa/Métricas. Con filtros que mezclan monedas (ej. por país)
+  // esto se nota rápido, así que se convierte antes de sumar como en todos lados.
+  const toUsd = (value, currency) => Number(value || 0) * (rates[currency] ?? 1);
+  const totalValueUsd = (deals || []).reduce((sum, d) => sum + toUsd(d.value, d.currency), 0);
 
   return (
     <div>
@@ -78,7 +93,7 @@ export default function DealsList() {
       <h1 className="font-headline text-xl font-semibold mb-1">{title}</h1>
       <p className="text-brand-muted text-sm mb-6">
         {deals ? `${deals.length} trato${deals.length === 1 ? '' : 's'}` : 'Cargando...'}
-        {deals && totalValue > 0 && ` · $${totalValue.toLocaleString('es-CO')} en total`}
+        {deals && totalValueUsd > 0 && ` · $${Math.round(totalValueUsd).toLocaleString('es-CO')} en total`}
       </p>
 
       {error && <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">{error}</div>}

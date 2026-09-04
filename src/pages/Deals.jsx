@@ -1,6 +1,6 @@
 import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import AddDealModal from '../components/AddDealModal';
 import PipelineSelector from '../components/PipelineSelector';
@@ -21,9 +21,14 @@ function initials(name) {
 
 export default function Deals() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [pipelines, setPipelines] = useState([]);
   const [exchangeRates, setExchangeRates] = useState({});
-  const [pipelineId, setPipelineIdRaw] = useState(() => localStorage.getItem('bitcrm_last_pipeline_id') || null);
+  // Si se llega con ?pipeline_id=... en la URL (ej. desde "Pipeline líder" en el Dashboard),
+  // ese valor manda sobre lo que había guardado — así una tarjeta puede llevar directo a
+  // un pipeline puntual sin pisar la última selección del usuario para la próxima vez que
+  // entre normal por el menú.
+  const [pipelineId, setPipelineIdRaw] = useState(() => searchParams.get('pipeline_id') || localStorage.getItem('bitcrm_last_pipeline_id') || null);
   const setPipelineId = (id) => {
     setPipelineIdRaw(id);
     if (id) localStorage.setItem('bitcrm_last_pipeline_id', id);

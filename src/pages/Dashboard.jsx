@@ -131,7 +131,7 @@ export default function Dashboard() {
             value={data.new_deals_this_month}
             iconColor="bg-violet-500/10"
             barColor="#8500FF"
-            onClick={() => navigate(`/deals-list?created_month=${new Date().toISOString().slice(0, 7)}`)}
+            onClick={() => navigate(`/deals-list?status=abierto,ganado,perdido&created_month=${new Date().toISOString().slice(0, 7)}`)}
             index={6}
           />
           <Card
@@ -149,6 +149,7 @@ export default function Dashboard() {
             value={data.top_pipeline_by_sales?.name || 'Sin datos'}
             iconColor="bg-amber-500/10"
             barColor="#F59E0B"
+            onClick={data.top_pipeline_by_sales ? () => navigate(`/deals?pipeline_id=${data.top_pipeline_by_sales.id}`) : undefined}
             index={8}
           />
           <Card

@@ -291,14 +291,18 @@ export default function Metrics() {
                 </div>
                 <div className="space-y-2">
                   {dashboard.sales_by_country.slice(0, 5).map((c, i) => (
-                    <div key={c.name}>
+                    <div
+                      key={c.name}
+                      onClick={() => navigate(dealsListUrl({ status: 'ganado', country: c.name }))}
+                      className="cursor-pointer group"
+                    >
                       <div className="flex justify-between text-xs mb-1">
-                        <span className={i === 0 ? 'text-brand-white' : 'text-brand-muted'}>{i === 0 ? '🏆 ' : ''}{c.name}</span>
+                        <span className={`${i === 0 ? 'text-brand-white' : 'text-brand-muted'} group-hover:text-brand-ice transition`}>{i === 0 ? '🏆 ' : ''}{c.name}</span>
                         <span className="text-brand-ice font-tech">${c.value_usd.toLocaleString()}</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta"
+                          className="h-full rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta group-hover:opacity-80 transition"
                           style={{ width: `${Math.max((c.value_usd / dashboard.sales_by_country[0].value_usd) * 100, 2)}%` }}
                         />
                       </div>
