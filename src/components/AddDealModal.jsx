@@ -217,7 +217,9 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
           await api.patch(`/api/companies/${companyId}`, { industry: industry || null });
         }
       } else if (companyQuery.trim()) {
-        const created = await api.post('/api/companies', { name: companyQuery.trim(), industry: industry || null });
+        // Si ya sabemos el país del contacto, se lo pasamos a la empresa nueva de una —
+        // mejor que dejarlo en blanco cuando el dato ya está ahí mismo en el formulario.
+        const created = await api.post('/api/companies', { name: companyQuery.trim(), industry: industry || null, country: contactCountry || null });
         companyId = created.id;
       }
 
