@@ -2,8 +2,9 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import { csvToContacts } from '../lib/csv';
 import AddContactModal from '../components/AddContactModal';
-import { Upload, Plus, Search, Mail, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Upload, Plus, Search, Mail, ChevronLeft, ChevronRight, Download, MapPin, Phone } from 'lucide-react';
 import ContactDetailPanel from '../components/ContactDetailPanel';
+import { colorForName, initials as nameInitials } from '../lib/avatar';
 
 const STATUS_COLORS = {
   nuevo: 'bg-blue-500/20 text-blue-300',
@@ -113,7 +114,7 @@ export default function Contacts() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-1">
         <h1 className="font-headline text-xl font-semibold">Contactos</h1>
         <div className="flex gap-2">
           <input
@@ -158,6 +159,8 @@ export default function Contacts() {
         </div>
       </div>
 
+      <p className="text-brand-muted text-sm mb-6">{total.toLocaleString()} contactos registrados</p>
+
       {!gmailConnected && (
         <div className="mb-4 px-4 py-3 rounded-lg text-sm bg-brand-panel border border-brand-border text-brand-muted">
           Conecta tu Gmail en <a href="/profile" className="text-brand-ice hover:underline">Mi Perfil</a> para poder importar tus contactos de Google directamente.
@@ -199,17 +202,18 @@ export default function Contacts() {
         <table className="w-full text-sm">
           <thead className="bg-brand-panel/80 text-brand-muted text-left">
             <tr>
-              <th className="px-4 py-3 font-manrope font-normal">Nombre</th>
-              <th className="px-4 py-3 font-manrope font-normal">Empresa</th>
-              <th className="px-4 py-3 font-manrope font-normal">Email</th>
+              <th className="px-4 py-3 font-manrope font-normal">Contacto</th>
+              <th className="px-4 py-3 font-manrope font-normal">Empresa / Cargo</th>
+              <th className="px-4 py-3 font-manrope font-normal">País</th>
+              <th className="px-4 py-3 font-manrope font-normal">Teléfono</th>
               <th className="px-4 py-3 font-manrope font-normal">Estado</th>
               <th className="px-4 py-3 font-manrope font-normal">Dueño</th>
+              <th className="px-4 py-3 font-manrope font-normal">Registro</th>
             </tr>
           </thead>
           <tbody>
             {contacts.map((c, i) => {
               const fullName = `${c.first_name} ${c.last_name || ''}`.trim();
-              const initials = fullName.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
               return (
                 <tr
                   key={c.id}
@@ -219,28 +223,55 @@ export default function Contacts() {
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta flex items-center justify-center text-[10px] font-tech font-bold flex-shrink-0">
-                        {initials}
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-tech font-bold flex-shrink-0 text-white"
+                        style={{ background: `linear-gradient(135deg, ${colorForName(fullName)}, ${colorForName(fullName)}99)` }}
+                      >
+                        {nameInitials(fullName)}
                       </div>
-                      {fullName}
+                      <div className="min-w-0">
+                        <div className="truncate">{fullName}</div>
+                        {c.email && <div className="text-xs text-brand-muted truncate">{c.email}</div>}
+                      </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-brand-muted">{c.companies?.name || '—'}</td>
-                  <td className="px-4 py-3 text-brand-muted">{c.email || '—'}</td>
+                  <td className="px-4 py-3 text-brand-muted">
+                    <div className="truncate">{c.companies?.name || '—'}</div>
+                    {c.position && <div className="text-xs text-brand-muted/70 truncate">{c.position}</div>}
+                  </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${STATUS_COLORS[c.status]}`}>
-                      {c.status}
+                    {c.country ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-brand-muted">
+                        <MapPin size={11} /> {c.country}
+                      </span>
+                    ) : <span className="text-brand-muted">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-brand-muted text-xs">
+                    {c.phone ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Phone size={11} /> {c.phone}
+                      </span>
+                    ) : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${STATUS_COLORS[c.status] || 'bg-neutral-600/30 text-brand-muted'}`}>
+                      {c.status || 'sin estado'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-brand-muted">
-                    {c.team_members?.full_name || '—'}
+                  <td className="px-4 py-3">
+                    {c.team_members?.full_name
+                      ? <span className="text-brand-muted">{c.team_members.full_name}</span>
+                      : <span className="text-brand-muted/50 italic">Sin asignar</span>}
+                  </td>
+                  <td className="px-4 py-3 text-brand-muted text-xs">
+                    {c.created_at ? new Date(c.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                   </td>
                 </tr>
               );
             })}
             {contacts.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-brand-muted text-sm">
+                <td colSpan={7} className="px-4 py-10 text-center text-brand-muted text-sm">
                   Sin contactos todavía.
                 </td>
               </tr>
