@@ -243,7 +243,7 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
                   <div className="min-w-0 pt-0.5">
                     <h2 className="font-headline text-xl font-semibold truncate">{fullName || 'Sin nombre'}</h2>
                     {(contact.position || contact.companies?.name) && (
-                      <div className="text-sm text-brand-muted truncate mt-0.5">
+                      <div className="text-sm text-brand-muted truncate mt-0.5" title={[contact.position, contact.companies?.name].filter(Boolean).join(' · ')}>
                         {contact.position}{contact.position && contact.companies?.name && <span className="text-brand-violet mx-1">·</span>}{contact.companies?.name}
                       </div>
                     )}
