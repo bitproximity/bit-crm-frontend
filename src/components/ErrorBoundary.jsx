@@ -41,13 +41,13 @@ export default class ErrorBoundary extends Component {
             <div className="flex gap-2">
               <button
                 onClick={() => { this.setState({ error: null }); window.location.href = '/'; }}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium"
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium hover:opacity-90 hover:-translate-y-px transition-all duration-150"
               >
                 Volver al inicio
               </button>
               <button
                 onClick={() => window.location.reload()}
-                className="px-4 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
+                className="px-4 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm hover:border-brand-violet hover:text-brand-ice transition-all duration-150"
               >
                 Recargar página
               </button>

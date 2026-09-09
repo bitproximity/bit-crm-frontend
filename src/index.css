@@ -133,12 +133,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   transform: scale(0.98);
 }
 
-/* Filas de tabla: resalte suave con leve tinte violeta en vez de gris plano */
+/* Filas de tabla: resalte suave con leve tinte violeta en vez de gris plano, más una
+   barra de acento a la izquierda — mismo lenguaje visual que ya usan las tarjetas al
+   elevarse, para que "esto es clickeable" se sienta consistente en toda la app. */
 .row-hover {
-  transition: background-color 0.15s ease;
+  transition: background-color 0.2s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s cubic-bezier(0.4,0,0.2,1);
 }
 .row-hover:hover {
-  background: linear-gradient(90deg, rgba(133,0,255,0.06), rgba(224,0,255,0.03));
+  background: linear-gradient(90deg, rgba(133,0,255,0.07), rgba(224,0,255,0.03));
+  box-shadow: inset 3px 0 0 0 #8500FF;
 }
 
 /* Glow puntual para íconos/avatares de acento */
@@ -160,6 +163,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 /* Sombra sutil de reposo para paneles informativos (sin hover, no son clicables) */
 .panel-depth {
   box-shadow: 0 1px 3px rgba(0,0,0,0.35), 0 0 0 1px #211D34;
+}
+
+/* ── Pulido global de interactividad (aplica a toda la app sin tocar cada archivo) ── */
+
+/* Anillo de foco violeta en cualquier input/select/textarea — antes el foco solo
+   cambiaba el color del borde, ahora también brilla levemente como el resto de los
+   elementos "vivos" de la app. */
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 3px rgba(133,0,255,0.15);
+  transition: box-shadow 0.2s cubic-bezier(0.4,0,0.2,1), border-color 0.2s ease;
+}
+
+/* Botones secundarios (borde neutro que ya cambia a violeta al hover) — se les agrega
+   el mismo levantamiento sutil que ya tienen los botones de marca y las tarjetas, para
+   que toda la app se sienta con la misma "física" al pasar el mouse. */
+.hover\:border-brand-violet:hover {
+  transform: translateY(-1px);
 }
 
 @keyframes shimmer {

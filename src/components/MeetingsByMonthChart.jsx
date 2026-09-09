@@ -78,10 +78,11 @@ export default function MeetingsByMonthChart({ scheduled = [], realized = [], re
                   const value = getters[s.key](month);
                   const heightPct = Math.max((value / max) * 100, value ? 6 : 0);
                   return (
-                    <div key={s.key} className="w-5 flex flex-col items-center justify-end h-full">
+                    <div key={s.key} className="w-5 flex flex-col items-center justify-end h-full group/bar">
                       <div className={`text-[10px] font-tech font-semibold mb-1 ${textBlack}`} style={{ opacity: value ? 1 : 0 }}>{value}</div>
                       <div
-                        className="w-full rounded-t-md transition-all duration-500"
+                        title={`${s.label}: ${value}`}
+                        className="w-full rounded-t-md transition-all duration-500 group-hover/bar:brightness-125 group-hover/bar:scale-x-125 cursor-default"
                         style={{
                           height: `${heightPct}%`,
                           minHeight: value ? '4px' : 0,

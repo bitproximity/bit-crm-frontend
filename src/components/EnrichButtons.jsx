@@ -53,7 +53,7 @@ export default function EnrichButtons({ entityType, entityId, onEnriched }) {
                 background: isDone ? 'rgba(74,222,128,0.1)' : p.bg,
                 borderColor: isDone ? 'rgba(74,222,128,0.3)' : p.border,
               }}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs transition disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs transition-all duration-200 hover:brightness-125 hover:-translate-y-px hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:brightness-100"
             >
               {isLoading ? <Loader2 size={12} className="animate-spin" /> : isDone ? <Check size={12} /> : <Sparkles size={12} />}
               {isLoading ? 'Enriqueciendo...' : isDone ? '¡Listo!' : p.label}
