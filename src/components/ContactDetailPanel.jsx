@@ -25,21 +25,32 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
   const [allTags, setAllTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
+  const [customFields, setCustomFields] = useState([]);
+  const [customFieldEdits, setCustomFieldEdits] = useState({});
 
   const load = async () => {
     setLoading(true);
-    const [contactData, gs, tags, allTagsList, teamList] = await Promise.all([
+    const [contactData, gs, tags, allTagsList, teamList, cfDefs, cfValues] = await Promise.all([
       api.get(`/api/contacts/${contactId}`),
       api.get('/api/gmail/status'),
       api.get(`/api/tags/for/contact/${contactId}`),
       api.get('/api/tags'),
       api.get('/api/team').catch(() => []),
+      api.get('/api/custom-fields?entity_type=contact').catch(() => []),
+      api.get(`/api/custom-fields/values/${contactId}`).catch(() => []),
     ]);
     setContact(contactData);
     setGmailStatus(gs);
     setContactTags(tags);
     setAllTags(allTagsList);
     setTeam(teamList);
+    // Mismo patrón que ya usa el trato (DealDetail) — antes Contactos tenía la definición
+    // de campos personalizados disponible en Configuración, pero nunca los mostraba ni
+    // dejaba editarlos acá.
+    setCustomFields(cfDefs.map((def) => {
+      const existing = cfValues.find((v) => v.field_id === def.id);
+      return { field_id: def.id, custom_field_definitions: def, value: existing?.value || '' };
+    }));
     const msgs = await api.get(`/api/gmail/messages/contact/${contactId}`).catch(() => []);
     setEmails(msgs);
     setLoading(false);
@@ -69,7 +80,12 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
       country: contact.country || '',
       position: contact.position || '',
       company_id: contact.company_id || '',
+      cedula: contact.cedula || '',
+      birth_date: contact.birth_date || '',
+      gender: contact.gender || '',
+      zone: contact.zone || '',
     });
+    setCustomFieldEdits(Object.fromEntries(customFields.map((f) => [f.field_id, f.value || ''])));
     setCompanyQuery(contact.companies?.name || '');
     setSaveError('');
     setEditing(true);
@@ -81,6 +97,11 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
     setSaveError('');
     try {
       const updated = await api.patch(`/api/contacts/${contactId}`, form);
+      // Solo se guardan los campos personalizados que realmente cambiaron.
+      const changedFields = customFields.filter((f) => (customFieldEdits[f.field_id] ?? '') !== (f.value || ''));
+      await Promise.all(
+        changedFields.map((f) => api.put(`/api/custom-fields/values/${contactId}`, { field_id: f.field_id, value: customFieldEdits[f.field_id] }))
+      );
       setContact({ ...contact, ...updated });
       setEditing(false);
       load();
@@ -151,7 +172,7 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
   if (!contactId) return null;
 
   const inputClass = 'w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet';
-  const labelClass = 'block text-xs text-brand-muted mb-1';
+  const labelClass = 'block text-[11px] font-tech uppercase tracking-wide text-brand-muted mb-1.5';
   const fullName = contact ? `${contact.first_name || ''} ${contact.last_name || ''}`.trim() : '';
   const initials = fullName.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
 
@@ -162,12 +183,18 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
         {loading || !contact ? (
           <div className="p-6 text-brand-muted">Cargando...</div>
         ) : editing ? (
-          <form onSubmit={save} className="p-5 space-y-3">
-            <div className="flex items-center justify-between mb-2">
+          <form onSubmit={save} className="p-5 space-y-4">
+            <div className="flex items-center justify-between mb-1">
               <h2 className="font-headline text-lg font-semibold">Editar contacto</h2>
               <button type="button" onClick={onClose} className="text-brand-muted hover:text-brand-white"><X size={18} /></button>
             </div>
             {saveError && <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{saveError}</div>}
+
+            <div>
+              <label className={labelClass}>Email <span className="text-red-400">*</span></label>
+              <input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Nombre</label>
@@ -178,14 +205,42 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
                 <input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className={inputClass} />
               </div>
             </div>
-            <div>
-              <label className={labelClass}>Correo</label>
-              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Cédula</label>
+                <input value={form.cedula} onChange={(e) => setForm({ ...form, cedula: e.target.value })} placeholder="8-888-8888" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Fecha de nacimiento</label>
+                <input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} className={inputClass} />
+              </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Género</label>
+                <input value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>País</label>
+                <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className={inputClass}>
+                  <option value="">Sin especificar</option>
+                  {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+
             <div>
               <label className={labelClass}>Teléfono</label>
               <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputClass} />
             </div>
+
+            <div>
+              <label className={labelClass}>Zona</label>
+              <input value={form.zone} onChange={(e) => setForm({ ...form, zone: e.target.value })} placeholder="Ej. Multiplaza, Panama City" className={inputClass} />
+            </div>
+
             <div className="relative">
               <label className={labelClass}>Empresa</label>
               <input
@@ -209,22 +264,40 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Cargo</label>
-                <select value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} className={inputClass}>
-                  <option value="">Sin especificar</option>
-                  {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>País</label>
-                <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className={inputClass}>
-                  <option value="">Sin especificar</option>
-                  {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
+
+            <div>
+              <label className={labelClass}>Cargo</label>
+              <select value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} className={inputClass}>
+                <option value="">Sin especificar</option>
+                {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
+
+            {/* Campos personalizados — la definición ya existía en Configuración → Campos
+                personalizados, pero acá nunca se mostraban ni se podían editar. */}
+            <div className="pt-2 border-t border-brand-border">
+              <div className="flex items-center justify-between mb-3 mt-3">
+                <label className={`${labelClass} mb-0`}>Campos personalizados</label>
+                <a href="/settings" className="text-xs text-brand-muted hover:text-brand-ice transition">+ Campo</a>
+              </div>
+              {customFields.length === 0 ? (
+                <p className="text-xs text-brand-muted">Sin campos personalizados para Contactos todavía.</p>
+              ) : (
+                <div className="space-y-3">
+                  {customFields.map((f) => (
+                    <div key={f.field_id}>
+                      <label className={labelClass}>{f.custom_field_definitions?.label}</label>
+                      <input
+                        value={customFieldEdits[f.field_id] ?? ''}
+                        onChange={(e) => setCustomFieldEdits((prev) => ({ ...prev, [f.field_id]: e.target.value }))}
+                        className={inputClass}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">Cancelar</button>
               <button disabled={saving} className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50">
