@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { FolderKanban, Calendar, Plus, X, Building2, DollarSign, LayoutGrid, List } from 'lucide-react';
 import { colorForName, initials } from '../lib/avatar';
+import RowActionButtons from '../components/RowActionButtons';
+import { useConfirm } from '../components/ConfirmModal';
 
 const PROJECT_TYPES = [
   { key: 'onboarding_cliente', label: 'Onboarding de cliente' },
@@ -148,6 +150,7 @@ const typeLabel = (key) => PROJECT_TYPES.find((t) => t.key === key)?.label || ke
 
 export default function Projects() {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [projects, setProjects] = useState([]);
   const [showNew, setShowNew] = useState(false);
   const [view, setView] = useState('lista');
@@ -155,6 +158,21 @@ export default function Projects() {
   const load = () => api.get('/api/projects').then(setProjects).catch(console.error);
 
   useEffect(() => { load(); }, []);
+
+  const deleteProject = async (p) => {
+    const ok = await confirm({
+      title: 'Eliminar proyecto',
+      message: `¿Eliminar "${p.name}"? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/api/projects/${p.id}`);
+      load();
+    } catch (err) {
+      alert(err.message || 'No se pudo eliminar el proyecto.');
+    }
+  };
 
   const statusColor = {
     activo: 'bg-green-500/15 text-green-300',
@@ -200,6 +218,7 @@ export default function Projects() {
                 <th className="px-4 py-3 font-manrope font-normal">Estado</th>
                 <th className="px-4 py-3 font-manrope font-normal">Tareas</th>
                 <th className="px-4 py-3 font-manrope font-normal">Vence</th>
+                <th className="px-4 py-3 font-manrope font-normal text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -229,10 +248,18 @@ export default function Projects() {
                   <td className="px-4 py-3 text-brand-muted">
                     {p.due_date ? new Date(p.due_date).toLocaleDateString() : '—'}
                   </td>
+                  <td className="px-4 py-3">
+                    <RowActionButtons
+                      onEdit={() => navigate(`/projects/${p.id}`)}
+                      onCopy={() => p.name}
+                      copyLabel="Copiar nombre"
+                      onDelete={() => deleteProject(p)}
+                    />
+                  </td>
                 </tr>
               ))}
               {projects.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-10 text-center text-brand-muted text-sm">Sin proyectos aún.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-brand-muted text-sm">Sin proyectos aún.</td></tr>
               )}
             </tbody>
           </table>
@@ -242,10 +269,10 @@ export default function Projects() {
       {view === 'tarjetas' && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {projects.map((p, i) => (
-          <Link
-            to={`/projects/${p.id}`}
+          <div
+            onClick={() => navigate(`/projects/${p.id}`)}
             key={p.id}
-            className="card-elevated rounded-xl p-4 block stagger-item"
+            className="card-elevated rounded-xl p-4 block stagger-item cursor-pointer"
             style={{ animationDelay: `${Math.min(i, 20) * 25}ms` }}
           >
             <div className="flex items-start gap-3 mb-3">
@@ -273,7 +300,16 @@ export default function Projects() {
                 <Calendar size={12} /> Vence: {new Date(p.due_date).toLocaleDateString()}
               </div>
             )}
-          </Link>
+
+            <div className="flex justify-end mt-3 pt-3 border-t border-brand-border">
+              <RowActionButtons
+                onEdit={() => navigate(`/projects/${p.id}`)}
+                onCopy={() => p.name}
+                copyLabel="Copiar nombre"
+                onDelete={() => deleteProject(p)}
+              />
+            </div>
+          </div>
         ))}
         {projects.length === 0 && (
           <div className="col-span-3 text-center py-12 text-brand-muted text-sm border border-dashed border-brand-border rounded-xl">

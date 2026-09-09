@@ -4,6 +4,8 @@ import { csvToContacts } from '../lib/csv';
 import AddContactModal from '../components/AddContactModal';
 import { Upload, Plus, Search, Mail, ChevronLeft, ChevronRight, Download, MapPin, Phone } from 'lucide-react';
 import ContactDetailPanel from '../components/ContactDetailPanel';
+import RowActionButtons from '../components/RowActionButtons';
+import { useConfirm } from '../components/ConfirmModal';
 import { colorForName, initials as nameInitials } from '../lib/avatar';
 
 const STATUS_COLORS = {
@@ -15,6 +17,7 @@ const STATUS_COLORS = {
 };
 
 export default function Contacts() {
+  const confirm = useConfirm();
   const [contacts, setContacts] = useState([]);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -24,6 +27,7 @@ export default function Contacts() {
   const [exporting, setExporting] = useState(false);
   const [gmailConnected, setGmailConnected] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState(null);
+  const [editContactId, setEditContactId] = useState(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const PAGE_SIZE = 50;
@@ -89,8 +93,7 @@ export default function Contacts() {
     setImporting(false);
   };
 
-  const exportCsv = async () => {
-    setExporting(true);
+  const exportCsv = async () => {    setExporting(true);
     try {
       const { data: all } = await api.get('/api/contacts?limit=10000');
       const headers = ['first_name', 'last_name', 'email', 'phone', 'position', 'country', 'company'];
@@ -110,6 +113,22 @@ export default function Contacts() {
       setImportResult({ error: err.message || 'Error exportando contactos' });
     }
     setExporting(false);
+  };
+
+  const deleteContact = async (c) => {
+    const name = `${c.first_name} ${c.last_name || ''}`.trim();
+    const ok = await confirm({
+      title: 'Eliminar contacto',
+      message: `¿Eliminar a "${name}"? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/api/contacts/${c.id}`);
+      load();
+    } catch (err) {
+      alert(err.message || 'No se pudo eliminar el contacto (puede tener tratos vinculados).');
+    }
   };
 
   return (
@@ -209,6 +228,7 @@ export default function Contacts() {
               <th className="px-4 py-3 font-manrope font-normal">Estado</th>
               <th className="px-4 py-3 font-manrope font-normal">Dueño</th>
               <th className="px-4 py-3 font-manrope font-normal">Registro</th>
+              <th className="px-4 py-3 font-manrope font-normal text-right">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -266,12 +286,20 @@ export default function Contacts() {
                   <td className="px-4 py-3 text-brand-muted text-xs">
                     {c.created_at ? new Date(c.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                   </td>
+                  <td className="px-4 py-3">
+                    <RowActionButtons
+                      onEdit={() => setEditContactId(c.id)}
+                      onCopy={() => c.email}
+                      copyLabel="Copiar email"
+                      onDelete={() => deleteContact(c)}
+                    />
+                  </td>
                 </tr>
               );
             })}
             {contacts.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-brand-muted text-sm">
+                <td colSpan={8} className="px-4 py-10 text-center text-brand-muted text-sm">
                   Sin contactos todavía.
                 </td>
               </tr>
@@ -306,9 +334,10 @@ export default function Contacts() {
       )}
 
       <ContactDetailPanel
-        contactId={selectedContactId}
-        onClose={() => setSelectedContactId(null)}
-        onDeleted={() => { setSelectedContactId(null); load(); }}
+        contactId={selectedContactId || editContactId}
+        startInEdit={!!editContactId}
+        onClose={() => { setSelectedContactId(null); setEditContactId(null); }}
+        onDeleted={() => { setSelectedContactId(null); setEditContactId(null); load(); }}
         onSaved={load}
       />
     </div>

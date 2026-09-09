@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Search, Plus, MapPin } from 'lucide-react';
 import CreateCompanyModal from '../components/CreateCompanyModal';
+import RowActionButtons from '../components/RowActionButtons';
+import { useConfirm } from '../components/ConfirmModal';
 import { colorForName, initials } from '../lib/avatar';
 
 export default function Companies() {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [companies, setCompanies] = useState([]);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -25,6 +28,21 @@ export default function Companies() {
     await api.post('/api/companies', form);
     setShowForm(false);
     load();
+  };
+
+  const deleteCompany = async (c) => {
+    const ok = await confirm({
+      title: 'Eliminar empresa',
+      message: `¿Eliminar "${c.name}"? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+    });
+    if (!ok) return;
+    try {
+      await api.delete(`/api/companies/${c.id}`);
+      load();
+    } catch (err) {
+      alert(err.message || 'No se pudo eliminar la empresa (puede tener tratos o contactos vinculados).');
+    }
   };
 
   return (
@@ -83,6 +101,14 @@ export default function Companies() {
                 <MapPin size={12} /> {c.country}
               </div>
             )}
+            <div className="flex justify-end mt-3 pt-3 border-t border-brand-border">
+              <RowActionButtons
+                onEdit={() => navigate(`/companies/${c.id}`)}
+                onCopy={() => c.name}
+                copyLabel="Copiar nombre"
+                onDelete={() => deleteCompany(c)}
+              />
+            </div>
           </div>
         ))}
         {companies.length === 0 && (
