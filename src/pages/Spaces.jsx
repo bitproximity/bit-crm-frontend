@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
-import { Boxes, ChevronRight, ChevronDown, FolderKanban, Plus, Trash2 } from 'lucide-react';
+import RowActionButtons from '../components/RowActionButtons';
+import { Boxes, ChevronRight, ChevronDown, FolderKanban, Plus } from 'lucide-react';
 
 const COLORS = ['#8500FF', '#E000FF', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6', '#ef4444'];
 
@@ -18,6 +19,8 @@ export default function Spaces() {
   const [projectForm, setProjectForm] = useState({ name: '', type: 'onboarding_cliente' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const load = () => {
     setError('');
@@ -63,6 +66,14 @@ export default function Spaces() {
     if (!ok) return;
     await api.delete(`/api/spaces/${spaceId}`);
     load();
+  };
+
+  const renameSpace = async (spaceId) => {
+    const name = renameValue.trim();
+    setRenamingId(null);
+    if (!name) return;
+    await api.patch(`/api/spaces/${spaceId}`, { name });
+    setSpaces((prev) => prev.map((s) => (s.id === spaceId ? { ...s, name } : s)));
   };
 
   const createProject = async (e, spaceId) => {
@@ -139,17 +150,30 @@ export default function Spaces() {
                   <Boxes size={16} className="text-white" />
                 </div>
                 <div>
-                  <div className="font-manrope font-medium">{s.name}</div>
+                  {renamingId === s.id ? (
+                    <input
+                      autoFocus
+                      value={renameValue}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onBlur={() => renameSpace(s.id)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') renameSpace(s.id); if (e.key === 'Escape') setRenamingId(null); }}
+                      className="font-manrope font-medium bg-brand-bg border border-brand-violet rounded px-1.5 py-0.5 text-sm focus:outline-none"
+                    />
+                  ) : (
+                    <div className="font-manrope font-medium">{s.name}</div>
+                  )}
                   <span className="text-xs text-brand-muted font-tech">{s.project_count} proyecto{s.project_count === 1 ? '' : 's'}</span>
                 </div>
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); deleteSpace(s.id); }}
-                className="icon-btn p-1.5 rounded-lg text-brand-muted opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/10 transition"
-                title="Eliminar espacio"
-              >
-                <Trash2 size={14} />
-              </button>
+              <div className="opacity-0 group-hover:opacity-100 transition">
+                <RowActionButtons
+                  onEdit={() => { setRenamingId(s.id); setRenameValue(s.name); }}
+                  onCopy={() => s.name}
+                  copyLabel="Copiar nombre"
+                  onDelete={() => deleteSpace(s.id)}
+                />
+              </div>
             </div>
 
             {expanded[s.id] && (
