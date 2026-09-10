@@ -7,6 +7,7 @@ import ContactDetailPanel from '../components/ContactDetailPanel';
 import RowActionButtons from '../components/RowActionButtons';
 import { useConfirm } from '../components/ConfirmModal';
 import { colorForName, initials as nameInitials } from '../lib/avatar';
+import { COUNTRY_OPTIONS, POSITION_OPTIONS, INDUSTRY_OPTIONS } from '../components/B2bRecordModal';
 
 const STATUS_COLORS = {
   nuevo: 'bg-blue-500/20 text-blue-300',
@@ -30,25 +31,42 @@ export default function Contacts() {
   const [editContactId, setEditContactId] = useState(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [countryFilter, setCountryFilter] = useState('');
+  const [positionFilter, setPositionFilter] = useState('');
+  const [industryFilter, setIndustryFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [ownerFilter, setOwnerFilter] = useState('');
+  const [team, setTeam] = useState([]);
   const PAGE_SIZE = 50;
   const fileInputRef = useRef(null);
 
-  const load = () =>
-    api.get(`/api/contacts?page=${page}&limit=${PAGE_SIZE}${search ? `&search=${encodeURIComponent(search)}` : ''}`)
+  const activeFilterCount = [countryFilter, positionFilter, industryFilter, statusFilter, ownerFilter].filter(Boolean).length;
+
+  const load = () => {
+    const qs = new URLSearchParams({ page, limit: PAGE_SIZE });
+    if (search) qs.set('search', search);
+    if (countryFilter) qs.set('country', countryFilter);
+    if (positionFilter) qs.set('position', positionFilter);
+    if (industryFilter) qs.set('industry', industryFilter);
+    if (statusFilter) qs.set('status', statusFilter);
+    if (ownerFilter) qs.set('owner_id', ownerFilter);
+    return api.get(`/api/contacts?${qs.toString()}`)
       .then((r) => { setContacts(r.data); setTotal(r.count || 0); })
       .catch(console.error);
+  };
 
   useEffect(() => {
     const t = setTimeout(load, 300);
     return () => clearTimeout(t);
-  }, [search, page]);
+  }, [search, page, countryFilter, positionFilter, industryFilter, statusFilter, ownerFilter]);
 
-  useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { setPage(1); }, [search, countryFilter, positionFilter, industryFilter, statusFilter, ownerFilter]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   useEffect(() => {
     api.get('/api/gmail/status').then((s) => setGmailConnected(s.connected)).catch(() => {});
+    api.get('/api/team').then(setTeam).catch(() => setTeam([]));
   }, []);
 
   const createContact = async (e) => {
@@ -215,6 +233,40 @@ export default function Contacts() {
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-9 pr-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
         />
+      </div>
+
+      {/* Filtros por columna — País, Cargo, Industria (de la empresa), Estado y Dueño.
+          Antes solo se podía buscar por nombre/email; con 50+ contactos por página
+          encontrar "los de Colombia que son Gerente de Marketing" era ir fila por fila. */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <select value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)} className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
+          <option value="">País: todos</option>
+          {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={positionFilter} onChange={(e) => setPositionFilter(e.target.value)} className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
+          <option value="">Cargo: todos</option>
+          {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <select value={industryFilter} onChange={(e) => setIndustryFilter(e.target.value)} className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
+          <option value="">Industria: todas</option>
+          {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
+        </select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
+          <option value="">Estado: todos</option>
+          {Object.keys(STATUS_COLORS).map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)} className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-xs focus:outline-none focus:border-brand-violet">
+          <option value="">Dueño: todos</option>
+          {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+        </select>
+        {activeFilterCount > 0 && (
+          <button
+            onClick={() => { setCountryFilter(''); setPositionFilter(''); setIndustryFilter(''); setStatusFilter(''); setOwnerFilter(''); }}
+            className="text-xs text-brand-muted hover:text-brand-ice transition px-1"
+          >
+            Limpiar filtros ({activeFilterCount})
+          </button>
+        )}
       </div>
 
       <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
