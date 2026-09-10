@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import { Mail, RefreshCw, Phone, X, Pencil, MapPin, Tag as TagIcon, Trash2 } from 'lucide-react';
 import EnrichButtons from './EnrichButtons';
@@ -6,7 +6,7 @@ import GmailMessageRow from './GmailMessageRow';
 import { useConfirm } from './ConfirmModal';
 import { POSITION_OPTIONS, COUNTRY_OPTIONS } from './B2bRecordModal';
 
-export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSaved }) {
+export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSaved, startInEdit }) {
   const confirm = useConfirm();
   const [contact, setContact] = useState(null);
   const [team, setTeam] = useState([]);
@@ -27,6 +27,7 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const [customFields, setCustomFields] = useState([]);
   const [customFieldEdits, setCustomFieldEdits] = useState({});
+  const autoEditedRef = useRef(false);
 
   const load = async () => {
     setLoading(true);
@@ -59,7 +60,20 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
   useEffect(() => {
     if (contactId) load().catch(console.error);
     setEditing(false);
+    autoEditedRef.current = false;
   }, [contactId]);
+
+  useEffect(() => {
+    // Permite abrir el panel directo en modo edición (botón de lápiz en la tabla) sin
+    // pasar primero por la vista de lectura. Solo se dispara una vez por apertura — si
+    // se dejara "siempre que cambie contact", guardar (que recarga el contacto) volvería
+    // a meter en modo edición después de guardar.
+    if (startInEdit && contact && !loading && !autoEditedRef.current) {
+      autoEditedRef.current = true;
+      startEdit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contact, loading]);
 
   useEffect(() => {
     if (!companyQuery.trim()) { setCompanyResults([]); return; }
@@ -81,7 +95,6 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
       position: contact.position || '',
       company_id: contact.company_id || '',
       cedula: contact.cedula || '',
-      birth_date: contact.birth_date || '',
       gender: contact.gender || '',
       zone: contact.zone || '',
     });
@@ -206,18 +219,11 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className={labelClass}>Cédula</label>
                 <input value={form.cedula} onChange={(e) => setForm({ ...form, cedula: e.target.value })} placeholder="8-888-8888" className={inputClass} />
               </div>
-              <div>
-                <label className={labelClass}>Fecha de nacimiento</label>
-                <input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} className={inputClass} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Género</label>
                 <input value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className={inputClass} />
