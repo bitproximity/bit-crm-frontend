@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
-import { Mail, RefreshCw, Phone, X, Pencil, MapPin, Tag as TagIcon, Trash2 } from 'lucide-react';
+import { Mail, RefreshCw, Phone, X, Pencil, MapPin, Tag as TagIcon, Trash2, Building2 } from 'lucide-react';
 import EnrichButtons from './EnrichButtons';
 import GmailMessageRow from './GmailMessageRow';
 import { useConfirm } from './ConfirmModal';
-import { POSITION_OPTIONS, COUNTRY_OPTIONS } from './B2bRecordModal';
+import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS } from './B2bRecordModal';
 
 export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSaved, startInEdit }) {
   const confirm = useConfirm();
@@ -27,6 +27,7 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const [customFields, setCustomFields] = useState([]);
   const [customFieldEdits, setCustomFieldEdits] = useState({});
+  const [industry, setIndustry] = useState('');
   const autoEditedRef = useRef(false);
 
   const load = async () => {
@@ -94,10 +95,12 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
       country: contact.country || '',
       position: contact.position || '',
       company_id: contact.company_id || '',
+      owner_id: contact.owner_id || '',
       cedula: contact.cedula || '',
       gender: contact.gender || '',
       zone: contact.zone || '',
     });
+    setIndustry(contact.companies?.industry || '');
     setCustomFieldEdits(Object.fromEntries(customFields.map((f) => [f.field_id, f.value || ''])));
     setCompanyQuery(contact.companies?.name || '');
     setSaveError('');
@@ -109,6 +112,11 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
     setSaving(true);
     setSaveError('');
     try {
+      // Si hay empresa asociada y la industria cambió, se guarda en la empresa (no en el
+      // contacto) — mismo comportamiento que "Añadir persona".
+      if (form.company_id && industry !== (contact.companies?.industry || '')) {
+        await api.patch(`/api/companies/${form.company_id}`, { industry: industry || null });
+      }
       const updated = await api.patch(`/api/contacts/${contactId}`, form);
       // Solo se guardan los campos personalizados que realmente cambiaron.
       const changedFields = customFields.filter((f) => (customFieldEdits[f.field_id] ?? '') !== (f.value || ''));
@@ -185,30 +193,31 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
   if (!contactId) return null;
 
   const inputClass = 'w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet';
-  const labelClass = 'block text-[11px] font-tech uppercase tracking-wide text-brand-muted mb-1.5';
+  const labelClass = 'block text-xs text-brand-muted mb-1.5';
   const fullName = contact ? `${contact.first_name || ''} ${contact.last_name || ''}`.trim() : '';
   const initials = fullName.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/60 overlay-in" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-brand-panel border-l border-brand-border h-full overflow-y-auto" style={{ animation: 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-        {loading || !contact ? (
-          <div className="p-6 text-brand-muted">Cargando...</div>
-        ) : editing ? (
-          <form onSubmit={save} className="p-5 space-y-4">
-            <div className="flex items-center justify-between mb-1">
-              <h2 className="font-headline text-lg font-semibold">Editar contacto</h2>
-              <button type="button" onClick={onClose} className="text-brand-muted hover:text-brand-white"><X size={18} /></button>
-            </div>
-            {saveError && <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{saveError}</div>}
+  // Editar contacto se muestra como modal centrado de 2 columnas — misma estructura y
+  // estilo que "Añadir persona" (AddContactModal), en vez del formulario angosto de una
+  // columna que tenía antes dentro del panel lateral.
+  if (editing && contact) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/60 overlay-in" onClick={() => setEditing(false)} />
+        <div className="relative w-full max-w-2xl max-h-[90vh] bg-brand-panel border border-brand-border rounded-2xl shadow-2xl flex flex-col overflow-hidden modal-in">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border flex-shrink-0">
+            <h2 className="font-headline text-lg font-semibold">Editar contacto</h2>
+            <button onClick={() => setEditing(false)} className="text-brand-muted hover:text-brand-white"><X size={20} /></button>
+          </div>
 
-            <div>
-              <label className={labelClass}>Email <span className="text-red-400">*</span></label>
-              <input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
-            </div>
+          <form onSubmit={save} className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            {saveError && <div className="md:col-span-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{saveError}</div>}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-4">
+              <div>
+                <label className={labelClass}>Email <span className="text-red-400">*</span></label>
+                <input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={inputClass} />
+              </div>
               <div>
                 <label className={labelClass}>Nombre</label>
                 <input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className={inputClass} required />
@@ -217,12 +226,59 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
                 <label className={labelClass}>Apellido</label>
                 <input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className={inputClass} />
               </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className={labelClass}>Cédula</label>
                 <input value={form.cedula} onChange={(e) => setForm({ ...form, cedula: e.target.value })} placeholder="8-888-8888" className={inputClass} />
+              </div>
+
+              <div className="relative">
+                <label className={labelClass}>Organización</label>
+                <div className="relative">
+                  <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
+                  <input
+                    value={companyQuery}
+                    onChange={(e) => { setCompanyQuery(e.target.value); setForm({ ...form, company_id: '' }); }}
+                    placeholder="Buscar o crear empresa..."
+                    className={`${inputClass} pl-9`}
+                  />
+                </div>
+                {companyResults.length > 0 && !form.company_id && (
+                  <div className="absolute z-10 mt-1 w-full bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden">
+                    {companyResults.map((c) => (
+                      <button
+                        type="button"
+                        key={c.id}
+                        onClick={() => { setForm({ ...form, company_id: c.id }); setCompanyQuery(c.name); setIndustry(c.industry || ''); setCompanyResults([]); }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition"
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className={labelClass}>Teléfono</label>
+                <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={`${inputClass} font-tech`} placeholder="+57 300 000 0000" />
+              </div>
+
+              <div>
+                <label className={labelClass}>Cargo</label>
+                <select value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} className={inputClass}>
+                  <option value="">Sin especificar</option>
+                  {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={labelClass}>Industria</label>
+                <select value={industry} onChange={(e) => setIndustry(e.target.value)} className={inputClass}>
+                  <option value="">Sin especificar</option>
+                  {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
+                </select>
               </div>
               <div>
                 <label className={labelClass}>Género</label>
@@ -235,53 +291,22 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
                   {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-            </div>
-
-            <div>
-              <label className={labelClass}>Teléfono</label>
-              <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={inputClass} />
-            </div>
-
-            <div>
-              <label className={labelClass}>Zona</label>
-              <input value={form.zone} onChange={(e) => setForm({ ...form, zone: e.target.value })} placeholder="Ej. Multiplaza, Panama City" className={inputClass} />
-            </div>
-
-            <div className="relative">
-              <label className={labelClass}>Empresa</label>
-              <input
-                value={companyQuery}
-                onChange={(e) => { setCompanyQuery(e.target.value); setForm({ ...form, company_id: '' }); }}
-                placeholder="Buscar empresa..."
-                className={inputClass}
-              />
-              {companyResults.length > 0 && !form.company_id && (
-                <div className="absolute z-10 mt-1 w-full bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden">
-                  {companyResults.map((c) => (
-                    <button
-                      type="button"
-                      key={c.id}
-                      onClick={() => { setForm({ ...form, company_id: c.id }); setCompanyQuery(c.name); setCompanyResults([]); }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition"
-                    >
-                      {c.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className={labelClass}>Cargo</label>
-              <select value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} className={inputClass}>
-                <option value="">Sin especificar</option>
-                {POSITION_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
+              <div>
+                <label className={labelClass}>Zona</label>
+                <input value={form.zone} onChange={(e) => setForm({ ...form, zone: e.target.value })} placeholder="Ej. Multiplaza, Panama City" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Propietario</label>
+                <select value={form.owner_id} onChange={(e) => setForm({ ...form, owner_id: e.target.value })} className={inputClass}>
+                  <option value="">Sin asignar</option>
+                  {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                </select>
+              </div>
             </div>
 
             {/* Campos personalizados — la definición ya existía en Configuración → Campos
                 personalizados, pero acá nunca se mostraban ni se podían editar. */}
-            <div className="pt-2 border-t border-brand-border">
+            <div className="md:col-span-2 pt-2 border-t border-brand-border">
               <div className="flex items-center justify-between mb-3 mt-3">
                 <label className={`${labelClass} mb-0`}>Campos personalizados</label>
                 <a href="/settings" className="text-xs text-brand-muted hover:text-brand-ice transition">+ Campo</a>
@@ -289,7 +314,7 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
               {customFields.length === 0 ? (
                 <p className="text-xs text-brand-muted">Sin campos personalizados para Contactos todavía.</p>
               ) : (
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
                   {customFields.map((f) => (
                     <div key={f.field_id}>
                       <label className={labelClass}>{f.custom_field_definitions?.label}</label>
@@ -303,14 +328,25 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
                 </div>
               )}
             </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">Cancelar</button>
-              <button disabled={saving} className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50">
-                {saving ? 'Guardando...' : 'Guardar'}
-              </button>
-            </div>
           </form>
+
+          <div className="flex justify-end gap-2 px-6 py-4 border-t border-brand-border flex-shrink-0">
+            <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">Cancelar</button>
+            <button onClick={save} disabled={saving} className="px-5 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50">
+              {saving ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-black/60 overlay-in" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-brand-panel border-l border-brand-border h-full overflow-y-auto" style={{ animation: 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+        {loading || !contact ? (
+          <div className="p-6 text-brand-muted">Cargando...</div>
         ) : (
           <>
             <div className="relative bg-gradient-to-br from-brand-violet/15 via-brand-panel to-brand-panel border-b border-brand-border p-6">
