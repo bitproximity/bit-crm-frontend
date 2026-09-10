@@ -97,7 +97,6 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
       company_id: contact.company_id || '',
       owner_id: contact.owner_id || '',
       cedula: contact.cedula || '',
-      gender: contact.gender || '',
       zone: contact.zone || '',
     });
     setIndustry(contact.companies?.industry || '');
@@ -279,10 +278,6 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
                   <option value="">Sin especificar</option>
                   {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
                 </select>
-              </div>
-              <div>
-                <label className={labelClass}>Género</label>
-                <input value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className={inputClass} />
               </div>
               <div>
                 <label className={labelClass}>País</label>
