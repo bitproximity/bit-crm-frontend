@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
-import { Mail, RefreshCw, Phone, X, Pencil, MapPin, Tag as TagIcon, Trash2, Building2 } from 'lucide-react';
+import { Mail, RefreshCw, Phone, X, Pencil, MapPin, Tag as TagIcon, Trash2, Building2, Copy, Check } from 'lucide-react';
 import EnrichButtons from './EnrichButtons';
 import GmailMessageRow from './GmailMessageRow';
 import { useConfirm } from './ConfirmModal';
 import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS } from './B2bRecordModal';
+import { colorForName } from '../lib/avatar';
 
 export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSaved, startInEdit }) {
   const confirm = useConfirm();
@@ -28,6 +29,7 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
   const [customFields, setCustomFields] = useState([]);
   const [customFieldEdits, setCustomFieldEdits] = useState({});
   const [industry, setIndustry] = useState('');
+  const [copiedField, setCopiedField] = useState(null);
   const autoEditedRef = useRef(false);
 
   const load = async () => {
@@ -180,6 +182,12 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
     setContactTags((prev) => [...prev, tag]);
     setTagInput('');
     setTagPickerOpen(false);
+  };
+
+  const copyToClipboard = async (text, field) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 1500);
   };
 
   const saveOwner = async (ownerId) => {
@@ -347,7 +355,10 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
             <div className="relative bg-gradient-to-br from-brand-violet/15 via-brand-panel to-brand-panel border-b border-brand-border p-6">
               <div className="flex items-start justify-between">
                 <div className="flex gap-4 min-w-0">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center text-lg font-tech font-semibold flex-shrink-0 shadow-lg shadow-brand-violet/20">
+                  <div
+                    className="w-16 h-16 rounded-2xl flex items-center justify-center text-lg font-tech font-semibold flex-shrink-0 shadow-lg"
+                    style={{ background: `linear-gradient(135deg, ${colorForName(fullName)}, ${colorForName(fullName)}99)`, boxShadow: `0 8px 20px -4px ${colorForName(fullName)}55` }}
+                  >
                     {initials || '?'}
                   </div>
                   <div className="min-w-0 pt-0.5">
@@ -394,14 +405,32 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
 
               <div className="flex flex-wrap gap-2 mt-5">
                 {contact.email && (
-                  <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 text-xs bg-brand-bg/80 border border-brand-border rounded-full px-3 py-1.5 hover:border-brand-violet hover:text-brand-ice transition">
-                    <Mail size={12} /> {contact.email}
-                  </a>
+                  <div className="flex items-center gap-1 bg-brand-bg/80 border border-brand-border rounded-full pl-3 pr-1 py-1 hover:border-brand-violet transition">
+                    <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 text-xs hover:text-brand-ice transition">
+                      <Mail size={12} /> {contact.email}
+                    </a>
+                    <button
+                      onClick={() => copyToClipboard(contact.email, 'email')}
+                      title="Copiar email"
+                      className="w-5 h-5 flex items-center justify-center rounded-full text-brand-muted hover:text-brand-ice hover:bg-brand-panel transition"
+                    >
+                      {copiedField === 'email' ? <Check size={11} className="text-green-400" /> : <Copy size={11} />}
+                    </button>
+                  </div>
                 )}
                 {contact.phone && (
-                  <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 text-xs bg-brand-bg/80 border border-brand-border rounded-full px-3 py-1.5 hover:border-brand-violet hover:text-brand-ice transition">
-                    <Phone size={12} /> {contact.phone}
-                  </a>
+                  <div className="flex items-center gap-1 bg-brand-bg/80 border border-brand-border rounded-full pl-3 pr-1 py-1 hover:border-brand-violet transition">
+                    <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 text-xs hover:text-brand-ice transition">
+                      <Phone size={12} /> {contact.phone}
+                    </a>
+                    <button
+                      onClick={() => copyToClipboard(contact.phone, 'phone')}
+                      title="Copiar teléfono"
+                      className="w-5 h-5 flex items-center justify-center rounded-full text-brand-muted hover:text-brand-ice hover:bg-brand-panel transition"
+                    >
+                      {copiedField === 'phone' ? <Check size={11} className="text-green-400" /> : <Copy size={11} />}
+                    </button>
+                  </div>
                 )}
                 {contact.country && (
                   <span className="flex items-center gap-1.5 text-xs bg-brand-bg/80 border border-brand-border rounded-full px-3 py-1.5 text-brand-muted">
@@ -493,9 +522,9 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
               <div className="space-y-2 mt-2">
                 {emails.map((e, i) => <GmailMessageRow key={e.id} message={e} index={i} />)}
                 {gmailStatus?.connected && contact.email && emails.length === 0 && (
-                  <div className="flex flex-col items-center gap-2 text-brand-muted text-xs py-8 text-center border border-dashed border-brand-border rounded-xl">
-                    <Mail size={20} className="text-brand-border" />
-                    Sin correos sincronizados todavía.<br />Dale a "Sincronizar" arriba.
+                  <div className="flex items-center gap-2 text-brand-muted text-xs py-3 px-3.5 border border-brand-border rounded-xl bg-brand-bg/50">
+                    <Mail size={14} className="text-brand-border flex-shrink-0" />
+                    Sin correos sincronizados todavía — dale a "Sincronizar" arriba.
                   </div>
                 )}
               </div>
