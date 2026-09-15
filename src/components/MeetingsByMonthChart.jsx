@@ -70,9 +70,14 @@ export default function MeetingsByMonthChart({ scheduled = [], realized = [], re
       </div>
 
       <div className="overflow-x-auto pb-1">
-        <div className="flex items-end gap-4" style={{ minWidth: `${months.length * 84}px`, height: '220px' }}>
+        {/* FIX: cada grupo de mes usaba flex-1, que lo estira para llenar TODO el ancho
+            del panel — con pocos meses (ej. solo Jul/Ago/Sep) eso separaba las barras por
+            cientos de píxeles de espacio vacío en vez de dejarlas juntas y compactas.
+            Ahora cada grupo tiene ancho fijo y, si sobra espacio, se centra el conjunto
+            en vez de estirar cada grupo individualmente. */}
+        <div className="flex items-end gap-6 justify-center mx-auto" style={{ width: `${months.length * 84}px`, height: '220px' }}>
           {months.map((month) => (
-            <div key={month} className="flex-1 flex flex-col items-center justify-end h-full min-w-[68px]">
+            <div key={month} className="flex flex-col items-center justify-end h-full w-[68px] flex-shrink-0">
               <div className="flex items-end gap-2 w-full justify-center flex-1">
                 {SERIES.map((s) => {
                   const value = getters[s.key](month);
