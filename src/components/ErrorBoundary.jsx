@@ -23,6 +23,20 @@ export default class ErrorBoundary extends Component {
     if (isStaleChunk && !sessionStorage.getItem('bitcrm-chunk-reload')) {
       sessionStorage.setItem('bitcrm-chunk-reload', '1');
       window.location.reload();
+      return;
+    }
+
+    // Cuando Chrome traduce la página (Google Translate) mientras React también está
+    // actualizando el mismo texto, los dos terminan peleando por el mismo nodo del DOM —
+    // React intenta mover/borrar un nodo que el traductor ya movió por su cuenta, y explota
+    // con "Failed to execute 'insertBefore'/'removeChild' on 'Node'". No es un bug real de
+    // la pantalla, así que se recarga sola una vez en vez de mostrar el error — igual que el
+    // caso de arriba, con su propio contador para no mezclar los dos guardas.
+    const isTranslateDomConflict = /insertBefore|removeChild/i.test(error?.message || '') && /Node/i.test(error?.message || '');
+    if (isTranslateDomConflict && !sessionStorage.getItem('bitcrm-dom-reload')) {
+      sessionStorage.setItem('bitcrm-dom-reload', '1');
+      window.location.reload();
+      return;
     }
   }
 

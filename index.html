@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Evita que Chrome/Google Translate reescriba el DOM mientras React lo controla —
+         esa pelea entre los dos es la causa real de "Failed to execute 'insertBefore'/
+         'removeChild' on 'Node'" que le sale al equipo de vez en cuando. No es un bug del
+         CRM: React actualiza un nodo de texto que el traductor ya movió/reemplazó por su
+         cuenta, y ninguno de los dos sabe que el otro lo tocó. -->
+    <meta name="google" content="notranslate" />
     <link rel="icon" type="image/png" href="/brand/favicon-32.png" />
     <link rel="apple-touch-icon" href="/brand/favicon-512.png" />
     <title>Bit CRM</title>
@@ -13,7 +19,7 @@
       rel="stylesheet"
     />
   </head>
-  <body class="bg-brand-bg text-brand-white font-manrope">
+  <body class="bg-brand-bg text-brand-white font-manrope" translate="no">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
