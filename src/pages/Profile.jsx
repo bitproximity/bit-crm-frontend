@@ -48,8 +48,8 @@ export default function Profile() {
     window.location.href = url;
   };
 
-  const disconnect = async () => {
-    await api.delete('/api/gmail/disconnect');
+  const disconnect = async (email) => {
+    await api.delete(`/api/gmail/disconnect/${encodeURIComponent(email)}`);
     load();
   };
 
@@ -138,32 +138,45 @@ export default function Profile() {
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="font-manrope font-medium mb-1">Gmail + Google Calendar</div>
           <p className="text-brand-muted text-sm mb-4">
-            Conecta tu cuenta de Google para sincronizar correos con cada contacto,
+            Conecta tus cuentas de Google para sincronizar correos con cada contacto,
             ver tus próximos eventos, y que tus tareas con fecha límite se creen
             automáticamente en tu Google Calendar con recordatorio (30 min antes por
-            notificación, 1 hora antes por correo).
+            notificación, 1 hora antes por correo). Podés conectar más de una cuenta
+            (ej. tu correo de Bit Proximity y el de Bit WiFi) — al buscar correos con un
+            contacto se revisan todas las que tengas conectadas.
           </p>
 
           {gmail === null ? (
             <SkeletonLine className="w-32" />
-          ) : gmail.connected ? (
-            <div>
-              <div className="text-sm text-brand-ice font-tech mb-3">{gmail.email}</div>
-              <button
-                onClick={disconnect}
-                className="px-4 py-2 border border-brand-border rounded-lg text-sm hover:border-red-500 hover:text-red-400 transition"
-              >
-                Desconectar
-              </button>
-            </div>
           ) : (
-            <button
-              onClick={connect}
-              className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium"
-            >
-              Conectar Google
-            </button>
+            <div className="space-y-2 mb-4">
+              {gmail.connections?.map((c, i) => (
+                <div key={c.email} className="flex items-center justify-between px-3 py-2 rounded-lg bg-brand-bg border border-brand-border">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-brand-ice font-tech">{c.email}</span>
+                    {i === 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-violet/15 text-brand-ice" title="Se usa para Google Calendar (tareas/actividades) — con varias cuentas, solo la principal sincroniza el calendario.">
+                        principal
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => disconnect(c.email)}
+                    className="text-xs text-brand-muted hover:text-red-400 transition"
+                  >
+                    Desconectar
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
+
+          <button
+            onClick={connect}
+            className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium"
+          >
+            {gmail?.connections?.length ? '+ Conectar otra cuenta' : 'Conectar Google'}
+          </button>
         </div>
 
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
