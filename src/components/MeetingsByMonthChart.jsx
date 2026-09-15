@@ -75,33 +75,61 @@ export default function MeetingsByMonthChart({ scheduled = [], realized = [], re
             cientos de píxeles de espacio vacío en vez de dejarlas juntas y compactas.
             Ahora cada grupo tiene ancho fijo y, si sobra espacio, se centra el conjunto
             en vez de estirar cada grupo individualmente. */}
-        <div className="flex items-end gap-6 justify-center mx-auto" style={{ width: `${months.length * 84}px`, height: '220px' }}>
-          {months.map((month) => (
-            <div key={month} className="flex flex-col items-center justify-end h-full w-[68px] flex-shrink-0">
-              <div className="flex items-end gap-2 w-full justify-center flex-1">
-                {SERIES.map((s) => {
-                  const value = getters[s.key](month);
-                  const heightPct = Math.max((value / max) * 100, value ? 6 : 0);
-                  return (
-                    <div key={s.key} className="w-5 flex flex-col items-center justify-end h-full group/bar">
-                      <div className={`text-[10px] font-tech font-semibold mb-1 ${textBlack}`} style={{ opacity: value ? 1 : 0 }}>{value}</div>
-                      <div
-                        title={`${s.label}: ${value}`}
-                        className="w-full rounded-t-md transition-all duration-500 group-hover/bar:brightness-125 group-hover/bar:scale-x-125 cursor-default"
-                        style={{
-                          height: `${heightPct}%`,
-                          minHeight: value ? '4px' : 0,
-                          background: s.gradient,
-                          boxShadow: `0 0 12px ${s.solid}55`,
-                        }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-              <div className={`text-xs font-tech font-medium mt-2.5 ${textMuted}`}>{monthLabel(month)}</div>
-            </div>
-          ))}
+        <div className="relative mx-auto" style={{ width: `${months.length * 84}px`, height: '220px' }}>
+          {/* Líneas de referencia horizontales — dan noción de escala sin saturar con
+              números en un eje. Cuatro franjas iguales + la línea base. */}
+          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-[1px]">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="border-t border-dashed border-brand-border/40" />
+            ))}
+            <div />
+          </div>
+
+          <div className="relative flex items-end gap-6 justify-center h-full">
+            {months.map((month) => {
+              const monthMax = Math.max(getCount(scheduled, month), getCount(realized, month), getCount(reactivated, month));
+              const isPeak = monthMax === max && monthMax > 0;
+              return (
+                <div key={month} className="flex flex-col items-center justify-end h-full w-[68px] flex-shrink-0">
+                  <div className="flex items-end gap-2.5 w-full justify-center flex-1">
+                    {SERIES.map((s) => {
+                      const value = getters[s.key](month);
+                      const heightPct = Math.max((value / max) * 100, value ? 6 : 0);
+                      return (
+                        <div key={s.key} className="w-6 flex flex-col items-center justify-end h-full group/bar">
+                          {value > 0 && (
+                            <div
+                              className="text-[11px] font-tech font-bold mb-1.5 px-1.5 py-0.5 rounded-md whitespace-nowrap"
+                              style={{ color: s.solid, background: `${s.solid}22` }}
+                            >
+                              {value}
+                            </div>
+                          )}
+                          <div
+                            title={`${s.label}: ${value}`}
+                            className="w-full rounded-t-lg transition-all duration-500 group-hover/bar:brightness-125 group-hover/bar:scale-x-125 cursor-default relative"
+                            style={{
+                              height: `${heightPct}%`,
+                              minHeight: value ? '4px' : 0,
+                              background: s.gradient,
+                              boxShadow: isPeak && s.key === 'scheduled' ? `0 0 20px ${s.solid}aa` : `0 0 12px ${s.solid}55`,
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className={`flex items-center gap-1 text-xs font-tech font-medium mt-2.5 ${textMuted}`}>
+                    {isPeak && <span title="Mes con más actividad">🏆</span>}
+                    {monthLabel(month)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Línea base — le da "piso" a las barras en vez de flotar sobre nada */}
+          <div className="absolute bottom-0 left-0 right-0 border-t border-brand-border" />
         </div>
       </div>
     </div>
