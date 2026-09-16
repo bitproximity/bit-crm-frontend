@@ -12,7 +12,14 @@ const STATUS_OPTIONS = [
   { key: 'no_interesado', label: 'No interesado' },
 ];
 
-export const INDUSTRY_OPTIONS = ['Restaurantes', 'Retail', 'Salud', 'Banca', 'Centros Comerciales', 'Educación', 'Entretenimiento', 'Hotelería', 'Automotriz', 'Gas & Oil', 'Servicios', 'Aseguradoras', 'Food & Beverage', 'Agrícola', 'Supermercados', 'Retail Fashion', 'Energía', 'Puertos Marítimos', 'Gobierno'];
+// Orden alfabético — antes estaba en el orden en que se fueron agregando con el tiempo,
+// así que encontrar una industria puntual en el desplegable era ir mirando una por una.
+export const INDUSTRY_OPTIONS = [
+  'Agrícola', 'Aseguradoras', 'Automotriz', 'Banca', 'Centros Comerciales',
+  'Educación', 'Energía', 'Entretenimiento', 'Food & Beverage', 'Gas & Oil',
+  'Gobierno', 'Hotelería', 'Puertos Marítimos', 'Restaurantes', 'Retail',
+  'Retail Fashion', 'Salud', 'Servicios', 'Supermercados', 'Telecomunicaciones',
+];
 
 export const COUNTRY_OPTIONS = [
   'Argentina', 'Bolivia', 'Chile', 'Colombia', 'Costa Rica', 'Ecuador',
