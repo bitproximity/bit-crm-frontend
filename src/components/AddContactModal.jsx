@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { X, Building2, Plus } from 'lucide-react';
 import { INDUSTRY_OPTIONS, POSITION_OPTIONS, COUNTRY_OPTIONS } from './B2bRecordModal';
+import { useOutsideClick } from '../hooks/useOutsideClick';
 
 const PHONE_TYPES = ['Trabajo', 'Personal', 'Móvil', 'Otro'];
 const EMAIL_TYPES = ['Trabajo', 'Personal', 'Otro'];
@@ -12,6 +13,8 @@ export default function AddContactModal({ onClose, onCreated, presetCompany }) {
   const [companyQuery, setCompanyQuery] = useState(presetCompany?.name || '');
   const [companyResults, setCompanyResults] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(presetCompany || null);
+  const companyBoxRef = useRef(null);
+  useOutsideClick(companyBoxRef, () => setCompanyResults([]), companyResults.length > 0);
   const [industry, setIndustry] = useState('');
   const [country, setCountry] = useState('');
   const [position, setPosition] = useState('');
@@ -131,7 +134,7 @@ export default function AddContactModal({ onClose, onCreated, presetCompany }) {
               <input value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClass} />
             </div>
 
-            <div className="relative">
+            <div className="relative" ref={companyBoxRef}>
               <label className={labelClass}>Organización</label>
               <div className="relative">
                 <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
@@ -143,7 +146,7 @@ export default function AddContactModal({ onClose, onCreated, presetCompany }) {
                 />
               </div>
               {companyResults.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden">
+                <div className="absolute z-10 mt-1 w-full bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
                   {companyResults.map((c) => (
                     <button type="button" key={c.id} onClick={() => pickCompany(c)} className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition">
                       {c.name}

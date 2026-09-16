@@ -1,8 +1,9 @@
 import { SkeletonPage } from '../components/Skeleton';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
+import { useOutsideClick } from '../hooks/useOutsideClick';
 import { InvoiceDetailModal } from './Invoicing';
 import DateTimePicker from '../components/DateTimePicker';
 import ProductsModal from '../components/ProductsModal';
@@ -124,10 +125,14 @@ export default function DealDetail() {
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyResults, setCompanyResults] = useState([]);
   const [selectedCompanyPick, setSelectedCompanyPick] = useState(null);
+  const companyBoxRef = useRef(null);
+  useOutsideClick(companyBoxRef, () => setCompanyResults([]), companyEditing && companyResults.length > 0);
   const [contactEditing, setContactEditing] = useState(false);
   const [contactQuery, setContactQuery] = useState('');
   const [contactResults, setContactResults] = useState([]);
   const [selectedContactPick, setSelectedContactPick] = useState(null);
+  const contactBoxRef = useRef(null);
+  useOutsideClick(contactBoxRef, () => setContactResults([]), contactEditing && contactResults.length > 0);
 
   // Datos "globales" que casi nunca cambian dentro de una sesión — se piden UNA sola vez
   // por trato abierto, no en cada guardado. Antes se repetían las 9 llamadas completas
@@ -794,7 +799,7 @@ export default function DealDetail() {
                 </button>
               )}
 
-              <div className="relative">
+              <div className="relative" ref={companyBoxRef}>
                 <div className="flex items-center gap-2 text-brand-muted">
                   <Building2 size={14} className="flex-shrink-0" />
                   {companyEditing ? (
@@ -831,7 +836,7 @@ export default function DealDetail() {
                 )}
               </div>
 
-              <div className="relative">
+              <div className="relative" ref={contactBoxRef}>
                 <div className="flex items-center gap-2 text-brand-muted">
                   <User size={14} className="flex-shrink-0" />
                   {contactEditing ? (

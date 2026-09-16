@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useOutsideClick } from '../hooks/useOutsideClick';
 import { api } from '../lib/api';
 import DateTimePicker from './DateTimePicker';
 import { User, Building2, X, Plus } from 'lucide-react';
@@ -26,6 +27,8 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
   const [companyQuery, setCompanyQuery] = useState(presetCompany?.name || '');
   const [companyResults, setCompanyResults] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(presetCompany || null);
+  const companyBoxRef = useRef(null);
+  useOutsideClick(companyBoxRef, () => setCompanyResults([]), companyResults.length > 0);
   const [industry, setIndustry] = useState('');
 
   const [allTags, setAllTags] = useState([]);
@@ -320,7 +323,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
                 )}
               </div>
 
-              <div className="relative">
+              <div className="relative" ref={companyBoxRef}>
                 <label className={labelClass}>Organización</label>
                 <div className="relative">
                   <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
@@ -332,7 +335,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
                   />
                 </div>
                 {companyResults.length > 0 && (
-                  <div className="absolute z-10 mt-1 w-full bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden">
+                  <div className="absolute z-10 mt-1 w-full bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
                     {companyResults.map((c) => (
                       <button
                         type="button"

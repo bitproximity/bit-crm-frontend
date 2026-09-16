@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { FolderKanban, Calendar, Plus, X, Building2, DollarSign, LayoutGrid, List } from 'lucide-react';
 import { colorForName, initials } from '../lib/avatar';
 import RowActionButtons from '../components/RowActionButtons';
 import { useConfirm } from '../components/ConfirmModal';
+import { useOutsideClick } from '../hooks/useOutsideClick';
 
 const PROJECT_TYPES = [
   { key: 'onboarding_cliente', label: 'Onboarding de cliente' },
@@ -21,6 +22,8 @@ function NewProjectModal({ onClose, onCreated }) {
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyResults, setCompanyResults] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
+  const companyBoxRef = useRef(null);
+  useOutsideClick(companyBoxRef, () => setCompanyResults([]), companyResults.length > 0);
   const [dealQuery, setDealQuery] = useState('');
   const [dealResults, setDealResults] = useState([]);
   const [selectedDeal, setSelectedDeal] = useState(null);
@@ -88,7 +91,7 @@ function NewProjectModal({ onClose, onCreated }) {
               {PROJECT_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
             </select>
           </div>
-          <div className="relative">
+          <div className="relative" ref={companyBoxRef}>
             <label className={labelClass}>Empresa</label>
             <div className="relative">
               <Building2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />

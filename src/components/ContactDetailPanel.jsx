@@ -6,6 +6,7 @@ import GmailMessageRow from './GmailMessageRow';
 import { useConfirm } from './ConfirmModal';
 import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS } from './B2bRecordModal';
 import { colorForName } from '../lib/avatar';
+import { useOutsideClick } from '../hooks/useOutsideClick';
 
 export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSaved, startInEdit }) {
   const confirm = useConfirm();
@@ -22,6 +23,8 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
   const [saveError, setSaveError] = useState('');
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyResults, setCompanyResults] = useState([]);
+  const companyBoxRef = useRef(null);
+  useOutsideClick(companyBoxRef, () => setCompanyResults([]), companyResults.length > 0 && !form.company_id);
   const [contactTags, setContactTags] = useState([]);
   const [allTags, setAllTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
@@ -238,7 +241,7 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
                 <input value={form.cedula} onChange={(e) => setForm({ ...form, cedula: e.target.value })} placeholder="8-888-8888" className={inputClass} />
               </div>
 
-              <div className="relative">
+              <div className="relative" ref={companyBoxRef}>
                 <label className={labelClass}>Organización</label>
                 <div className="relative">
                   <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
@@ -250,7 +253,7 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
                   />
                 </div>
                 {companyResults.length > 0 && !form.company_id && (
-                  <div className="absolute z-10 mt-1 w-full bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden">
+                  <div className="absolute z-10 mt-1 w-full bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto">
                     {companyResults.map((c) => (
                       <button
                         type="button"
