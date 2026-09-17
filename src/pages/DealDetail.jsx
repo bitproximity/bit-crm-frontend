@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
 import { useOutsideClick } from '../hooks/useOutsideClick';
+import { FACTURACION_OPTIONS } from '../components/B2bRecordModal';
 import { InvoiceDetailModal } from './Invoicing';
 import DateTimePicker from '../components/DateTimePicker';
 import ProductsModal from '../components/ProductsModal';
@@ -110,6 +111,8 @@ export default function DealDetail() {
 
   const [probEditing, setProbEditing] = useState(false);
   const [probValue, setProbValue] = useState(0);
+  const [facturacionEditing, setFacturacionEditing] = useState(false);
+  const [facturacionValue, setFacturacionValue] = useState('');
   const [valueEditing, setValueEditing] = useState(false);
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleEdit, setTitleEdit] = useState('');
@@ -399,6 +402,12 @@ export default function DealDetail() {
   const saveProbability = async () => {
     await api.patch(`/api/deals/${id}`, { probability: Number(probValue) || 0 });
     setProbEditing(false);
+    refreshDeal();
+  };
+
+  const saveFacturacion = async (value) => {
+    await api.patch(`/api/deals/${id}`, { facturacion: value || null });
+    setFacturacionEditing(false);
     refreshDeal();
   };
 
@@ -796,6 +805,26 @@ export default function DealDetail() {
               ) : (
                 <button onClick={() => setProbEditing(true)} className="text-xs text-brand-ice hover:underline block">
                   Probabilidad: {deal.probability}%
+                </button>
+              )}
+
+              {facturacionEditing ? (
+                <select
+                  value={facturacionValue}
+                  onChange={(e) => { setFacturacionValue(e.target.value); saveFacturacion(e.target.value); }}
+                  onBlur={() => setFacturacionEditing(false)}
+                  className={`${inputClass} mt-1`}
+                  autoFocus
+                >
+                  <option value="">Sin especificar</option>
+                  {FACTURACION_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+                </select>
+              ) : (
+                <button
+                  onClick={() => { setFacturacionValue(deal.facturacion || ''); setFacturacionEditing(true); }}
+                  className="text-xs text-brand-ice hover:underline block mt-1"
+                >
+                  Facturación: {deal.facturacion || 'Sin especificar'}
                 </button>
               )}
 

@@ -29,6 +29,14 @@ export const COUNTRY_OPTIONS = [
 
 export const POSITION_OPTIONS = ['Gerente de Marketing', 'CEO', 'Gerente de IT', 'Trade Marketing', 'Gerente de Operaciones'];
 
+// Por cuál entidad/país se factura el trato — independiente del pipeline o del país de la
+// empresa (que ya se usaban de aproximación, pero no siempre coinciden con quién factura
+// de verdad). Orden alfabético.
+export const FACTURACION_OPTIONS = [
+  'Colombia', 'Ecuador', 'Guatemala', 'LLC', 'México',
+  'Panamá', 'Paraguay', 'Perú', 'República Dominicana',
+];
+
 export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
   const confirm = useConfirm();
   const [team, setTeam] = useState([]);

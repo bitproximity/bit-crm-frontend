@@ -313,6 +313,38 @@ export default function Metrics() {
             )}
           </div>
 
+          {/* Ventas por facturación — campo explícito del trato (no inferido), a diferencia
+              de "Ventas por país" de arriba. Más confiable porque es la entidad real que
+              factura, cargada a mano, no una aproximación por empresa/pipeline. */}
+          {dashboard.sales_by_facturacion.length > 0 && (
+            <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth lg:col-span-2">
+              <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-1">
+                <Globe size={15} className="text-brand-muted" /> Ventas por facturación (histórico)
+              </div>
+              <p className="text-xs text-brand-muted mb-4">Por la entidad que factura el trato, no por el país de la empresa.</p>
+              <div className="space-y-2.5">
+                {dashboard.sales_by_facturacion.map((c, i) => (
+                  <div
+                    key={c.name}
+                    onClick={() => navigate(dealsListUrl({ status: 'ganado', facturacion: c.name }))}
+                    className="cursor-pointer group"
+                  >
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className={`${i === 0 ? 'text-brand-white' : 'text-brand-muted'} group-hover:text-brand-ice transition`}>{i === 0 ? '🏆 ' : ''}{c.name}</span>
+                      <span className="text-brand-ice font-tech">${c.value_usd.toLocaleString()}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta group-hover:opacity-80 transition"
+                        style={{ width: `${Math.max((c.value_usd / dashboard.sales_by_facturacion[0].value_usd) * 100, 2)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Deals won over time */}
           <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth lg:col-span-2">
             <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-4">

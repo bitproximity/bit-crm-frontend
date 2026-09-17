@@ -35,6 +35,7 @@ export default function DealsList() {
   const closedYear = params.get('closed_year');
   const lostReason = params.get('lost_reason');
   const country = params.get('country');
+  const facturacion = params.get('facturacion');
 
   useEffect(() => {
     api.get('/api/exchange-rates').then((rows) => {
@@ -51,6 +52,7 @@ export default function DealsList() {
     if (closedYear) qs.set('closed_year', closedYear);
     if (lostReason) qs.set('lost_reason', lostReason);
     if (country) qs.set('country', country);
+    if (facturacion) qs.set('facturacion', facturacion);
 
     api
       .get(`/api/deals?${qs.toString()}`)
@@ -67,7 +69,7 @@ export default function DealsList() {
         setDeals(filtered);
       })
       .catch((err) => setError(err.message || 'No se pudieron cargar los tratos.'));
-  }, [status, period, pipelineId, createdMonth, closedMonth, closedYear, lostReason, country]);
+  }, [status, period, pipelineId, createdMonth, closedMonth, closedYear, lostReason, country, facturacion]);
 
   const key = period === 'this_month' && status === 'ganado' ? 'ganado_mes' : status;
   let title = TITLES[key] || 'Tratos';
@@ -77,6 +79,7 @@ export default function DealsList() {
   if (closedYear) subParts.push(`cerrados en ${closedYear}`);
   if (lostReason) subParts.push(`motivo: "${lostReason === '(sin motivo)' ? 'sin motivo especificado' : lostReason}"`);
   if (country) subParts.push(`país: ${country}`);
+  if (facturacion) subParts.push(`facturación: ${facturacion}`);
   if (subParts.length) title += ` — ${subParts.join(', ')}`;
 
   // FIX: sumaba d.value crudo de distintas monedas sin convertir a USD — mismo bug ya

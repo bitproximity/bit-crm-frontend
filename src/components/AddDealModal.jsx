@@ -3,7 +3,7 @@ import { useOutsideClick } from '../hooks/useOutsideClick';
 import { api } from '../lib/api';
 import DateTimePicker from './DateTimePicker';
 import { User, Building2, X, Plus } from 'lucide-react';
-import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS } from './B2bRecordModal';
+import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS, FACTURACION_OPTIONS } from './B2bRecordModal';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
@@ -15,6 +15,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
   const [stageId, setStageId] = useState('');
   const [probability, setProbability] = useState(50);
   const [expectedCloseDate, setExpectedCloseDate] = useState('');
+  const [facturacion, setFacturacion] = useState('');
 
   const [contactQuery, setContactQuery] = useState('');
   const [contactResults, setContactResults] = useState([]);
@@ -241,6 +242,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
         contact_id: contactId,
         company_id: companyId,
         expected_close_date: expectedCloseDate || null,
+        facturacion: facturacion || null,
       });
 
       // 4. Etiquetas
@@ -447,6 +449,14 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
                   className={plainInputClass}
                 >
                   {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className={labelClass}>Facturación</label>
+                <select value={facturacion} onChange={(e) => setFacturacion(e.target.value)} className={plainInputClass}>
+                  <option value="">Sin especificar</option>
+                  {FACTURACION_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
                 </select>
               </div>
 
