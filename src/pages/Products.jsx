@@ -20,12 +20,13 @@ function productIcon(name, type) {
 }
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
+const BILLING_LABELS = { mensual: 'Mensual', anual: 'Anual', unico: 'Único' };
 
 export default function Products() {
   const confirm = useConfirm();
   const [products, setProducts] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', type: 'producto', price: '', currency: 'USD', sku: '' });
+  const [form, setForm] = useState({ name: '', type: 'producto', price: '', currency: 'USD', sku: '', billing_frequency: 'mensual' });
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [error, setError] = useState('');
@@ -41,7 +42,7 @@ export default function Products() {
     setError('');
     try {
       await api.post('/api/products', { ...form, price: Number(form.price) || 0 });
-      setForm({ name: '', type: 'producto', price: '', currency: 'USD', sku: '' });
+      setForm({ name: '', type: 'producto', price: '', currency: 'USD', sku: '', billing_frequency: 'mensual' });
       setShowForm(false);
       load();
     } catch (err) {
@@ -51,7 +52,7 @@ export default function Products() {
 
   const startEdit = (p) => {
     setEditingId(p.id);
-    setEditForm({ name: p.name, type: p.type, price: p.price, currency: p.currency, sku: p.sku || '' });
+    setEditForm({ name: p.name, type: p.type, price: p.price, currency: p.currency, sku: p.sku || '', billing_frequency: p.billing_frequency || 'mensual' });
   };
 
   const saveEdit = async (id) => {
@@ -92,7 +93,7 @@ export default function Products() {
       )}
 
       {showForm && (
-        <form onSubmit={create} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 grid grid-cols-5 gap-3">
+        <form onSubmit={create} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 grid grid-cols-6 gap-3">
           <input placeholder="Nombre" required value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" />
@@ -100,6 +101,13 @@ export default function Products() {
             className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm font-tech">
             <option value="producto">Producto</option>
             <option value="servicio">Servicio</option>
+          </select>
+          <select value={form.billing_frequency} onChange={(e) => setForm({ ...form, billing_frequency: e.target.value })}
+            title="De esto depende cómo cuenta este producto para MRR/ARR"
+            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm font-tech">
+            <option value="mensual">Mensual</option>
+            <option value="anual">Anual</option>
+            <option value="unico">Único</option>
           </select>
           <input placeholder="Precio" type="number" value={form.price}
             onChange={(e) => setForm({ ...form, price: e.target.value })}
@@ -111,7 +119,7 @@ export default function Products() {
           <input placeholder="SKU (opcional)" value={form.sku}
             onChange={(e) => setForm({ ...form, sku: e.target.value })}
             className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" />
-          <button className="col-span-5 px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
+          <button className="col-span-6 px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
             Crear
           </button>
         </form>
@@ -123,6 +131,7 @@ export default function Products() {
             <tr>
               <th className="px-4 py-3">Nombre</th>
               <th className="px-4 py-3">Tipo</th>
+              <th className="px-4 py-3">Facturación</th>
               <th className="px-4 py-3">SKU</th>
               <th className="px-4 py-3">Precio</th>
               <th className="px-4 py-3"></th>
@@ -142,6 +151,14 @@ export default function Products() {
                         className="px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs">
                         <option value="producto">producto</option>
                         <option value="servicio">servicio</option>
+                      </select>
+                    </td>
+                    <td className="px-4 py-2">
+                      <select value={editForm.billing_frequency} onChange={(e) => setEditForm({ ...editForm, billing_frequency: e.target.value })}
+                        className="px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs">
+                        <option value="mensual">Mensual</option>
+                        <option value="anual">Anual</option>
+                        <option value="unico">Único</option>
                       </select>
                     </td>
                     <td className="px-4 py-2">
@@ -174,6 +191,7 @@ export default function Products() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-brand-muted font-tech text-xs uppercase">{p.type}</td>
+                    <td className="px-4 py-3 text-brand-muted font-tech text-xs">{BILLING_LABELS[p.billing_frequency] || 'Mensual'}</td>
                     <td className="px-4 py-3 text-brand-muted font-tech text-xs">{p.sku || '—'}</td>
                     <td className="px-4 py-3 text-brand-ice font-tech">
                       {p.currency} {Number(p.price).toLocaleString()}
@@ -192,7 +210,7 @@ export default function Products() {
             ))}
             {products.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-brand-muted text-sm">
+                <td colSpan={6} className="px-4 py-10 text-center text-brand-muted text-sm">
                   Sin productos todavía.
                 </td>
               </tr>

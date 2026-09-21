@@ -36,6 +36,7 @@ export default function Deals() {
   const [cardFields, setCardFields] = useState({ company: true, contact: true, value: true, due_date_warning: true, avatar: true });
   const [visibleCount, setVisibleCount] = useState({}); // { [stageId]: n } — cuántas tarjetas renderizar por columna
   const [flatVisibleCount, setFlatVisibleCount] = useState(100); // límite compartido para las vistas Lista y Archivo
+  const [archiveFilter, setArchiveFilter] = useState('todos'); // todos | ganado | perdido
   const [deals, setDeals] = useState([]);
   const [archivedDeals, setArchivedDeals] = useState([]);
   const [view, setView] = useState('board'); // board | list | value | archive
@@ -234,7 +235,7 @@ export default function Deals() {
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-sm text-brand-muted">
-            <span>{(view === 'archive' ? archivedDeals : filteredDeals).length} tratos</span>
+            <span>{(view === 'archive' ? archivedDeals.filter((d) => archiveFilter === 'todos' || d.status === archiveFilter) : filteredDeals).length} tratos</span>
             <Info size={13} />
           </div>
 
@@ -466,6 +467,25 @@ export default function Deals() {
       {/* ── VISTA ARCHIVO (ganados/perdidos) ── */}
       {view === 'archive' && (
         <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
+          <div className="flex items-center gap-2 p-3 border-b border-brand-border">
+            {[
+              { key: 'todos', label: 'Todos' },
+              { key: 'ganado', label: 'Ganados' },
+              { key: 'perdido', label: 'Perdidos' },
+            ].map((f) => (
+              <button
+                key={f.key}
+                onClick={() => { setArchiveFilter(f.key); setFlatVisibleCount(100); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-tech transition ${
+                  archiveFilter === f.key
+                    ? 'bg-gradient-to-r from-brand-violet to-brand-magenta text-white'
+                    : 'text-brand-muted hover:text-brand-white hover:bg-brand-bg'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
           <table className="w-full text-sm">
             <thead className="bg-brand-panel/80 text-brand-muted text-left">
               <tr>
@@ -477,7 +497,10 @@ export default function Deals() {
               </tr>
             </thead>
             <tbody>
-              {archivedDeals.slice(0, flatVisibleCount).map((deal, i) => (
+              {archivedDeals
+                .filter((d) => archiveFilter === 'todos' || d.status === archiveFilter)
+                .slice(0, flatVisibleCount)
+                .map((deal, i) => (
                 <tr
                   key={deal.id}
                   onClick={() => navigate(`/deals/${deal.id}`)}
@@ -499,17 +522,17 @@ export default function Deals() {
                   </td>
                 </tr>
               ))}
-              {archivedDeals.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-10 text-center text-brand-muted text-sm">Sin tratos ganados o perdidos todavía.</td></tr>
+              {archivedDeals.filter((d) => archiveFilter === 'todos' || d.status === archiveFilter).length === 0 && (
+                <tr><td colSpan={5} className="px-4 py-10 text-center text-brand-muted text-sm">Sin tratos {archiveFilter === 'todos' ? 'ganados o perdidos' : archiveFilter + 's'} todavía.</td></tr>
               )}
             </tbody>
           </table>
-          {archivedDeals.length > flatVisibleCount && (
+          {archivedDeals.filter((d) => archiveFilter === 'todos' || d.status === archiveFilter).length > flatVisibleCount && (
             <button
               onClick={() => setFlatVisibleCount((n) => n + 100)}
               className="w-full py-2.5 text-xs text-brand-muted hover:text-brand-ice hover:bg-brand-bg/60 transition border-t border-brand-border"
             >
-              Cargar 100 más ({archivedDeals.length - flatVisibleCount} restantes)
+              Cargar 100 más ({archivedDeals.filter((d) => archiveFilter === 'todos' || d.status === archiveFilter).length - flatVisibleCount} restantes)
             </button>
           )}
         </div>

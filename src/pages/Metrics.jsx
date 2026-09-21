@@ -386,6 +386,36 @@ export default function Metrics() {
         </div>
       )}
 
+      {/* MRR / ARR — normalizado por frecuencia de facturación de cada producto (mensual
+          tal cual, anual /12, único no cuenta). Sin seguimiento de cancelaciones todavía,
+          así que "Ganado" es la suma de lo vendido como recurrente asumiendo que sigue
+          activo, no un MRR verificado mes a mes. */}
+      <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-6">
+        <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-1">
+          <DollarSign size={15} className="text-brand-muted" /> MRR / ARR
+        </div>
+        <p className="text-xs text-brand-muted mb-4">
+          Ingreso recurrente mensual/anual — normalizado por la frecuencia de facturación de cada producto. No hay seguimiento de cancelaciones todavía, así que "Ganado" asume que todo lo vendido como recurrente sigue activo.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <div className="text-xs text-brand-muted font-tech uppercase mb-2">Ganado (real)</div>
+            <div className="text-2xl font-headline font-semibold text-green-300">${dashboard.mrr_arr.mrr_won.toLocaleString()}<span className="text-sm text-brand-muted font-tech"> MRR</span></div>
+            <div className="text-sm text-brand-muted font-tech mt-1">${dashboard.mrr_arr.arr_won.toLocaleString()} ARR</div>
+          </div>
+          <div>
+            <div className="text-xs text-brand-muted font-tech uppercase mb-2">En pipeline (potencial)</div>
+            <div className="text-2xl font-headline font-semibold text-brand-ice">${dashboard.mrr_arr.mrr_pipeline.toLocaleString()}<span className="text-sm text-brand-muted font-tech"> MRR</span></div>
+            <div className="text-sm text-brand-muted font-tech mt-1">${dashboard.mrr_arr.arr_pipeline.toLocaleString()} ARR</div>
+          </div>
+          <div>
+            <div className="text-xs text-brand-muted font-tech uppercase mb-2">En pipeline (ponderado por probabilidad)</div>
+            <div className="text-2xl font-headline font-semibold">${dashboard.mrr_arr.mrr_pipeline_weighted.toLocaleString()}<span className="text-sm text-brand-muted font-tech"> MRR</span></div>
+            <div className="text-sm text-brand-muted font-tech mt-1">${dashboard.mrr_arr.arr_pipeline_weighted.toLocaleString()} ARR</div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="flex items-center gap-1.5 text-brand-muted text-sm mb-1"><Percent size={13} /> Win rate</div>
