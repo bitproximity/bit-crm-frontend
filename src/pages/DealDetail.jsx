@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
 import { useOutsideClick } from '../hooks/useOutsideClick';
-import { FACTURACION_OPTIONS } from '../components/B2bRecordModal';
+import { FACTURACION_OPTIONS, hardwareOptionsForPipeline } from '../components/B2bRecordModal';
 import { InvoiceDetailModal } from './Invoicing';
 import DateTimePicker from '../components/DateTimePicker';
 import ProductsModal from '../components/ProductsModal';
@@ -113,6 +113,10 @@ export default function DealDetail() {
   const [probValue, setProbValue] = useState(0);
   const [facturacionEditing, setFacturacionEditing] = useState(false);
   const [facturacionValue, setFacturacionValue] = useState('');
+  const [billingFrequencyEditing, setBillingFrequencyEditing] = useState(false);
+  const [billingFrequencyValue, setBillingFrequencyValue] = useState('mensual');
+  const [hardwareEditing, setHardwareEditing] = useState(false);
+  const [hardwareValue, setHardwareValue] = useState('');
   const [valueEditing, setValueEditing] = useState(false);
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleEdit, setTitleEdit] = useState('');
@@ -408,6 +412,18 @@ export default function DealDetail() {
   const saveFacturacion = async (value) => {
     await api.patch(`/api/deals/${id}`, { facturacion: value || null });
     setFacturacionEditing(false);
+    refreshDeal();
+  };
+
+  const saveBillingFrequency = async (value) => {
+    await api.patch(`/api/deals/${id}`, { billing_frequency: value });
+    setBillingFrequencyEditing(false);
+    refreshDeal();
+  };
+
+  const saveHardware = async (value) => {
+    await api.patch(`/api/deals/${id}`, { hardware_type: value || null });
+    setHardwareEditing(false);
     refreshDeal();
   };
 
@@ -825,6 +841,48 @@ export default function DealDetail() {
                   className="text-xs text-brand-ice hover:underline block mt-1"
                 >
                   Facturación: {deal.facturacion || 'Sin especificar'}
+                </button>
+              )}
+
+              {billingFrequencyEditing ? (
+                <select
+                  value={billingFrequencyValue}
+                  onChange={(e) => { setBillingFrequencyValue(e.target.value); saveBillingFrequency(e.target.value); }}
+                  onBlur={() => setBillingFrequencyEditing(false)}
+                  className={`${inputClass} mt-1`}
+                  autoFocus
+                >
+                  <option value="mensual">Mensual</option>
+                  <option value="anual">Anual</option>
+                  <option value="unico">Único</option>
+                </select>
+              ) : (
+                <button
+                  onClick={() => { setBillingFrequencyValue(deal.billing_frequency || 'mensual'); setBillingFrequencyEditing(true); }}
+                  className="text-xs text-brand-ice hover:underline block mt-1"
+                  title="De esto depende MRR/ARR en Métricas"
+                >
+                  Frecuencia de facturación: {{ mensual: 'Mensual', anual: 'Anual', unico: 'Único' }[deal.billing_frequency] || 'Mensual'}
+                </button>
+              )}
+
+              {hardwareEditing ? (
+                <select
+                  value={hardwareValue}
+                  onChange={(e) => { setHardwareValue(e.target.value); saveHardware(e.target.value); }}
+                  onBlur={() => setHardwareEditing(false)}
+                  className={`${inputClass} mt-1`}
+                  autoFocus
+                >
+                  <option value="">Sin especificar</option>
+                  {hardwareOptionsForPipeline(pipeline?.name).map((h) => <option key={h} value={h}>{h}</option>)}
+                </select>
+              ) : (
+                <button
+                  onClick={() => { setHardwareValue(deal.hardware_type || ''); setHardwareEditing(true); }}
+                  className="text-xs text-brand-ice hover:underline block mt-1"
+                >
+                  Hardware: {deal.hardware_type || 'Sin especificar'}
                 </button>
               )}
 

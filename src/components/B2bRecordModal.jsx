@@ -37,6 +37,22 @@ export const FACTURACION_OPTIONS = [
   'Panamá', 'Paraguay', 'Perú', 'República Dominicana',
 ];
 
+// Opciones de "Tipo de hardware" según el pipeline del trato — cada línea de negocio
+// vende equipos distintos. Coincide por palabra clave en el nombre del pipeline (no por
+// id, porque algunos pipelines son por país y no por línea de negocio) y cae en una lista
+// genérica si no matchea ninguna.
+const HARDWARE_BY_PIPELINE = [
+  { match: /wifi/i, options: ['Router', 'Access Point', 'Switch', 'Antena', 'Otro'] },
+  { match: /music/i, options: ['Parlante', 'Reproductor / Player', 'Amplificador', 'Otro'] },
+  { match: /signage|neomedia|cartel/i, options: ['Pantalla / TV', 'Reproductor Android', 'Soporte / Mount', 'Otro'] },
+];
+const GENERIC_HARDWARE_OPTIONS = ['Router', 'Pantalla / TV', 'Reproductor Android', 'Parlante', 'Otro'];
+
+export function hardwareOptionsForPipeline(pipelineName) {
+  const found = HARDWARE_BY_PIPELINE.find((h) => h.match.test(pipelineName || ''));
+  return found ? found.options : GENERIC_HARDWARE_OPTIONS;
+}
+
 export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
   const confirm = useConfirm();
   const [team, setTeam] = useState([]);
