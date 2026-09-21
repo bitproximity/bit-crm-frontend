@@ -390,6 +390,7 @@ export default function Metrics() {
           tal cual, anual /12, único no cuenta). Sin seguimiento de cancelaciones todavía,
           así que "Ganado" es la suma de lo vendido como recurrente asumiendo que sigue
           activo, no un MRR verificado mes a mes. */}
+      {dashboard && (
       <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-6">
         <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-1">
           <DollarSign size={15} className="text-brand-muted" /> MRR / ARR
@@ -415,6 +416,7 @@ export default function Metrics() {
           </div>
         </div>
       </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
