@@ -1,8 +1,8 @@
 // Permisos por rol. admin = acceso total (sin restricción).
 // Cualquier ruta que no empiece con uno de estos prefijos queda bloqueada para ese rol.
 export const ROLE_ALLOWED_PREFIXES = {
-  operaciones: ['/spaces', '/activities', '/projects', '/documents', '/tasks', '/deals', '/contacts'],
-  outbound: ['/spaces', '/activities', '/projects', '/documents', '/tasks', '/b2b-meetings', '/contacts'],
+  operaciones: ['/spaces', '/activities', '/projects', '/documents', '/tasks', '/deals', '/contacts', '/companies', '/products'],
+  outbound: ['/spaces', '/activities', '/projects', '/documents', '/tasks', '/b2b-meetings', '/contacts', '/companies', '/products'],
 };
 
 export function isAdmin(role) {
