@@ -42,9 +42,9 @@ export const FACTURACION_OPTIONS = [
 // id, porque algunos pipelines son por país y no por línea de negocio) y cae en una lista
 // genérica si no matchea ninguna.
 const HARDWARE_BY_PIPELINE = [
-  { match: /wifi/i, options: ['Router', 'Access Point', 'Switch', 'Antena', 'Otro'] },
-  { match: /music/i, options: ['Parlante', 'Reproductor / Player', 'Amplificador', 'Otro'] },
-  { match: /signage|neomedia|cartel/i, options: ['Pantalla / TV', 'Reproductor Android', 'Soporte / Mount', 'Otro'] },
+  { match: /wifi/i, options: ['Grandstream', 'Huawei', 'Cisco', 'Meraki', 'Mikrotik', 'Ruckus', 'Unifi', 'Aruba', 'Teltonika', 'Extreme', 'Fortinet', 'Zyxel', 'Juniper', 'Otro'] },
+  { match: /music/i, options: ['Computadora', 'Tablet', 'Android Box', 'Otro'] },
+  { match: /signage|neomedia|cartel/i, options: ['TV', 'LED', 'Monitor profesional', 'Otro'] },
 ];
 const GENERIC_HARDWARE_OPTIONS = ['Router', 'Pantalla / TV', 'Reproductor Android', 'Parlante', 'Otro'];
 
