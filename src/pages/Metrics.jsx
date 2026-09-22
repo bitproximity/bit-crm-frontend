@@ -418,6 +418,50 @@ export default function Metrics() {
       </div>
       )}
 
+      {/* Hardware — ganado y pipeline abierto por tipo/marca. Con un pipeline puntual
+          elegido arriba (ej. Bit WiFi) da el ranking real de qué se vende más; con
+          "Todos los pipelines" mezcla hardware de líneas de negocio distintas. */}
+      {dashboard && dashboard.hardware_insights.length > 0 && (
+      <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-6">
+        <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-1">
+          <Package2 size={15} className="text-brand-muted" /> Hardware
+        </div>
+        <p className="text-xs text-brand-muted mb-4">
+          Ganado y pipeline abierto por tipo de hardware del trato. Elegí un pipeline arriba (ej. Bit WiFi) para ver el ranking de marcas real, en vez de mezclar líneas de negocio distintas.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-brand-muted text-xs">
+                <th className="py-2 pr-4 font-normal">Hardware</th>
+                <th className="py-2 pr-4 font-normal text-right">Ganado</th>
+                <th className="py-2 pr-4 font-normal text-right"># Ganados</th>
+                <th className="py-2 pr-4 font-normal text-right">Pipeline abierto</th>
+                <th className="py-2 font-normal text-right"># Abiertos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dashboard.hardware_insights.map((h, i) => (
+                <tr
+                  key={h.name}
+                  onClick={() => navigate(dealsListUrl({ status: 'ganado', hardware_type: h.name }))}
+                  className="border-t border-brand-border row-hover cursor-pointer"
+                >
+                  <td className="py-2 pr-4">
+                    {i === 0 && h.won_value_usd > 0 ? '🏆 ' : ''}{h.name}
+                  </td>
+                  <td className="py-2 pr-4 text-right text-brand-ice font-tech">${h.won_value_usd.toLocaleString()}</td>
+                  <td className="py-2 pr-4 text-right text-brand-muted font-tech">{h.won_count}</td>
+                  <td className="py-2 pr-4 text-right text-brand-muted font-tech">${h.pipeline_value_usd.toLocaleString()}</td>
+                  <td className="py-2 text-right text-brand-muted font-tech">{h.pipeline_count}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="flex items-center gap-1.5 text-brand-muted text-sm mb-1"><Percent size={13} /> Win rate</div>
