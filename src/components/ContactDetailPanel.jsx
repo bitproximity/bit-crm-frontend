@@ -141,11 +141,14 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
     if (!contact?.email) return;
     setSyncing(true);
     try {
-      await api.post(`/api/gmail/sync/contact/${contactId}`, { email: contact.email });
+      const result = await api.post(`/api/gmail/sync/contact/${contactId}`, { email: contact.email });
       const msgs = await api.get(`/api/gmail/messages/contact/${contactId}`);
       setEmails(msgs);
+      if (result.stale_accounts?.length) {
+        alert(`Listo, pero tu conexión con ${result.stale_accounts.join(', ')} venció — reconéctala en Mi Perfil para que también se busque ahí.`);
+      }
     } catch (err) {
-      alert(err.message || 'Error sincronizando correos');
+      alert((err.message || 'Error sincronizando correos').includes('venció') ? err.message : 'No se pudo sincronizar: ' + (err.message || 'error desconocido'));
     }
     setSyncing(false);
   };

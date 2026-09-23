@@ -394,11 +394,14 @@ export default function DealDetail() {
     if (!deal.contacts?.email) return;
     setGmailSyncing(true);
     try {
-      await api.post(`/api/gmail/sync/deal/${id}`, { email: deal.contacts.email });
+      const result = await api.post(`/api/gmail/sync/deal/${id}`, { email: deal.contacts.email });
       const msgs = await api.get(`/api/gmail/messages/deal/${id}`);
       setGmailMessages(msgs);
+      if (result.stale_accounts?.length) {
+        alert(`Listo, pero tu conexión con ${result.stale_accounts.join(', ')} venció — reconéctala en Mi Perfil para que también se busque ahí.`);
+      }
     } catch (err) {
-      alert(err.message);
+      alert(err.message.includes('venció') ? err.message : 'No se pudo sincronizar: ' + err.message);
     }
     setGmailSyncing(false);
   };
