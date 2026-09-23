@@ -9,6 +9,7 @@
          CRM: React actualiza un nodo de texto que el traductor ya movió/reemplazó por su
          cuenta, y ninguno de los dos sabe que el otro lo tocó. -->
     <meta name="google" content="notranslate" />
+    <meta name="description" content="Bit CRM — herramienta interna de Bit Proximity para gestionar contactos, empresas y oportunidades de venta." />
     <link rel="icon" type="image/png" href="/brand/favicon-32.png" />
     <link rel="apple-touch-icon" href="/brand/favicon-512.png" />
     <title>Bit CRM</title>
@@ -20,7 +21,17 @@
     />
   </head>
   <body class="bg-brand-bg text-brand-white font-manrope" translate="no">
-    <div id="root"></div>
+    <div id="root">
+      <!-- Contenido estático de respaldo — lo reemplaza React al cargar, pero sirve para
+           que cualquier verificador automático (ej. la revisión de marca de Google OAuth)
+           que solo lee el HTML crudo, sin ejecutar JavaScript, encuentre el nombre y el
+           propósito de la app en vez de un contenedor vacío. -->
+      <div style="max-width:640px;margin:64px auto;padding:0 24px;font-family:-apple-system,sans-serif;">
+        <h1>Bit CRM</h1>
+        <p>Bit CRM es una herramienta interna de Bit Proximity para gestionar contactos, empresas y oportunidades de venta.</p>
+        <p><a href="/privacy">Política de Privacidad</a> · <a href="/terms">Términos del Servicio</a></p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
