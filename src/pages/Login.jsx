@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 export default function Login() {
@@ -38,6 +39,7 @@ export default function Login() {
       <div className="relative z-10 w-full max-w-sm bg-brand-panel border border-brand-border rounded-xl p-8 shadow-2xl shadow-brand-violet/10 flex flex-col items-center text-center">
         <img src="/brand/logo.png" alt="Bit Proximity" className="h-7 mb-6" />
         <h1 className="font-headline text-xl font-semibold mb-1">Bit CRM</h1>
+        <p className="text-brand-muted text-xs mb-1">Herramienta interna de Bit Proximity para gestionar contactos, empresas y oportunidades de venta.</p>
 
         {mode === 'login' && (
           <>
@@ -123,6 +125,12 @@ export default function Login() {
             </button>
           </>
         )}
+      </div>
+
+      <div className="relative z-10 mt-6 flex items-center gap-4 text-xs text-brand-muted">
+        <Link to="/privacy" className="hover:text-brand-ice hover:underline">Política de Privacidad</Link>
+        <span>·</span>
+        <Link to="/terms" className="hover:text-brand-ice hover:underline">Términos del Servicio</Link>
       </div>
     </div>
   );
