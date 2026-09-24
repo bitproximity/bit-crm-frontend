@@ -13,7 +13,7 @@ import GmailMessageRow from '../components/GmailMessageRow';
 import {
   ChevronLeft, ChevronDown, MoreHorizontal, Tag as TagIcon, Calendar, Building2, User,
   Plus, X, Mail, Phone, Video, StickyNote, FileText as FileTextIcon, Paperclip,
-  Pencil, Trash2, RefreshCcw,
+  Pencil, Trash2, RefreshCcw, HardDrive, Search,
 } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
@@ -84,6 +84,11 @@ export default function DealDetail() {
   const [dealInvoices, setDealInvoices] = useState([]);
   const [dealFiles, setDealFiles] = useState([]);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [driveFiles, setDriveFiles] = useState([]);
+  const [driveQuery, setDriveQuery] = useState('');
+  const [driveResults, setDriveResults] = useState([]);
+  const [driveSearching, setDriveSearching] = useState(false);
+  const [driveError, setDriveError] = useState('');
   const [dealDocs, setDealDocs] = useState([]);
   const [showCreateInvoice, setShowCreateInvoice] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
@@ -210,6 +215,7 @@ export default function DealDetail() {
     }
     if (tab === 'archivos') {
       api.get(`/api/deal-files?deal_id=${id}`).then(setDealFiles).catch(() => setDealFiles([]));
+      api.get(`/api/drive/deal/${id}`).then(setDriveFiles).catch(() => setDriveFiles([]));
     }
     if (tab === 'documentos') {
       api.get(`/api/documents/tree?deal_id=${id}`).then(setDealDocs).catch(() => setDealDocs([]));
@@ -569,6 +575,38 @@ export default function DealDetail() {
     if (!ok) return;
     await api.delete(`/api/deal-files/${fileId}`);
     setDealFiles((prev) => prev.filter((f) => f.id !== fileId));
+  };
+
+  const searchDrive = async (q) => {
+    setDriveQuery(q);
+    setDriveError('');
+    if (q.trim().length < 2) { setDriveResults([]); return; }
+    setDriveSearching(true);
+    try {
+      const results = await api.get(`/api/drive/search?q=${encodeURIComponent(q)}`);
+      setDriveResults(results);
+    } catch (err) {
+      setDriveError(err.message || 'Error buscando en Drive');
+      setDriveResults([]);
+    }
+    setDriveSearching(false);
+  };
+
+  const linkDriveFile = async (file) => {
+    const linked = await api.post(`/api/drive/deal/${id}`, {
+      drive_file_id: file.id,
+      name: file.name,
+      mime_type: file.mimeType,
+      icon_link: file.iconLink,
+      web_view_link: file.webViewLink,
+    });
+    setDriveFiles((prev) => [linked, ...prev]);
+    setDriveResults((prev) => prev.filter((f) => f.id !== file.id));
+  };
+
+  const unlinkDriveFile = async (linkId) => {
+    await api.delete(`/api/drive/link/${linkId}`);
+    setDriveFiles((prev) => prev.filter((f) => f.id !== linkId));
   };
 
   const createDealDoc = async () => {
@@ -1281,6 +1319,52 @@ export default function DealDetail() {
                   </div>
                 ))}
                 {dealFiles.length === 0 && <div className="text-brand-muted text-sm">Sin archivos todavía.</div>}
+              </div>
+
+              {/* Google Drive — busca en la(s) cuenta(s) de Google conectadas y vincula sin
+                  copiar el archivo; el contenido real sigue viviendo en Drive. */}
+              <div className="mt-6 pt-5 border-t border-brand-border">
+                <div className="flex items-center gap-2 text-sm font-manrope font-medium mb-3">
+                  <HardDrive size={14} className="text-brand-muted" /> Google Drive
+                </div>
+                <div className="relative mb-3">
+                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-muted" />
+                  <input
+                    value={driveQuery}
+                    onChange={(e) => searchDrive(e.target.value)}
+                    placeholder="Buscar un archivo en Drive para vincular..."
+                    className="w-full pl-8 pr-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
+                  />
+                </div>
+                {driveError && <div className="text-xs text-red-300 mb-3">{driveError}</div>}
+                {driveSearching && <div className="text-xs text-brand-muted mb-3">Buscando...</div>}
+                {driveResults.length > 0 && (
+                  <div className="space-y-1.5 mb-4">
+                    {driveResults.map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => linkDriveFile(f)}
+                        className="w-full flex items-center gap-2 bg-brand-bg border border-brand-border rounded-lg p-2.5 text-sm text-left hover:border-brand-violet transition"
+                      >
+                        {f.iconLink && <img src={f.iconLink} alt="" className="w-4 h-4 flex-shrink-0" />}
+                        <span className="truncate flex-1">{f.name}</span>
+                        <span className="text-xs text-brand-ice flex-shrink-0">+ Vincular</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {driveFiles.map((f) => (
+                    <div key={f.id} className="flex items-center justify-between bg-brand-panel border border-brand-border rounded-lg p-3 text-sm panel-depth">
+                      <a href={f.web_view_link} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-brand-ice hover:underline truncate">
+                        {f.icon_link ? <img src={f.icon_link} alt="" className="w-4 h-4 flex-shrink-0" /> : <HardDrive size={13} className="flex-shrink-0" />}
+                        {f.name}
+                      </a>
+                      <button onClick={() => unlinkDriveFile(f.id)} className="text-brand-muted hover:text-red-400 text-xs flex-shrink-0">×</button>
+                    </div>
+                  ))}
+                  {driveFiles.length === 0 && <div className="text-brand-muted text-sm">Sin archivos de Drive vinculados todavía.</div>}
+                </div>
               </div>
             </div>
           )}
