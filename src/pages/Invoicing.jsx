@@ -140,7 +140,16 @@ export default function Invoicing() {
           <tbody>
             {invoices.map((inv) => (
               <tr key={inv.id} onClick={() => setSelected(inv.id)} className="border-t border-brand-border row-hover cursor-pointer">
-                <td className="px-4 py-3">{inv.invoice_number || `#${inv.id.slice(0, 8)}`}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span>{inv.invoice_number || `#${inv.id.slice(0, 8)}`}</span>
+                    {inv.source_account && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-tech bg-brand-bg border border-brand-border text-brand-muted">
+                        {inv.source_account}
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-4 py-3 text-brand-muted">{inv.companies?.name || contactName(inv.contacts) || '—'}</td>
                 <td className="px-4 py-3 text-brand-muted">{inv.deals?.title || '—'}</td>
                 <td className="px-4 py-3 text-brand-ice font-tech">{inv.currency} {Number(inv.total).toLocaleString()}</td>
