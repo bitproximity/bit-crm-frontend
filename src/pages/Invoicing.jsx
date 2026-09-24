@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import DateTimePicker from '../components/DateTimePicker';
-import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
+import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 const STATUS_LABELS = { pendiente: 'Pendiente', parcial: 'Parcial', pagada: 'Pagada', cancelada: 'Cancelada' };
@@ -27,6 +27,22 @@ export default function Invoicing() {
   const [loading, setLoading] = useState(true);
 
   const [syncing, setSyncing] = useState('');
+  const [markingPaid, setMarkingPaid] = useState(null);
+
+  const togglePaid = async (inv) => {
+    setMarkingPaid(inv.id);
+    try {
+      const goingToPaid = inv.status !== 'pagada';
+      await api.patch(`/api/invoices/${inv.id}`, {
+        status: goingToPaid ? 'pagada' : 'pendiente',
+        paid_amount: goingToPaid ? inv.total : 0,
+      });
+      setInvoices((prev) => prev.map((i) => (i.id === inv.id ? { ...i, status: goingToPaid ? 'pagada' : 'pendiente', paid_amount: goingToPaid ? inv.total : 0 } : i)));
+    } catch (err) {
+      alert(err.message || 'No se pudo actualizar el estado de la factura');
+    }
+    setMarkingPaid(null);
+  };
   const [syncMsg, setSyncMsg] = useState('');
 
   const load = () => {
@@ -129,29 +145,31 @@ export default function Invoicing() {
           <thead className="bg-brand-panel/80 text-brand-muted text-left">
             <tr>
               <th className="px-4 py-3 font-manrope font-normal">Factura</th>
+              <th className="px-4 py-3 font-manrope font-normal">Empresa (origen)</th>
               <th className="px-4 py-3 font-manrope font-normal">Empresa / Contacto</th>
               <th className="px-4 py-3 font-manrope font-normal">Trato</th>
+              <th className="px-4 py-3 font-manrope font-normal">Año</th>
               <th className="px-4 py-3 font-manrope font-normal">Total</th>
               <th className="px-4 py-3 font-manrope font-normal">Cobrado</th>
               <th className="px-4 py-3 font-manrope font-normal">Vencimiento</th>
               <th className="px-4 py-3 font-manrope font-normal">Estado</th>
+              <th className="px-4 py-3 font-manrope font-normal text-center">Pagó</th>
             </tr>
           </thead>
           <tbody>
             {invoices.map((inv) => (
               <tr key={inv.id} onClick={() => setSelected(inv.id)} className="border-t border-brand-border row-hover cursor-pointer">
+                <td className="px-4 py-3">{inv.invoice_number || `#${inv.id.slice(0, 8)}`}</td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span>{inv.invoice_number || `#${inv.id.slice(0, 8)}`}</span>
-                    {inv.source_account && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-tech bg-brand-bg border border-brand-border text-brand-muted">
-                        {inv.source_account}
-                      </span>
-                    )}
-                  </div>
+                  {inv.source_account ? (
+                    <span className="px-2 py-0.5 rounded-md text-xs font-tech bg-brand-violet/10 text-brand-ice border border-brand-violet/20">
+                      {inv.source_account}
+                    </span>
+                  ) : <span className="text-brand-muted text-xs">—</span>}
                 </td>
                 <td className="px-4 py-3 text-brand-muted">{inv.companies?.name || contactName(inv.contacts) || '—'}</td>
                 <td className="px-4 py-3 text-brand-muted">{inv.deals?.title || '—'}</td>
+                <td className="px-4 py-3 text-brand-muted font-tech text-xs">{inv.issue_date ? new Date(inv.issue_date).getFullYear() : '—'}</td>
                 <td className="px-4 py-3 text-brand-ice font-tech">{inv.currency} {Number(inv.total).toLocaleString()}</td>
                 <td className="px-4 py-3 text-brand-muted font-tech">{inv.currency} {Number(inv.paid_amount).toLocaleString()}</td>
                 <td className="px-4 py-3 text-brand-muted font-tech text-xs">{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</td>
@@ -160,10 +178,24 @@ export default function Invoicing() {
                     {inv.overdue ? 'Vencida' : STATUS_LABELS[inv.status]}
                   </span>
                 </td>
+                <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={() => togglePaid(inv)}
+                    disabled={inv.status === 'cancelada' || markingPaid === inv.id}
+                    title={inv.status === 'pagada' ? 'Marcar como pendiente' : 'Marcar como pagada'}
+                    className={`w-6 h-6 rounded-full border flex items-center justify-center transition mx-auto disabled:opacity-30 ${
+                      inv.status === 'pagada'
+                        ? 'bg-green-500/20 border-green-400 text-green-300 hover:bg-green-500/10'
+                        : 'border-brand-border text-transparent hover:border-green-400 hover:text-green-400/50'
+                    }`}
+                  >
+                    <Check size={13} strokeWidth={3} />
+                  </button>
+                </td>
               </tr>
             ))}
             {!loading && invoices.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-brand-muted text-sm">Sin facturas todavía.</td></tr>
+              <tr><td colSpan={10} className="px-4 py-10 text-center text-brand-muted text-sm">Sin facturas todavía.</td></tr>
             )}
           </tbody>
         </table>
