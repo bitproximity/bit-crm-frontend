@@ -26,6 +26,9 @@ export default function Invoicing() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const [syncing, setSyncing] = useState('');
+  const [syncMsg, setSyncMsg] = useState('');
+
   const load = () => {
     const qs = statusFilter ? `?status=${statusFilter}` : '';
     Promise.all([
@@ -40,18 +43,49 @@ export default function Invoicing() {
 
   useEffect(() => { load(); }, [statusFilter]);
 
+  const runSync = async (source) => {
+    setSyncing(source);
+    setSyncMsg('');
+    try {
+      const result = await api.post(`/api/invoice-sync/${source}`, {});
+      setSyncMsg(`${source === 'stripe' ? 'Stripe' : 'Alegra'}: ${result.created} facturas nuevas, ${result.skipped} ya existían.`);
+      load();
+    } catch (err) {
+      setSyncMsg(`${source === 'stripe' ? 'Stripe' : 'Alegra'}: ${err.message}`);
+    }
+    setSyncing('');
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <h1 className="font-headline text-xl font-semibold">Facturación</h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 rounded-lg text-sm flex items-center gap-1.5"
-        >
-          <Plus size={14} /> Nueva factura
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => runSync('stripe')}
+            disabled={!!syncing}
+            className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition disabled:opacity-50"
+          >
+            {syncing === 'stripe' ? 'Sincronizando...' : 'Sincronizar Stripe'}
+          </button>
+          <button
+            onClick={() => runSync('alegra')}
+            disabled={!!syncing}
+            className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition disabled:opacity-50"
+          >
+            {syncing === 'alegra' ? 'Sincronizando...' : 'Sincronizar Alegra'}
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 rounded-lg text-sm flex items-center gap-1.5"
+          >
+            <Plus size={14} /> Nueva factura
+          </button>
+        </div>
       </div>
-      <p className="text-brand-muted text-sm mb-6">Registro de facturas ligadas a tratos y empresas</p>
+      <p className="text-brand-muted text-sm mb-1">Registro de facturas ligadas a tratos y empresas</p>
+      {syncMsg && <p className="text-xs text-brand-ice mb-4">{syncMsg}</p>}
+      {!syncMsg && <div className="mb-6" />}
 
       {error && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>
