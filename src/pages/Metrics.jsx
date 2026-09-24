@@ -462,6 +462,46 @@ export default function Metrics() {
       </div>
       )}
 
+      {/* MRR/ARR por país de facturación + pipeline — cruza la entidad/país que factura
+          con la línea de negocio (pipeline) asociada, para ver de dónde viene el ingreso
+          recurrente real, no solo el total mezclado. */}
+      {dashboard && dashboard.mrr_by_country_pipeline.length > 0 && (
+      <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-6">
+        <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-1">
+          <Globe size={15} className="text-brand-muted" /> MRR / ARR por país de facturación y pipeline
+        </div>
+        <p className="text-xs text-brand-muted mb-4">
+          Por la entidad que factura el trato (no el país de la empresa) cruzada con su pipeline. Solo cuenta lo etiquetado con frecuencia de facturación mensual o anual.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-brand-muted text-xs">
+                <th className="py-2 pr-4 font-normal">País de facturación</th>
+                <th className="py-2 pr-4 font-normal">Pipeline</th>
+                <th className="py-2 pr-4 font-normal text-right">MRR ganado</th>
+                <th className="py-2 pr-4 font-normal text-right">ARR ganado</th>
+                <th className="py-2 pr-4 font-normal text-right">MRR pipeline</th>
+                <th className="py-2 font-normal text-right">ARR pipeline</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dashboard.mrr_by_country_pipeline.map((r) => (
+                <tr key={`${r.country}-${r.pipeline}`} className="border-t border-brand-border">
+                  <td className="py-2 pr-4 flex items-center gap-1.5"><Globe size={12} className="text-brand-muted" /> {r.country}</td>
+                  <td className="py-2 pr-4 text-brand-muted flex items-center gap-1.5"><Briefcase size={12} /> {r.pipeline}</td>
+                  <td className="py-2 pr-4 text-right text-brand-ice font-tech">${r.mrr_won.toLocaleString()}</td>
+                  <td className="py-2 pr-4 text-right text-brand-muted font-tech">${r.arr_won.toLocaleString()}</td>
+                  <td className="py-2 pr-4 text-right text-brand-muted font-tech">${r.mrr_pipeline.toLocaleString()}</td>
+                  <td className="py-2 text-right text-brand-muted font-tech">${r.arr_pipeline.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
           <div className="flex items-center gap-1.5 text-brand-muted text-sm mb-1"><Percent size={13} /> Win rate</div>
