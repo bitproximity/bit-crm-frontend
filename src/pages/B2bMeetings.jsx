@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, CalendarClock, History,
-  Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2, ChevronDown, MoreHorizontal, Download, RefreshCcw,
+  Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2, ChevronDown, MoreHorizontal, Download, RefreshCcw, Target,
 } from 'lucide-react';
 import B2bRecordModal, { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
 import MeetingsByMonthChart from '../components/MeetingsByMonthChart';
@@ -84,6 +84,8 @@ export default function B2bMeetings() {
   const [clients, setClients] = useState([]);
   const [clientId, setClientId] = useState(null);
   const [dashboard, setDashboard] = useState(null);
+  const [targetEditing, setTargetEditing] = useState(false);
+  const [targetValue, setTargetValue] = useState('');
   const [records, setRecords] = useState([]);
   const EMPTY_FILTERS = { search: '', status: '', country: '', city: '', executive: '', industry: '', dateFrom: '', dateTo: '' };
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -107,6 +109,14 @@ export default function B2bMeetings() {
     setClients(list);
     if (!clientId && list.length) setClientId(list[0].id);
   }).catch((err) => setError(err.message));
+
+  const saveTarget = async (value) => {
+    if (!clientId) return;
+    const n = value === '' ? null : Number(value);
+    await api.patch(`/api/companies/${clientId}`, { b2b_meeting_target: n });
+    setTargetEditing(false);
+    loadClients();
+  };
 
   useEffect(() => { loadClients(); }, []);
 
@@ -734,6 +744,66 @@ export default function B2bMeetings() {
                     {(dashboard.by_commercial || []).length === 0 && <div className="text-brand-muted text-xs">Sin datos todavía.</div>}
                   </div>
                 </div>
+              </div>
+
+              {/* Meta mensual de reuniones — se mide contra "Realizadas" (el resultado real,
+                  no la agenda) porque es la métrica de la que de verdad importa el avance. */}
+              <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 text-sm font-manrope font-medium">
+                    <Target size={15} className="text-brand-muted" /> Meta mensual de reuniones
+                  </div>
+                  {targetEditing ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        autoFocus
+                        value={targetValue}
+                        onChange={(e) => setTargetValue(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && saveTarget(targetValue)}
+                        placeholder="Sin definir"
+                        className="w-24 px-2 py-1 rounded-lg bg-brand-bg border border-brand-border text-sm font-tech text-right"
+                      />
+                      <button onClick={() => saveTarget(targetValue)} className="text-xs text-brand-ice hover:underline">Guardar</button>
+                      <button onClick={() => setTargetEditing(false)} className="text-xs text-brand-muted hover:underline">Cancelar</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setTargetValue(client?.b2b_meeting_target ?? ''); setTargetEditing(true); }}
+                      className="text-xs text-brand-ice hover:underline flex items-center gap-1"
+                    >
+                      <Pencil size={11} />
+                      {client?.b2b_meeting_target ? `Meta: ${client.b2b_meeting_target} reuniones/mes` : 'Definir meta'}
+                    </button>
+                  )}
+                </div>
+
+                {client?.b2b_meeting_target > 0 && (() => {
+                  const done = dashboard.meetings_this_month_realized || 0;
+                  const goal = client.b2b_meeting_target;
+                  const pct = Math.min((done / goal) * 100, 100);
+                  const remaining = Math.max(goal - done, 0);
+                  const reached = done >= goal;
+                  return (
+                    <div className="mt-4">
+                      <div className="flex items-baseline justify-between text-sm mb-1.5">
+                        <span className={reached ? 'text-green-300 font-medium' : 'text-brand-white'}>
+                          {done} de {goal} reuniones realizadas este mes
+                        </span>
+                        <span className={`font-tech text-xs ${reached ? 'text-green-300' : 'text-brand-muted'}`}>
+                          {reached ? '¡Meta cumplida! 🎉' : `Faltan ${remaining}`}
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-full bg-brand-bg overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${reached ? 'bg-green-400' : 'bg-gradient-to-r from-brand-violet to-brand-magenta'}`}
+                          style={{ width: `${Math.max(pct, 3)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div id="reuniones-por-mes" className="mb-6">
