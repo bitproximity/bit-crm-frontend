@@ -59,15 +59,16 @@ export default function Invoicing() {
 
   useEffect(() => { load(); }, [statusFilter]);
 
+  const SOURCE_LABELS = { stripe: 'Stripe', alegra: 'Alegra', 'facturero-movil': 'Facturero Móvil' };
   const runSync = async (source) => {
     setSyncing(source);
     setSyncMsg('');
     try {
       const result = await api.post(`/api/invoice-sync/${source}`, {});
-      setSyncMsg(`${source === 'stripe' ? 'Stripe' : 'Alegra'}: ${result.created} facturas nuevas, ${result.skipped} ya existían.`);
+      setSyncMsg(`${SOURCE_LABELS[source]}: ${result.created} facturas nuevas, ${result.skipped} ya existían.`);
       load();
     } catch (err) {
-      setSyncMsg(`${source === 'stripe' ? 'Stripe' : 'Alegra'}: ${err.message}`);
+      setSyncMsg(`${SOURCE_LABELS[source]}: ${err.message}`);
     }
     setSyncing('');
   };
@@ -90,6 +91,13 @@ export default function Invoicing() {
             className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition disabled:opacity-50"
           >
             {syncing === 'alegra' ? 'Sincronizando...' : 'Sincronizar Alegra'}
+          </button>
+          <button
+            onClick={() => runSync('facturero-movil')}
+            disabled={!!syncing}
+            className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition disabled:opacity-50"
+          >
+            {syncing === 'facturero-movil' ? 'Sincronizando...' : 'Sincronizar Facturero Móvil'}
           </button>
           <button
             onClick={() => setShowCreate(true)}
