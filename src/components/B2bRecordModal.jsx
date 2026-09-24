@@ -42,11 +42,11 @@ export const FACTURACION_OPTIONS = [
 // id, porque algunos pipelines son por país y no por línea de negocio) y cae en una lista
 // genérica si no matchea ninguna.
 const HARDWARE_BY_PIPELINE = [
-  { match: /wifi/i, options: ['Grandstream', 'Huawei', 'Cisco', 'Meraki', 'Mikrotik', 'Ruckus', 'Unifi', 'Aruba', 'Teltonika', 'Extreme', 'Fortinet', 'Zyxel', 'Juniper', 'Otro'] },
-  { match: /music/i, options: ['Computadora', 'Tablet', 'Android Box', 'Otro'] },
-  { match: /signage|neomedia|cartel/i, options: ['TV', 'LED', 'Monitor profesional', 'Otro'] },
+  { match: /wifi/i, options: ['Aruba', 'Cisco', 'Extreme', 'Fortinet', 'Grandstream', 'Huawei', 'Juniper', 'Meraki', 'Mikrotik', 'Ruckus', 'Teltonika', 'Unifi', 'Zyxel', 'Otro'] },
+  { match: /music/i, options: ['Android Box', 'Computadora', 'Tablet', 'Otro'] },
+  { match: /signage|neomedia|cartel/i, options: ['LED', 'Monitor profesional', 'TV', 'Otro'] },
 ];
-const GENERIC_HARDWARE_OPTIONS = ['Router', 'Pantalla / TV', 'Reproductor Android', 'Parlante', 'Otro'];
+const GENERIC_HARDWARE_OPTIONS = ['Parlante', 'Pantalla / TV', 'Reproductor Android', 'Router', 'Otro'];
 
 export function hardwareOptionsForPipeline(pipelineName) {
   const found = HARDWARE_BY_PIPELINE.find((h) => h.match.test(pipelineName || ''));
