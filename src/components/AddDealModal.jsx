@@ -16,7 +16,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
   const [probability, setProbability] = useState(50);
   const [expectedCloseDate, setExpectedCloseDate] = useState('');
   const [facturacion, setFacturacion] = useState('');
-  const [billingFrequency, setBillingFrequency] = useState('mensual');
+  const [billingFrequency, setBillingFrequency] = useState('');
   const [hardwareType, setHardwareType] = useState('');
 
   const [contactQuery, setContactQuery] = useState('');
@@ -250,7 +250,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
         company_id: companyId,
         expected_close_date: expectedCloseDate || null,
         facturacion: facturacion || null,
-        billing_frequency: billingFrequency,
+        billing_frequency: billingFrequency || null,
         hardware_type: hardwareType || null,
       });
 
@@ -472,6 +472,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
               <div>
                 <label className={labelClass}>Frecuencia de facturación</label>
                 <select value={billingFrequency} onChange={(e) => setBillingFrequency(e.target.value)} className={plainInputClass}>
+                  <option value="">Sin especificar (no cuenta para MRR)</option>
                   <option value="mensual">Mensual</option>
                   <option value="anual">Anual</option>
                   <option value="unico">Único</option>

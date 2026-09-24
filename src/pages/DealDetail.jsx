@@ -419,7 +419,7 @@ export default function DealDetail() {
   };
 
   const saveBillingFrequency = async (value) => {
-    await api.patch(`/api/deals/${id}`, { billing_frequency: value });
+    await api.patch(`/api/deals/${id}`, { billing_frequency: value || null });
     setBillingFrequencyEditing(false);
     refreshDeal();
   };
@@ -855,17 +855,18 @@ export default function DealDetail() {
                   className={`${inputClass} mt-1`}
                   autoFocus
                 >
+                  <option value="">Sin especificar</option>
                   <option value="mensual">Mensual</option>
                   <option value="anual">Anual</option>
                   <option value="unico">Único</option>
                 </select>
               ) : (
                 <button
-                  onClick={() => { setBillingFrequencyValue(deal.billing_frequency || 'mensual'); setBillingFrequencyEditing(true); }}
+                  onClick={() => { setBillingFrequencyValue(deal.billing_frequency || ''); setBillingFrequencyEditing(true); }}
                   className="text-xs text-brand-ice hover:underline block mt-1"
                   title="De esto depende MRR/ARR en Métricas"
                 >
-                  Frecuencia de facturación: {{ mensual: 'Mensual', anual: 'Anual', unico: 'Único' }[deal.billing_frequency] || 'Mensual'}
+                  Frecuencia de facturación: {{ mensual: 'Mensual', anual: 'Anual', unico: 'Único' }[deal.billing_frequency] || 'Sin especificar'}
                 </button>
               )}
 
