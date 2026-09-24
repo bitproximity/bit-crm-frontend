@@ -747,9 +747,12 @@ export default function B2bMeetings() {
               </div>
 
               {/* Meta mensual de reuniones — se mide contra "Realizadas" (el resultado real,
-                  no la agenda) porque es la métrica de la que de verdad importa el avance. */}
-              <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  no la agenda) porque es la métrica de la que de verdad importa el avance.
+                  El anillo + el indicador de ritmo (avance real vs. avance esperado según
+                  cuánto del mes ya pasó) le dan más peso visual que a una barra plana, y
+                  dicen algo que un número solo no dice: si van rezagados o adelantados. */}
+              <div className="bg-brand-panel border border-brand-border rounded-xl p-5 mb-6 panel-depth">
+                <div className="flex items-center justify-between gap-4 flex-wrap mb-1">
                   <div className="flex items-center gap-2 text-sm font-manrope font-medium">
                     <Target size={15} className="text-brand-muted" /> Meta mensual de reuniones
                   </div>
@@ -774,10 +777,14 @@ export default function B2bMeetings() {
                       className="text-xs text-brand-ice hover:underline flex items-center gap-1"
                     >
                       <Pencil size={11} />
-                      {client?.b2b_meeting_target ? `Meta: ${client.b2b_meeting_target} reuniones/mes` : 'Definir meta'}
+                      {client?.b2b_meeting_target ? 'Editar meta' : 'Definir meta'}
                     </button>
                   )}
                 </div>
+
+                {!client?.b2b_meeting_target && !targetEditing && (
+                  <p className="text-xs text-brand-muted mt-3">Todavía no hay meta definida para {client?.name || 'este cliente'}.</p>
+                )}
 
                 {client?.b2b_meeting_target > 0 && (() => {
                   const done = dashboard.meetings_this_month_realized || 0;
@@ -785,21 +792,55 @@ export default function B2bMeetings() {
                   const pct = Math.min((done / goal) * 100, 100);
                   const remaining = Math.max(goal - done, 0);
                   const reached = done >= goal;
+
+                  const now = new Date();
+                  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                  const dayOfMonth = now.getDate();
+                  const expectedPct = (dayOfMonth / daysInMonth) * 100;
+                  const onPace = reached || pct >= expectedPct;
+                  const paceDiff = Math.round(pct - expectedPct);
+
+                  const ringColor = reached ? '#4ade80' : onPace ? 'url(#targetGradient)' : '#fb923c';
+                  const r = 40, circumference = 2 * Math.PI * r;
+                  const dashOffset = circumference * (1 - pct / 100);
+
                   return (
-                    <div className="mt-4">
-                      <div className="flex items-baseline justify-between text-sm mb-1.5">
-                        <span className={reached ? 'text-green-300 font-medium' : 'text-brand-white'}>
-                          {done} de {goal} reuniones realizadas este mes
-                        </span>
-                        <span className={`font-tech text-xs ${reached ? 'text-green-300' : 'text-brand-muted'}`}>
-                          {reached ? '¡Meta cumplida! 🎉' : `Faltan ${remaining}`}
-                        </span>
+                    <div className="flex items-center gap-6 mt-3 flex-wrap">
+                      <div className="relative w-28 h-28 flex-shrink-0">
+                        <svg viewBox="0 0 96 96" className="w-full h-full -rotate-90">
+                          <defs>
+                            <linearGradient id="targetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#a855f7" />
+                              <stop offset="100%" stopColor="#ec4899" />
+                            </linearGradient>
+                          </defs>
+                          <circle cx="48" cy="48" r={r} fill="none" stroke="currentColor" className="text-brand-bg" strokeWidth="9" />
+                          <circle
+                            cx="48" cy="48" r={r} fill="none" stroke={ringColor} strokeWidth="9" strokeLinecap="round"
+                            strokeDasharray={circumference} strokeDashoffset={dashOffset}
+                            className="transition-all duration-700"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="font-headline text-2xl font-semibold leading-none">{done}</span>
+                          <span className="text-[11px] text-brand-muted font-tech mt-0.5">de {goal}</span>
+                        </div>
                       </div>
-                      <div className="h-2 rounded-full bg-brand-bg overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${reached ? 'bg-green-400' : 'bg-gradient-to-r from-brand-violet to-brand-magenta'}`}
-                          style={{ width: `${Math.max(pct, 3)}%` }}
-                        />
+
+                      <div className="flex-1 min-w-[180px]">
+                        <div className={`text-base font-manrope font-medium mb-1 ${reached ? 'text-green-300' : 'text-brand-white'}`}>
+                          {reached ? '¡Meta cumplida este mes! 🎉' : `Faltan ${remaining} reuniones realizadas`}
+                        </div>
+                        <div className="text-xs text-brand-muted mb-2">
+                          {client?.name} · día {dayOfMonth} de {daysInMonth} del mes
+                        </div>
+                        {!reached && (
+                          <div className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${onPace ? 'bg-green-500/15 text-green-300' : 'bg-orange-500/15 text-orange-300'}`}>
+                            {onPace
+                              ? `Van al día — ${paceDiff > 0 ? `${paceDiff} pts arriba del ritmo esperado` : 'a la par del ritmo esperado'}`
+                              : `Van ${Math.abs(paceDiff)} pts atrás del ritmo esperado para hoy`}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
