@@ -4,7 +4,7 @@ import DateTimePicker from '../components/DateTimePicker';
 import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check, Search } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
-const SOURCE_ACCOUNTS = ['Bit Colombia SAS', 'BitProximity LLC', 'Mario Colombia', 'Diana Sánchez', 'Mario Ramos', 'Bithub SRL', 'Bit Paraguay SAS', 'Bit México'];
+const SOURCE_ACCOUNTS = ['Bit Colombia SAS', 'BitProximity LLC', 'Mario Colombia', 'Diana Sánchez', 'Mario Ramos', 'Bithub SRL', 'Bit Paraguay EAS', 'Bit México'];
 const STATUS_LABELS = { pendiente: 'Pendiente', parcial: 'Parcial', pagada: 'Pagada', cancelada: 'Cancelada' };
 const STATUS_COLORS = {
   pendiente: 'bg-yellow-500/15 text-yellow-300',
