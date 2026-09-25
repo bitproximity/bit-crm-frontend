@@ -335,6 +335,7 @@ export default function Invoicing() {
                     <select
                       value={inv.status}
                       onChange={(e) => changeStatus(inv, e.target.value)}
+                      style={{ colorScheme: 'dark' }}
                       className={`px-2 py-1 rounded-full text-xs font-tech border-0 ${STATUS_COLORS[inv.status]}`}
                     >
                       {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -399,6 +400,7 @@ export default function Invoicing() {
                 <select
                   value={inv.status}
                   onChange={(e) => changeStatus(inv, e.target.value)}
+                  style={{ colorScheme: 'dark' }}
                   className={`px-2 py-1 rounded-full text-[11px] font-tech border-0 ${STATUS_COLORS[inv.status]}`}
                 >
                   {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -589,10 +591,13 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
   const [paymentForm, setPaymentForm] = useState({ amount: '', method: '', notes: '' });
   const [editing, setEditing] = useState(false);
   const [currencyEdit, setCurrencyEdit] = useState('USD');
-  const [fieldsEdit, setFieldsEdit] = useState({ invoice_number: '', client_name: '', issue_date: '', due_date: '', status: 'pendiente' });
+  const [fieldsEdit, setFieldsEdit] = useState({ invoice_number: '', client_name: '', source_account: '', issue_date: '', due_date: '', status: 'pendiente' });
   const [newLine, setNewLine] = useState({ description: '', quantity: 1, unit_price: '' });
   const [editingLineId, setEditingLineId] = useState(null);
   const [editLineForm, setEditLineForm] = useState({ description: '', quantity: 1, unit_price: '' });
+  const [dealQuery, setDealQuery] = useState('');
+  const [dealResults, setDealResults] = useState([]);
+  const [dealSearching, setDealSearching] = useState(false);
 
   const load = () => api.get(`/api/invoices/${invoiceId}`).then((data) => {
     setInvoice(data);
@@ -600,6 +605,7 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
     setFieldsEdit({
       invoice_number: data.invoice_number || '',
       client_name: data.client_name || '',
+      source_account: data.source_account || '',
       issue_date: data.issue_date || '',
       due_date: data.due_date || '',
       status: data.status,
@@ -607,6 +613,32 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
   }).catch((err) => setError(err.message));
 
   useEffect(() => { load(); }, [invoiceId]);
+
+  useEffect(() => {
+    if (!dealQuery.trim()) { setDealResults([]); return; }
+    setDealSearching(true);
+    const t = setTimeout(() => {
+      api.get(`/api/deals?search=${encodeURIComponent(dealQuery.trim())}&limit=6`)
+        .then(setDealResults)
+        .catch(() => setDealResults([]))
+        .finally(() => setDealSearching(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [dealQuery]);
+
+  const linkDeal = async (deal) => {
+    await api.patch(`/api/invoices/${invoiceId}`, { deal_id: deal.id });
+    setDealQuery('');
+    setDealResults([]);
+    load();
+    onChanged?.();
+  };
+
+  const unlinkDeal = async () => {
+    await api.patch(`/api/invoices/${invoiceId}`, { deal_id: null });
+    load();
+    onChanged?.();
+  };
 
   const recordPayment = async (e) => {
     e.preventDefault();
@@ -637,6 +669,7 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
     await api.patch(`/api/invoices/${invoiceId}`, {
       invoice_number: fieldsEdit.invoice_number || null,
       client_name: fieldsEdit.client_name || null,
+      source_account: fieldsEdit.source_account || null,
       issue_date: fieldsEdit.issue_date || null,
       due_date: fieldsEdit.due_date || null,
       status: fieldsEdit.status,
@@ -684,88 +717,165 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
 
   const pending = Number(invoice.total) - Number(invoice.paid_amount);
   const smallInput = 'px-2 py-1.5 rounded bg-brand-panel border border-brand-border text-xs';
+  const labelClass = 'block text-xs text-brand-muted mb-1.5';
+  const plainInputClass = 'w-full px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet transition';
+  const roClass = 'px-3 py-2.5 rounded-lg bg-brand-bg/60 border border-brand-border/60 text-sm';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-lg max-h-[90vh] bg-brand-panel border border-brand-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
-          <div className="flex-1 min-w-0">
-            {editing ? (
-              <input
-                value={fieldsEdit.invoice_number}
-                onChange={(e) => setFieldsEdit({ ...fieldsEdit, invoice_number: e.target.value })}
-                placeholder="Número de factura"
-                className={`${smallInput} font-headline text-base font-semibold w-full mb-1`}
-              />
-            ) : (
-              <h2 className="font-headline text-lg font-semibold">{invoice.invoice_number || `Factura #${invoice.id.slice(0, 8)}`}</h2>
-            )}
-            {editing ? (
-              <input
-                value={fieldsEdit.client_name}
-                onChange={(e) => setFieldsEdit({ ...fieldsEdit, client_name: e.target.value })}
-                placeholder="Razón social del cliente"
-                className={`${smallInput} w-full`}
-              />
-            ) : (
-              <div className="text-xs text-brand-muted mt-0.5">
-                {invoice.client_name || invoice.companies?.name || contactName(invoice.contacts) || '—'} {invoice.deals?.title && `· ${invoice.deals.title}`}
-                {invoice.source_account && <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-tech bg-brand-bg border border-brand-border">{invoice.source_account}</span>}
-              </div>
-            )}
-          </div>
+      <div className="relative w-full max-w-3xl max-h-[90vh] bg-brand-panel border border-brand-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border flex-shrink-0">
+          <h2 className="font-headline text-lg font-semibold">{invoice.invoice_number || `Factura #${invoice.id.slice(0, 8)}`}</h2>
           <div className="flex items-center gap-3 flex-shrink-0 pl-3">
             <button onClick={() => { if (editing) saveFields(); setEditing(!editing); }} className="text-xs text-brand-ice hover:underline">{editing ? 'Guardar' : 'Editar'}</button>
             <button onClick={onClose} className="text-brand-muted hover:text-brand-white"><X size={20} /></button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+        <div className="flex-1 overflow-y-auto">
+          {error && <div className="mx-6 mt-4 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
 
-          {editing && (
-            <div className="grid grid-cols-2 gap-3 bg-brand-bg border border-brand-border rounded-lg p-3">
+          {/* Misma estructura visual que Añadir trato: columna izquierda con los datos
+              principales de la factura, columna derecha con secciones agrupadas
+              (Detalles / Vinculado al CRM) — para que Facturación se vea y se sienta
+              igual que el resto del CRM. */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 px-6 py-5">
+            <div className="space-y-5">
               <div>
-                <label className="text-xs text-brand-muted block mb-1">Moneda</label>
-                <select value={currencyEdit} onChange={(e) => setCurrencyEdit(e.target.value)} className={`${smallInput} font-tech w-full`}>
-                  {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-                {currencyEdit !== invoice.currency && (
-                  <button onClick={saveCurrency} className="text-[11px] text-brand-ice hover:underline mt-1">Guardar moneda</button>
+                <label className={labelClass}>Número de factura</label>
+                {editing ? (
+                  <input value={fieldsEdit.invoice_number} onChange={(e) => setFieldsEdit({ ...fieldsEdit, invoice_number: e.target.value })} className={plainInputClass} />
+                ) : (
+                  <div className={roClass}>{invoice.invoice_number || '—'}</div>
                 )}
               </div>
-              <div>
-                <label className="text-xs text-brand-muted block mb-1">Estado</label>
-                <select value={fieldsEdit.status} onChange={(e) => setFieldsEdit({ ...fieldsEdit, status: e.target.value })} className={`${smallInput} w-full`}>
-                  {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-brand-muted block mb-1">Fecha de emisión</label>
-                <input type="date" value={fieldsEdit.issue_date} onChange={(e) => setFieldsEdit({ ...fieldsEdit, issue_date: e.target.value })} className={`${smallInput} w-full`} />
-              </div>
-              <div>
-                <label className="text-xs text-brand-muted block mb-1">Vencimiento</label>
-                <input type="date" value={fieldsEdit.due_date} onChange={(e) => setFieldsEdit({ ...fieldsEdit, due_date: e.target.value })} className={`${smallInput} w-full`} />
-              </div>
-            </div>
-          )}
 
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="bg-brand-bg rounded-lg p-3">
-              <div className="text-xs text-brand-muted mb-1">Total</div>
-              <div className="font-tech text-brand-white">{invoice.currency} {Number(invoice.total).toLocaleString()}</div>
+              <div>
+                <label className={labelClass}>Empresa que facturó</label>
+                {editing ? (
+                  <input value={fieldsEdit.source_account} onChange={(e) => setFieldsEdit({ ...fieldsEdit, source_account: e.target.value })} placeholder="ej. BitProximity LLC" className={plainInputClass} />
+                ) : (
+                  <div className={roClass}>{invoice.source_account || <span className="text-brand-muted">Sin especificar</span>}</div>
+                )}
+              </div>
+
+              <div>
+                <label className={labelClass}>Razón social del cliente</label>
+                {editing ? (
+                  <input value={fieldsEdit.client_name} onChange={(e) => setFieldsEdit({ ...fieldsEdit, client_name: e.target.value })} className={plainInputClass} />
+                ) : (
+                  <div className={roClass}>{invoice.client_name || invoice.companies?.name || contactName(invoice.contacts) || <span className="text-brand-muted">Sin especificar</span>}</div>
+                )}
+              </div>
+
+              <div>
+                <label className={labelClass}>Moneda</label>
+                {editing ? (
+                  <div className="flex items-center gap-2">
+                    <select value={currencyEdit} onChange={(e) => setCurrencyEdit(e.target.value)} className={`${plainInputClass} font-tech`}>
+                      {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    {currencyEdit !== invoice.currency && (
+                      <button onClick={saveCurrency} className="text-[11px] text-brand-ice hover:underline flex-shrink-0">Guardar</button>
+                    )}
+                  </div>
+                ) : (
+                  <div className={`${roClass} font-tech`}>{invoice.currency}</div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 text-center pt-1">
+                <div className="bg-brand-bg rounded-lg p-3">
+                  <div className="text-xs text-brand-muted mb-1">Total</div>
+                  <div className="font-tech text-brand-white text-sm">{invoice.currency} {Number(invoice.total).toLocaleString()}</div>
+                </div>
+                <div className="bg-brand-bg rounded-lg p-3">
+                  <div className="text-xs text-brand-muted mb-1">Cobrado</div>
+                  <div className="font-tech text-green-300 text-sm">{invoice.currency} {Number(invoice.paid_amount).toLocaleString()}</div>
+                </div>
+                <div className="bg-brand-bg rounded-lg p-3">
+                  <div className="text-xs text-brand-muted mb-1">Pendiente</div>
+                  <div className="font-tech text-yellow-300 text-sm">{invoice.currency} {pending.toLocaleString()}</div>
+                </div>
+              </div>
             </div>
-            <div className="bg-brand-bg rounded-lg p-3">
-              <div className="text-xs text-brand-muted mb-1">Cobrado</div>
-              <div className="font-tech text-green-300">{invoice.currency} {Number(invoice.paid_amount).toLocaleString()}</div>
-            </div>
-            <div className="bg-brand-bg rounded-lg p-3">
-              <div className="text-xs text-brand-muted mb-1">Pendiente</div>
-              <div className="font-tech text-yellow-300">{invoice.currency} {pending.toLocaleString()}</div>
+
+            <div className="space-y-5">
+              <div>
+                <div className="text-xs font-tech tracking-wide text-brand-muted uppercase mb-3 pb-2 border-b border-brand-border">Detalles</div>
+                <div className="space-y-4">
+                  <div>
+                    <label className={labelClass}>Estado</label>
+                    {editing ? (
+                      <select value={fieldsEdit.status} onChange={(e) => setFieldsEdit({ ...fieldsEdit, status: e.target.value })} className={plainInputClass} style={{ colorScheme: 'dark' }}>
+                        {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                      </select>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        {invoice.overdue && <AlertTriangle size={12} className="text-red-400" />}
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${STATUS_COLORS[invoice.status]}`}>{STATUS_LABELS[invoice.status]}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className={labelClass}>Fecha de emisión</label>
+                    {editing ? (
+                      <input type="date" value={fieldsEdit.issue_date} onChange={(e) => setFieldsEdit({ ...fieldsEdit, issue_date: e.target.value })} className={plainInputClass} style={{ colorScheme: 'dark' }} />
+                    ) : (
+                      <div className={roClass}>{invoice.issue_date ? new Date(invoice.issue_date).toLocaleDateString() : '—'}</div>
+                    )}
+                  </div>
+                  <div>
+                    <label className={labelClass}>Vencimiento</label>
+                    {editing ? (
+                      <input type="date" value={fieldsEdit.due_date} onChange={(e) => setFieldsEdit({ ...fieldsEdit, due_date: e.target.value })} className={plainInputClass} style={{ colorScheme: 'dark' }} />
+                    ) : (
+                      <div className={roClass}>{invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : '—'}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs font-tech tracking-wide text-brand-muted uppercase mb-3 pb-2 border-b border-brand-border">Vinculado al CRM</div>
+                <div className="space-y-4">
+                  <div className="relative">
+                    <label className={labelClass}>Trato</label>
+                    {invoice.deals?.title ? (
+                      <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm">
+                        <span className="truncate">{invoice.deals.title}</span>
+                        <button onClick={unlinkDeal} className="text-brand-muted hover:text-red-400 text-xs flex-shrink-0 ml-2">Quitar</button>
+                      </div>
+                    ) : (
+                      <input
+                        value={dealQuery}
+                        onChange={(e) => setDealQuery(e.target.value)}
+                        placeholder="Buscar un trato para vincular..."
+                        className={plainInputClass}
+                      />
+                    )}
+                    {dealQuery && (dealResults.length > 0 || dealSearching) && (
+                      <div className="absolute z-10 left-0 right-0 mt-1 bg-brand-panel border border-brand-border rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                        {dealSearching && <div className="px-3 py-2 text-xs text-brand-muted">Buscando...</div>}
+                        {dealResults.map((d) => (
+                          <button key={d.id} onClick={() => linkDeal(d)} className="w-full text-left px-3 py-2 text-sm hover:bg-brand-bg transition truncate">
+                            {d.title}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className={labelClass}>Empresa / Contacto (CRM)</label>
+                    <div className={roClass}>{invoice.companies?.name || contactName(invoice.contacts) || <span className="text-brand-muted">Sin vincular</span>}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+
+          <div className="px-6 pb-6 space-y-4">
 
           <div>
             <div className="text-xs text-brand-muted uppercase mb-2">Líneas (tipo de servicio)</div>
@@ -835,6 +945,7 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
