@@ -464,40 +464,49 @@ export default function Metrics() {
 
       {/* MRR/ARR por país de facturación + pipeline — cruza la entidad/país que factura
           con la línea de negocio (pipeline) asociada, para ver de dónde viene el ingreso
-          recurrente real, no solo el total mezclado. */}
+          recurrente real, no solo el total mezclado. Grilla de tarjetas en vez de tabla
+          plana — más fácil de escanear y con jerarquía visual real para el número que
+          importa (MRR ganado). */}
       {dashboard && dashboard.mrr_by_country_pipeline.length > 0 && (
-      <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-6">
-        <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-1">
-          <Globe size={15} className="text-brand-muted" /> MRR / ARR por país de facturación y pipeline
+      <div className="bg-gradient-to-br from-brand-panel to-brand-bg border border-brand-border rounded-2xl p-5 panel-depth mb-6">
+        <div className="flex items-center gap-1.5 text-sm font-manrope font-semibold tracking-wide uppercase text-brand-muted mb-1">
+          <Globe size={15} className="text-brand-magenta" /> MRR / ARR por país de facturación y pipeline
         </div>
         <p className="text-xs text-brand-muted mb-4">
           Por la entidad que factura el trato (no el país de la empresa) cruzada con su pipeline. Solo cuenta lo etiquetado con frecuencia de facturación mensual o anual.
         </p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-brand-muted text-xs">
-                <th className="py-2 pr-4 font-normal">País de facturación</th>
-                <th className="py-2 pr-4 font-normal">Pipeline</th>
-                <th className="py-2 pr-4 font-normal text-right">MRR ganado</th>
-                <th className="py-2 pr-4 font-normal text-right">ARR ganado</th>
-                <th className="py-2 pr-4 font-normal text-right">MRR pipeline</th>
-                <th className="py-2 font-normal text-right">ARR pipeline</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dashboard.mrr_by_country_pipeline.map((r) => (
-                <tr key={`${r.country}-${r.pipeline}`} className="border-t border-brand-border">
-                  <td className="py-2 pr-4 flex items-center gap-1.5"><Globe size={12} className="text-brand-muted" /> {r.country}</td>
-                  <td className="py-2 pr-4 text-brand-muted flex items-center gap-1.5"><Briefcase size={12} /> {r.pipeline}</td>
-                  <td className="py-2 pr-4 text-right text-brand-ice font-tech">${r.mrr_won.toLocaleString()}</td>
-                  <td className="py-2 pr-4 text-right text-brand-muted font-tech">${r.arr_won.toLocaleString()}</td>
-                  <td className="py-2 pr-4 text-right text-brand-muted font-tech">${r.mrr_pipeline.toLocaleString()}</td>
-                  <td className="py-2 text-right text-brand-muted font-tech">${r.arr_pipeline.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {dashboard.mrr_by_country_pipeline.map((r, i) => (
+            <div
+              key={`${r.country}-${r.pipeline}`}
+              className={`relative rounded-xl p-4 border overflow-hidden ${i === 0 && r.mrr_won > 0 ? 'border-brand-violet/40 bg-brand-violet/[0.06]' : 'border-brand-border bg-brand-bg/60'}`}
+            >
+              {i === 0 && r.mrr_won > 0 && (
+                <div className="absolute -right-6 -top-6 w-20 h-20 rounded-full bg-brand-magenta/20 blur-2xl pointer-events-none" />
+              )}
+              <div className="flex items-center justify-between mb-3 relative">
+                <div className="flex items-center gap-1.5 text-sm font-manrope font-medium">
+                  <Briefcase size={13} className="text-brand-muted" /> {r.pipeline}
+                </div>
+                <div className="flex items-center gap-1 text-[11px] text-brand-muted px-2 py-0.5 rounded-full bg-brand-panel border border-brand-border">
+                  <Globe size={10} /> {r.country}
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <div className="text-[10px] uppercase tracking-wide text-brand-muted mb-0.5">MRR ganado</div>
+                <div className="font-headline text-2xl font-bold bg-gradient-to-r from-white to-brand-ice bg-clip-text text-transparent">
+                  ${r.mrr_won.toLocaleString()}
+                </div>
+                <div className="text-xs text-brand-muted">${r.arr_won.toLocaleString()} ARR</div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2.5 border-t border-brand-border/60 text-xs">
+                <span className="text-brand-muted">Pipeline potencial</span>
+                <span className="font-tech text-brand-white">${r.mrr_pipeline.toLocaleString()} <span className="text-brand-muted">/ ${r.arr_pipeline.toLocaleString()} ARR</span></span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
       )}
