@@ -305,7 +305,7 @@ export default function Invoicing() {
           <thead className="bg-brand-panel/80 text-brand-muted text-left">
             <tr>
               <th className="px-4 py-3 font-manrope font-normal">Factura</th>
-              <th className="px-4 py-3 font-manrope font-normal">Empresa (origen)</th>
+              <th className="px-4 py-3 font-manrope font-normal w-44">Empresa (origen)</th>
               <th className="px-4 py-3 font-manrope font-normal">Empresa / Contacto</th>
               <th className="px-4 py-3 font-manrope font-normal">Trato</th>
               <th className="px-4 py-3 font-manrope font-normal">Año</th>
@@ -320,9 +320,9 @@ export default function Invoicing() {
             {invoices.map((inv) => (
               <tr key={inv.id} onClick={() => setSelected(inv.id)} className="border-t border-brand-border row-hover cursor-pointer">
                 <td className="px-4 py-3">{inv.invoice_number || `#${inv.id.slice(0, 8)}`}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 w-44">
                   {inv.source_account ? (
-                    <span className="px-2 py-0.5 rounded-md text-xs font-tech bg-brand-violet/10 text-brand-ice border border-brand-violet/20">
+                    <span className="inline-block px-2 py-0.5 rounded-md text-xs font-tech bg-brand-violet/10 text-brand-ice border border-brand-violet/20 whitespace-nowrap overflow-hidden text-ellipsis max-w-full align-middle" title={inv.source_account}>
                       {inv.source_account}
                     </span>
                   ) : <span className="text-brand-muted text-xs">—</span>}
