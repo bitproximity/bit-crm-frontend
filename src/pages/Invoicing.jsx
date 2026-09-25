@@ -21,10 +21,15 @@ export default function Invoicing() {
   const [invoices, setInvoices] = useState([]);
   const [summary, setSummary] = useState(null);
   const [statusFilter, setStatusFilter] = useState('');
+  const [yearFilter, setYearFilter] = useState('');
+  const [monthFilter, setMonthFilter] = useState('');
+  const [accountFilter, setAccountFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editingNameId, setEditingNameId] = useState(null);
+  const [nameDraft, setNameDraft] = useState('');
 
   const [syncing, setSyncing] = useState('');
   const [markingPaid, setMarkingPaid] = useState(null);
@@ -43,10 +48,37 @@ export default function Invoicing() {
     }
     setMarkingPaid(null);
   };
+
+  const changeStatus = async (inv, status) => {
+    try {
+      const paid_amount = status === 'pagada' ? inv.total : status === 'cancelada' ? inv.paid_amount : inv.paid_amount;
+      await api.patch(`/api/invoices/${inv.id}`, { status, paid_amount });
+      setInvoices((prev) => prev.map((i) => (i.id === inv.id ? { ...i, status, paid_amount } : i)));
+    } catch (err) {
+      alert(err.message || 'No se pudo cambiar el estado');
+    }
+  };
+
+  const startEditName = (inv) => { setEditingNameId(inv.id); setNameDraft(inv.client_name || ''); };
+  const saveEditName = async (inv) => {
+    try {
+      await api.patch(`/api/invoices/${inv.id}`, { client_name: nameDraft || null });
+      setInvoices((prev) => prev.map((i) => (i.id === inv.id ? { ...i, client_name: nameDraft || null } : i)));
+    } catch (err) {
+      alert(err.message || 'No se pudo guardar');
+    }
+    setEditingNameId(null);
+  };
+
   const [syncMsg, setSyncMsg] = useState('');
 
   const load = () => {
-    const qs = statusFilter ? `?status=${statusFilter}` : '';
+    const params = new URLSearchParams();
+    if (statusFilter) params.set('status', statusFilter);
+    if (monthFilter) params.set('month', monthFilter);
+    else if (yearFilter) params.set('year', yearFilter);
+    if (accountFilter) params.set('source_account', accountFilter);
+    const qs = params.toString() ? `?${params.toString()}` : '';
     Promise.all([
       api.get(`/api/invoices${qs}`),
       api.get('/api/invoices/summary'),
@@ -57,7 +89,11 @@ export default function Invoicing() {
     }).catch((err) => { setError(err.message || 'No se pudieron cargar las facturas.'); setLoading(false); });
   };
 
-  useEffect(() => { load(); }, [statusFilter]);
+  useEffect(() => { load(); }, [statusFilter, yearFilter, monthFilter, accountFilter]);
+
+  const availableYears = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
+  const MONTHS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+  const MONTH_NAMES = { '01': 'Ene', '02': 'Feb', '03': 'Mar', '04': 'Abr', '05': 'May', '06': 'Jun', '07': 'Jul', '08': 'Ago', '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dic' };
 
   const SOURCE_LABELS = { stripe: 'Stripe', alegra: 'Alegra', 'facturero-movil': 'Facturero Móvil' };
   const runSync = async (source) => {
@@ -136,7 +172,7 @@ export default function Invoicing() {
         </div>
       )}
 
-      <div className="flex gap-1.5 mb-4">
+      <div className="flex flex-wrap items-center gap-1.5 mb-4">
         {[{ key: '', label: 'Todas' }, { key: 'pendiente', label: 'Pendientes' }, { key: 'parcial', label: 'Parciales' }, { key: 'pagada', label: 'Pagadas' }, { key: 'cancelada', label: 'Canceladas' }].map((f) => (
           <button
             key={f.key}
@@ -146,9 +182,106 @@ export default function Invoicing() {
             {f.label}
           </button>
         ))}
+        <span className="w-px h-5 bg-brand-border mx-1" />
+        <select
+          value={yearFilter}
+          onChange={(e) => { setYearFilter(e.target.value); setMonthFilter(''); }}
+          className="px-2.5 py-1.5 rounded-full text-xs bg-brand-panel border border-brand-border text-brand-muted"
+        >
+          <option value="">Todos los años</option>
+          {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <select
+          value={monthFilter ? monthFilter.slice(5, 7) : ''}
+          onChange={(e) => {
+            if (!e.target.value) { setMonthFilter(''); return; }
+            const y = yearFilter || new Date().getFullYear();
+            setMonthFilter(`${y}-${e.target.value}`);
+          }}
+          className="px-2.5 py-1.5 rounded-full text-xs bg-brand-panel border border-brand-border text-brand-muted"
+        >
+          <option value="">Todos los meses</option>
+          {MONTHS.map((m) => <option key={m} value={m}>{MONTH_NAMES[m]}</option>)}
+        </select>
+        {summary?.by_account?.length > 0 && (
+          <select
+            value={accountFilter}
+            onChange={(e) => setAccountFilter(e.target.value)}
+            className="px-2.5 py-1.5 rounded-full text-xs bg-brand-panel border border-brand-border text-brand-muted"
+          >
+            <option value="">Todas las empresas</option>
+            {summary.by_account.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
+          </select>
+        )}
+        {(statusFilter || yearFilter || monthFilter || accountFilter) && (
+          <button
+            onClick={() => { setStatusFilter(''); setYearFilter(''); setMonthFilter(''); setAccountFilter(''); }}
+            className="text-xs text-brand-muted hover:text-brand-white underline"
+          >
+            Limpiar filtros
+          </button>
+        )}
       </div>
 
-      <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
+      {/* Insights: por empresa que factura, antigüedad de cartera, tendencia mensual —
+          todo ya en USD (convertido server-side con exchange_rates). */}
+      {summary && (summary.by_account?.length > 0 || summary.aging) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          {summary.by_account?.length > 0 && (
+            <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+              <div className="text-xs font-manrope font-medium text-brand-muted uppercase tracking-wide mb-3">Facturado por empresa</div>
+              <div className="space-y-2.5">
+                {summary.by_account.slice(0, 6).map((a) => {
+                  const max = summary.by_account[0].facturado || 1;
+                  return (
+                    <button key={a.name} onClick={() => setAccountFilter(a.name)} className="w-full text-left group">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-brand-white group-hover:text-brand-ice transition truncate">{a.name}</span>
+                        <span className="font-tech text-brand-muted flex-shrink-0 ml-2">${a.facturado.toLocaleString()}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta" style={{ width: `${Math.max((a.facturado / max) * 100, 3)}%` }} />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {summary.aging && (
+            <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+              <div className="text-xs font-manrope font-medium text-brand-muted uppercase tracking-wide mb-3">Antigüedad de cartera (pendiente)</div>
+              <div className="space-y-2.5">
+                {[
+                  { key: 'al_dia', label: 'Al día', color: 'bg-green-400' },
+                  { key: '1_30', label: '1-30 días vencida', color: 'bg-yellow-400' },
+                  { key: '31_60', label: '31-60 días', color: 'bg-orange-400' },
+                  { key: '61_90', label: '61-90 días', color: 'bg-red-400' },
+                  { key: 'mas_90', label: 'Más de 90 días', color: 'bg-red-600' },
+                ].map((b) => {
+                  const total = Object.values(summary.aging).reduce((s, v) => s + v, 0) || 1;
+                  const val = summary.aging[b.key] || 0;
+                  return (
+                    <div key={b.key}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-brand-muted flex items-center gap-1.5"><span className={`w-2 h-2 rounded-full ${b.color}`} /> {b.label}</span>
+                        <span className="font-tech text-brand-white">${val.toLocaleString()}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
+                        <div className={`h-full rounded-full ${b.color}`} style={{ width: `${Math.max((val / total) * 100, val > 0 ? 3 : 0)}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tabla en escritorio, tarjetas en pantallas chicas — la tabla de 10 columnas no
+          entra en un celular y quedaba rota (encabezados partidos, texto amontonado). */}
+      <div className="hidden md:block bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-brand-panel/80 text-brand-muted text-left">
             <tr>
@@ -175,16 +308,38 @@ export default function Invoicing() {
                     </span>
                   ) : <span className="text-brand-muted text-xs">—</span>}
                 </td>
-                <td className="px-4 py-3 text-brand-muted">{inv.client_name || inv.companies?.name || contactName(inv.contacts) || '—'}</td>
+                <td className="px-4 py-3 text-brand-muted" onClick={(e) => editingNameId !== inv.id && e.stopPropagation()}>
+                  {editingNameId === inv.id ? (
+                    <input
+                      autoFocus
+                      value={nameDraft}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      onBlur={() => saveEditName(inv)}
+                      onKeyDown={(e) => e.key === 'Enter' && saveEditName(inv)}
+                      className="px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs w-full"
+                    />
+                  ) : (
+                    <button onClick={() => startEditName(inv)} className="hover:text-brand-ice text-left">
+                      {inv.client_name || inv.companies?.name || contactName(inv.contacts) || <span className="italic">+ agregar nombre</span>}
+                    </button>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-brand-muted">{inv.deals?.title || '—'}</td>
                 <td className="px-4 py-3 text-brand-muted font-tech text-xs">{inv.issue_date ? new Date(inv.issue_date).getFullYear() : '—'}</td>
                 <td className="px-4 py-3 text-brand-ice font-tech">{inv.currency} {Number(inv.total).toLocaleString()}</td>
                 <td className="px-4 py-3 text-brand-muted font-tech">{inv.currency} {Number(inv.paid_amount).toLocaleString()}</td>
                 <td className="px-4 py-3 text-brand-muted font-tech text-xs">{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${inv.overdue ? 'bg-red-500/15 text-red-300' : STATUS_COLORS[inv.status]}`}>
-                    {inv.overdue ? 'Vencida' : STATUS_LABELS[inv.status]}
-                  </span>
+                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1.5">
+                    {inv.overdue && <AlertTriangle size={11} className="text-red-400 flex-shrink-0" />}
+                    <select
+                      value={inv.status}
+                      onChange={(e) => changeStatus(inv, e.target.value)}
+                      className={`px-2 py-1 rounded-full text-xs font-tech border-0 ${STATUS_COLORS[inv.status]}`}
+                    >
+                      {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                   <button
@@ -207,6 +362,54 @@ export default function Invoicing() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Tarjetas — pantallas chicas */}
+      <div className="md:hidden space-y-3">
+        {invoices.map((inv) => (
+          <div key={inv.id} className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth" onClick={() => setSelected(inv.id)}>
+            <div className="flex items-start justify-between mb-2">
+              <div className="min-w-0">
+                <div className="font-manrope font-medium truncate">{inv.invoice_number || `#${inv.id.slice(0, 8)}`}</div>
+                <div className="text-xs text-brand-muted truncate mt-0.5">{inv.client_name || inv.companies?.name || contactName(inv.contacts) || '—'}</div>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); togglePaid(inv); }}
+                disabled={inv.status === 'cancelada' || markingPaid === inv.id}
+                className={`w-7 h-7 flex-shrink-0 rounded-full border flex items-center justify-center transition disabled:opacity-30 ${
+                  inv.status === 'pagada' ? 'bg-green-500/20 border-green-400 text-green-300' : 'border-brand-border text-transparent'
+                }`}
+              >
+                <Check size={14} strokeWidth={3} />
+              </button>
+            </div>
+            {inv.source_account && (
+              <span className="inline-block mb-2 px-2 py-0.5 rounded-md text-[10px] font-tech bg-brand-violet/10 text-brand-ice border border-brand-violet/20">
+                {inv.source_account}
+              </span>
+            )}
+            <div className="flex items-center justify-between text-sm mb-2">
+              <span className="font-tech text-brand-ice">{inv.currency} {Number(inv.total).toLocaleString()}</span>
+              <span className="text-xs text-brand-muted">de {inv.currency} {Number(inv.paid_amount).toLocaleString()} cobrado</span>
+            </div>
+            <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+              <span className="text-[11px] text-brand-muted">{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</span>
+              <div className="flex items-center gap-1.5">
+                {inv.overdue && <AlertTriangle size={11} className="text-red-400" />}
+                <select
+                  value={inv.status}
+                  onChange={(e) => changeStatus(inv, e.target.value)}
+                  className={`px-2 py-1 rounded-full text-[11px] font-tech border-0 ${STATUS_COLORS[inv.status]}`}
+                >
+                  {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+        ))}
+        {!loading && invoices.length === 0 && (
+          <div className="text-center text-brand-muted text-sm py-10">Sin facturas todavía.</div>
+        )}
       </div>
 
       {showCreate && <CreateInvoiceModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); load(); }} />}
