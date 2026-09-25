@@ -650,7 +650,7 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
     setCompanySearching(true);
     const t = setTimeout(() => {
       api.get(`/api/companies?search=${encodeURIComponent(companyQuery.trim())}&limit=6`)
-        .then(setCompanyResults)
+        .then((res) => setCompanyResults(res.data || []))
         .catch(() => setCompanyResults([]))
         .finally(() => setCompanySearching(false));
     }, 300);
