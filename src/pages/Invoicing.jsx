@@ -175,7 +175,7 @@ export default function Invoicing() {
                     </span>
                   ) : <span className="text-brand-muted text-xs">—</span>}
                 </td>
-                <td className="px-4 py-3 text-brand-muted">{inv.companies?.name || contactName(inv.contacts) || '—'}</td>
+                <td className="px-4 py-3 text-brand-muted">{inv.client_name || inv.companies?.name || contactName(inv.contacts) || '—'}</td>
                 <td className="px-4 py-3 text-brand-muted">{inv.deals?.title || '—'}</td>
                 <td className="px-4 py-3 text-brand-muted font-tech text-xs">{inv.issue_date ? new Date(inv.issue_date).getFullYear() : '—'}</td>
                 <td className="px-4 py-3 text-brand-ice font-tech">{inv.currency} {Number(inv.total).toLocaleString()}</td>
@@ -386,11 +386,22 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
   const [paymentForm, setPaymentForm] = useState({ amount: '', method: '', notes: '' });
   const [editing, setEditing] = useState(false);
   const [currencyEdit, setCurrencyEdit] = useState('USD');
+  const [fieldsEdit, setFieldsEdit] = useState({ invoice_number: '', client_name: '', issue_date: '', due_date: '', status: 'pendiente' });
   const [newLine, setNewLine] = useState({ description: '', quantity: 1, unit_price: '' });
   const [editingLineId, setEditingLineId] = useState(null);
   const [editLineForm, setEditLineForm] = useState({ description: '', quantity: 1, unit_price: '' });
 
-  const load = () => api.get(`/api/invoices/${invoiceId}`).then((data) => { setInvoice(data); setCurrencyEdit(data.currency); }).catch((err) => setError(err.message));
+  const load = () => api.get(`/api/invoices/${invoiceId}`).then((data) => {
+    setInvoice(data);
+    setCurrencyEdit(data.currency);
+    setFieldsEdit({
+      invoice_number: data.invoice_number || '',
+      client_name: data.client_name || '',
+      issue_date: data.issue_date || '',
+      due_date: data.due_date || '',
+      status: data.status,
+    });
+  }).catch((err) => setError(err.message));
 
   useEffect(() => { load(); }, [invoiceId]);
 
@@ -415,6 +426,18 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
 
   const saveCurrency = async () => {
     await api.patch(`/api/invoices/${invoiceId}`, { currency: currencyEdit });
+    load();
+    onChanged?.();
+  };
+
+  const saveFields = async () => {
+    await api.patch(`/api/invoices/${invoiceId}`, {
+      invoice_number: fieldsEdit.invoice_number || null,
+      client_name: fieldsEdit.client_name || null,
+      issue_date: fieldsEdit.issue_date || null,
+      due_date: fieldsEdit.due_date || null,
+      status: fieldsEdit.status,
+    });
     load();
     onChanged?.();
   };
@@ -464,12 +487,33 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative w-full max-w-lg max-h-[90vh] bg-brand-panel border border-brand-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
-          <div>
-            <h2 className="font-headline text-lg font-semibold">{invoice.invoice_number || `Factura #${invoice.id.slice(0, 8)}`}</h2>
-            <div className="text-xs text-brand-muted mt-0.5">{invoice.companies?.name || contactName(invoice.contacts) || '—'} {invoice.deals?.title && `· ${invoice.deals.title}`}</div>
+          <div className="flex-1 min-w-0">
+            {editing ? (
+              <input
+                value={fieldsEdit.invoice_number}
+                onChange={(e) => setFieldsEdit({ ...fieldsEdit, invoice_number: e.target.value })}
+                placeholder="Número de factura"
+                className={`${smallInput} font-headline text-base font-semibold w-full mb-1`}
+              />
+            ) : (
+              <h2 className="font-headline text-lg font-semibold">{invoice.invoice_number || `Factura #${invoice.id.slice(0, 8)}`}</h2>
+            )}
+            {editing ? (
+              <input
+                value={fieldsEdit.client_name}
+                onChange={(e) => setFieldsEdit({ ...fieldsEdit, client_name: e.target.value })}
+                placeholder="Razón social del cliente"
+                className={`${smallInput} w-full`}
+              />
+            ) : (
+              <div className="text-xs text-brand-muted mt-0.5">
+                {invoice.client_name || invoice.companies?.name || contactName(invoice.contacts) || '—'} {invoice.deals?.title && `· ${invoice.deals.title}`}
+                {invoice.source_account && <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-tech bg-brand-bg border border-brand-border">{invoice.source_account}</span>}
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setEditing(!editing)} className="text-xs text-brand-ice hover:underline">{editing ? 'Listo' : 'Editar'}</button>
+          <div className="flex items-center gap-3 flex-shrink-0 pl-3">
+            <button onClick={() => { if (editing) saveFields(); setEditing(!editing); }} className="text-xs text-brand-ice hover:underline">{editing ? 'Guardar' : 'Editar'}</button>
             <button onClick={onClose} className="text-brand-muted hover:text-brand-white"><X size={20} /></button>
           </div>
         </div>
@@ -478,14 +522,30 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
           {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
 
           {editing && (
-            <div className="flex items-center gap-2 bg-brand-bg border border-brand-border rounded-lg p-3">
-              <label className="text-xs text-brand-muted">Moneda:</label>
-              <select value={currencyEdit} onChange={(e) => setCurrencyEdit(e.target.value)} className={`${smallInput} font-tech`}>
-                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-              {currencyEdit !== invoice.currency && (
-                <button onClick={saveCurrency} className="text-xs text-brand-ice hover:underline ml-auto">Guardar moneda</button>
-              )}
+            <div className="grid grid-cols-2 gap-3 bg-brand-bg border border-brand-border rounded-lg p-3">
+              <div>
+                <label className="text-xs text-brand-muted block mb-1">Moneda</label>
+                <select value={currencyEdit} onChange={(e) => setCurrencyEdit(e.target.value)} className={`${smallInput} font-tech w-full`}>
+                  {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                {currencyEdit !== invoice.currency && (
+                  <button onClick={saveCurrency} className="text-[11px] text-brand-ice hover:underline mt-1">Guardar moneda</button>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-brand-muted block mb-1">Estado</label>
+                <select value={fieldsEdit.status} onChange={(e) => setFieldsEdit({ ...fieldsEdit, status: e.target.value })} className={`${smallInput} w-full`}>
+                  {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-brand-muted block mb-1">Fecha de emisión</label>
+                <input type="date" value={fieldsEdit.issue_date} onChange={(e) => setFieldsEdit({ ...fieldsEdit, issue_date: e.target.value })} className={`${smallInput} w-full`} />
+              </div>
+              <div>
+                <label className="text-xs text-brand-muted block mb-1">Vencimiento</label>
+                <input type="date" value={fieldsEdit.due_date} onChange={(e) => setFieldsEdit({ ...fieldsEdit, due_date: e.target.value })} className={`${smallInput} w-full`} />
+              </div>
             </div>
           )}
 
