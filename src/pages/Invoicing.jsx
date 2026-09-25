@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import DateTimePicker from '../components/DateTimePicker';
-import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check } from 'lucide-react';
+import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check, Search } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 const SOURCE_ACCOUNTS = ['Bit Colombia SAS', 'BitProximity LLC', 'Mario Colombia', 'Diana Sánchez', 'Mario Ramos', 'Bithub SRL', 'Bit Paraguay SAS', 'Bit México'];
@@ -25,6 +25,8 @@ export default function Invoicing() {
   const [yearFilter, setYearFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
   const [accountFilter, setAccountFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchDebounced, setSearchDebounced] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState('');
@@ -79,6 +81,7 @@ export default function Invoicing() {
     if (monthFilter) params.set('month', monthFilter);
     else if (yearFilter) params.set('year', yearFilter);
     if (accountFilter) params.set('source_account', accountFilter);
+    if (searchDebounced.trim()) params.set('q', searchDebounced.trim());
     const qs = params.toString() ? `?${params.toString()}` : '';
     Promise.all([
       api.get(`/api/invoices${qs}`),
@@ -90,7 +93,12 @@ export default function Invoicing() {
     }).catch((err) => { setError(err.message || 'No se pudieron cargar las facturas.'); setLoading(false); });
   };
 
-  useEffect(() => { load(); }, [statusFilter, yearFilter, monthFilter, accountFilter]);
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(searchQuery), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  useEffect(() => { load(); }, [statusFilter, yearFilter, monthFilter, accountFilter, searchDebounced]);
 
   const availableYears = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
   const MONTHS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
@@ -173,6 +181,16 @@ export default function Invoicing() {
         </div>
       )}
 
+      <div className="relative mb-3 max-w-sm">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
+        <input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar por cliente o número de factura..."
+          className="w-full pl-9 pr-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm focus:outline-none focus:border-brand-violet transition"
+        />
+      </div>
+
       <div className="flex flex-wrap items-center gap-1.5 mb-4">
         {[{ key: '', label: 'Todas' }, { key: 'pendiente', label: 'Pendientes' }, { key: 'parcial', label: 'Parciales' }, { key: 'pagada', label: 'Pagadas' }, { key: 'cancelada', label: 'Canceladas' }].map((f) => (
           <button
@@ -214,9 +232,9 @@ export default function Invoicing() {
             {summary.by_account.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
           </select>
         )}
-        {(statusFilter || yearFilter || monthFilter || accountFilter) && (
+        {(statusFilter || yearFilter || monthFilter || accountFilter || searchQuery) && (
           <button
-            onClick={() => { setStatusFilter(''); setYearFilter(''); setMonthFilter(''); setAccountFilter(''); }}
+            onClick={() => { setStatusFilter(''); setYearFilter(''); setMonthFilter(''); setAccountFilter(''); setSearchQuery(''); }}
             className="text-xs text-brand-muted hover:text-brand-white underline"
           >
             Limpiar filtros
