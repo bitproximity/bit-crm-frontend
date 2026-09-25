@@ -476,10 +476,19 @@ export default function Metrics() {
           Por la entidad que factura el trato (no el país de la empresa) cruzada con su pipeline. Solo cuenta lo etiquetado con frecuencia de facturación mensual o anual.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {dashboard.mrr_by_country_pipeline.map((r, i) => (
+          {dashboard.mrr_by_country_pipeline.map((r, i) => {
+            const cardPipeline = pipelines.find((p) => p.name === r.pipeline);
+            const goToDeals = () => {
+              const qs = new URLSearchParams({ status: 'ganado,abierto' });
+              if (cardPipeline) qs.set('pipeline_id', cardPipeline.id);
+              qs.set('facturacion', r.country === 'Sin especificar' ? '__sin_especificar__' : r.country);
+              navigate(`/deals-list?${qs.toString()}`);
+            };
+            return (
             <div
               key={`${r.country}-${r.pipeline}`}
-              className={`relative rounded-xl p-4 border overflow-hidden ${i === 0 && r.mrr_won > 0 ? 'border-brand-violet/40 bg-brand-violet/[0.06]' : 'border-brand-border bg-brand-bg/60'}`}
+              onClick={goToDeals}
+              className={`relative rounded-xl p-4 border overflow-hidden cursor-pointer hover:border-brand-violet/50 transition ${i === 0 && r.mrr_won > 0 ? 'border-brand-violet/40 bg-brand-violet/[0.06]' : 'border-brand-border bg-brand-bg/60'}`}
             >
               {i === 0 && r.mrr_won > 0 && (
                 <div className="absolute -right-6 -top-6 w-20 h-20 rounded-full bg-brand-magenta/20 blur-2xl pointer-events-none" />
@@ -488,7 +497,7 @@ export default function Metrics() {
                 <div className="flex items-center gap-1.5 text-sm font-manrope font-medium">
                   <Briefcase size={13} className="text-brand-muted" /> {r.pipeline}
                 </div>
-                <div className="flex items-center gap-1 text-[11px] text-brand-muted px-2 py-0.5 rounded-full bg-brand-panel border border-brand-border">
+                <div className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border ${r.country === 'Sin especificar' ? 'text-yellow-300 border-yellow-500/30 bg-yellow-500/10' : 'text-brand-muted border-brand-border bg-brand-panel'}`}>
                   <Globe size={10} /> {r.country}
                 </div>
               </div>
@@ -505,8 +514,12 @@ export default function Metrics() {
                 <span className="text-brand-muted">Pipeline potencial</span>
                 <span className="font-tech text-brand-white">${r.mrr_pipeline.toLocaleString()} <span className="text-brand-muted">/ ${r.arr_pipeline.toLocaleString()} ARR</span></span>
               </div>
+              {r.country === 'Sin especificar' && (
+                <div className="mt-2 text-[11px] text-yellow-300/80">Clic para ver y completar estos tratos →</div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       )}
