@@ -4,6 +4,7 @@ import DateTimePicker from '../components/DateTimePicker';
 import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
+const SOURCE_ACCOUNTS = ['Bit Colombia SAS', 'BitProximity LLC', 'Mario Colombia', 'Diana Sánchez', 'Mario Ramos', 'Bithub SRL', 'Bit Paraguay SAS', 'Bit México'];
 const STATUS_LABELS = { pendiente: 'Pendiente', parcial: 'Parcial', pagada: 'Pagada', cancelada: 'Cancelada' };
 const STATUS_COLORS = {
   pendiente: 'bg-yellow-500/15 text-yellow-300',
@@ -640,6 +641,36 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
     onChanged?.();
   };
 
+  const [companyQuery, setCompanyQuery] = useState('');
+  const [companyResults, setCompanyResults] = useState([]);
+  const [companySearching, setCompanySearching] = useState(false);
+
+  useEffect(() => {
+    if (!companyQuery.trim()) { setCompanyResults([]); return; }
+    setCompanySearching(true);
+    const t = setTimeout(() => {
+      api.get(`/api/companies?search=${encodeURIComponent(companyQuery.trim())}&limit=6`)
+        .then(setCompanyResults)
+        .catch(() => setCompanyResults([]))
+        .finally(() => setCompanySearching(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [companyQuery]);
+
+  const linkCompany = async (company) => {
+    await api.patch(`/api/invoices/${invoiceId}`, { company_id: company.id });
+    setCompanyQuery('');
+    setCompanyResults([]);
+    load();
+    onChanged?.();
+  };
+
+  const unlinkCompany = async () => {
+    await api.patch(`/api/invoices/${invoiceId}`, { company_id: null });
+    load();
+    onChanged?.();
+  };
+
   const recordPayment = async (e) => {
     e.preventDefault();
     try {
@@ -754,7 +785,13 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
               <div>
                 <label className={labelClass}>Empresa que facturó</label>
                 {editing ? (
-                  <input value={fieldsEdit.source_account} onChange={(e) => setFieldsEdit({ ...fieldsEdit, source_account: e.target.value })} placeholder="ej. BitProximity LLC" className={plainInputClass} />
+                  <select value={fieldsEdit.source_account} onChange={(e) => setFieldsEdit({ ...fieldsEdit, source_account: e.target.value })} className={plainInputClass} style={{ colorScheme: 'dark' }}>
+                    <option value="">Sin especificar</option>
+                    {SOURCE_ACCOUNTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                    {fieldsEdit.source_account && !SOURCE_ACCOUNTS.includes(fieldsEdit.source_account) && (
+                      <option value={fieldsEdit.source_account}>{fieldsEdit.source_account} (actual)</option>
+                    )}
+                  </select>
                 ) : (
                   <div className={roClass}>{invoice.source_account || <span className="text-brand-muted">Sin especificar</span>}</div>
                 )}
@@ -868,7 +905,33 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
                   </div>
                   <div>
                     <label className={labelClass}>Empresa / Contacto (CRM)</label>
-                    <div className={roClass}>{invoice.companies?.name || contactName(invoice.contacts) || <span className="text-brand-muted">Sin vincular</span>}</div>
+                    {invoice.companies?.name || contactName(invoice.contacts) ? (
+                      <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm">
+                        <span className="truncate">{invoice.companies?.name || contactName(invoice.contacts)}</span>
+                        {invoice.companies?.name && (
+                          <button onClick={unlinkCompany} className="text-brand-muted hover:text-red-400 text-xs flex-shrink-0 ml-2">Quitar</button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <input
+                          value={companyQuery}
+                          onChange={(e) => setCompanyQuery(e.target.value)}
+                          placeholder="Buscar una empresa para vincular..."
+                          className={plainInputClass}
+                        />
+                        {companyQuery && (companyResults.length > 0 || companySearching) && (
+                          <div className="absolute z-10 left-0 right-0 mt-1 bg-brand-panel border border-brand-border rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                            {companySearching && <div className="px-3 py-2 text-xs text-brand-muted">Buscando...</div>}
+                            {companyResults.map((c) => (
+                              <button key={c.id} onClick={() => linkCompany(c)} className="w-full text-left px-3 py-2 text-sm hover:bg-brand-bg transition truncate">
+                                {c.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
