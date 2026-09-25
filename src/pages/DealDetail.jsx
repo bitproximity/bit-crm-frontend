@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
 import { useOutsideClick } from '../hooks/useOutsideClick';
-import { FACTURACION_OPTIONS, hardwareOptionsForPipeline } from '../components/B2bRecordModal';
+import { FACTURACION_OPTIONS, hardwareOptionsForPipeline, isGenericPipeline, PRODUCT_LINE_OPTIONS } from '../components/B2bRecordModal';
 import { InvoiceDetailModal } from './Invoicing';
 import DateTimePicker from '../components/DateTimePicker';
 import ProductsModal from '../components/ProductsModal';
@@ -122,6 +122,8 @@ export default function DealDetail() {
   const [billingFrequencyValue, setBillingFrequencyValue] = useState('mensual');
   const [hardwareEditing, setHardwareEditing] = useState(false);
   const [hardwareValue, setHardwareValue] = useState('');
+  const [productLineEditing, setProductLineEditing] = useState(false);
+  const [productLineValue, setProductLineValue] = useState('');
   const [valueEditing, setValueEditing] = useState(false);
   const [titleEditing, setTitleEditing] = useState(false);
   const [titleEdit, setTitleEdit] = useState('');
@@ -433,6 +435,15 @@ export default function DealDetail() {
   const saveHardware = async (value) => {
     await api.patch(`/api/deals/${id}`, { hardware_type: value || null });
     setHardwareEditing(false);
+    refreshDeal();
+  };
+
+  const saveProductLine = async (value) => {
+    // Al cambiar de producto, el hardware guardado puede ya no aplicar (ej. tenía un router
+    // de WiFi y pasó a Bit Music) — se limpia para no dejar algo que no corresponde.
+    const stillValid = hardwareOptionsForPipeline(value).includes(deal.hardware_type);
+    await api.patch(`/api/deals/${id}`, { product_line: value || null, ...(stillValid ? {} : { hardware_type: null }) });
+    setProductLineEditing(false);
     refreshDeal();
   };
 
@@ -908,6 +919,29 @@ export default function DealDetail() {
                 </button>
               )}
 
+              {isGenericPipeline(pipeline?.name) && (
+                productLineEditing ? (
+                  <select
+                    value={productLineValue}
+                    onChange={(e) => { setProductLineValue(e.target.value); saveProductLine(e.target.value); }}
+                    onBlur={() => setProductLineEditing(false)}
+                    className={`${inputClass} mt-1`}
+                    autoFocus
+                  >
+                    <option value="">Sin especificar</option>
+                    {PRODUCT_LINE_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                ) : (
+                  <button
+                    onClick={() => { setProductLineValue(deal.product_line || ''); setProductLineEditing(true); }}
+                    className="text-xs text-brand-ice hover:underline block mt-1"
+                    title="Este pipeline no indica por sí solo la línea de producto — de esto depende qué opciones de hardware salen abajo"
+                  >
+                    Producto: {deal.product_line || 'Sin especificar'}
+                  </button>
+                )
+              )}
+
               {hardwareEditing ? (
                 <select
                   value={hardwareValue}
@@ -917,7 +951,7 @@ export default function DealDetail() {
                   autoFocus
                 >
                   <option value="">Sin especificar</option>
-                  {hardwareOptionsForPipeline(pipeline?.name).map((h) => <option key={h} value={h}>{h}</option>)}
+                  {hardwareOptionsForPipeline(deal.product_line || pipeline?.name).map((h) => <option key={h} value={h}>{h}</option>)}
                 </select>
               ) : (
                 <button

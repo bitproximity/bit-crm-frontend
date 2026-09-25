@@ -3,7 +3,7 @@ import { useOutsideClick } from '../hooks/useOutsideClick';
 import { api } from '../lib/api';
 import DateTimePicker from './DateTimePicker';
 import { User, Building2, X, Plus } from 'lucide-react';
-import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS, FACTURACION_OPTIONS, hardwareOptionsForPipeline } from './B2bRecordModal';
+import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS, FACTURACION_OPTIONS, hardwareOptionsForPipeline, isGenericPipeline, PRODUCT_LINE_OPTIONS } from './B2bRecordModal';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
@@ -18,6 +18,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
   const [facturacion, setFacturacion] = useState('');
   const [billingFrequency, setBillingFrequency] = useState('');
   const [hardwareType, setHardwareType] = useState('');
+  const [productLine, setProductLine] = useState('');
 
   const [contactQuery, setContactQuery] = useState('');
   const [contactResults, setContactResults] = useState([]);
@@ -89,9 +90,11 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
     }
     // Si el tipo de hardware elegido ya no aplica al pipeline nuevo (ej. tenía "Router" y
     // cambió a Bit Music), se limpia en vez de dejar guardado algo que no corresponde.
-    if (hardwareType && !hardwareOptionsForPipeline(pipeline?.name).includes(hardwareType)) {
+    const effectivePipelineName = productLine || pipeline?.name;
+    if (hardwareType && !hardwareOptionsForPipeline(effectivePipelineName).includes(hardwareType)) {
       setHardwareType('');
     }
+    if (productLine && !isGenericPipeline(pipeline?.name)) setProductLine('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pipelineIdSel, pipeline]);
 
@@ -252,6 +255,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
         facturacion: facturacion || null,
         billing_frequency: billingFrequency || null,
         hardware_type: hardwareType || null,
+        product_line: productLine || null,
       });
 
       // 4. Etiquetas
@@ -479,11 +483,21 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
                 </select>
               </div>
 
+              {isGenericPipeline(pipeline?.name) && (
+                <div>
+                  <label className={labelClass}>Producto</label>
+                  <select value={productLine} onChange={(e) => { setProductLine(e.target.value); setHardwareType(''); }} className={plainInputClass}>
+                    <option value="">Sin especificar</option>
+                    {PRODUCT_LINE_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className={labelClass}>Tipo de hardware</label>
                 <select value={hardwareType} onChange={(e) => setHardwareType(e.target.value)} className={plainInputClass}>
                   <option value="">Sin especificar</option>
-                  {hardwareOptionsForPipeline(pipeline?.name).map((h) => <option key={h} value={h}>{h}</option>)}
+                  {hardwareOptionsForPipeline(productLine || pipeline?.name).map((h) => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
 

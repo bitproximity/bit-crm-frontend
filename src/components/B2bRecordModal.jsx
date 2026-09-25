@@ -48,6 +48,15 @@ const HARDWARE_BY_PIPELINE = [
 ];
 const GENERIC_HARDWARE_OPTIONS = ['Parlante', 'Pantalla / TV', 'Reproductor Android', 'Router', 'Otro'];
 
+// Para pipelines "genéricos" por país (Bit Colombia, Bit Paraguay, Bit México, etc.) el
+// nombre del pipeline no dice de qué línea de producto es el trato — a diferencia de
+// "Bit WiFi"/"Bit Music"/"Neomedia Digital", donde ya lo dice. En esos casos se pide
+// explícito con el campo "Producto", y el tipo de hardware sale de ahí en vez del pipeline.
+export const PRODUCT_LINE_OPTIONS = ['Bit WiFi', 'Bit Music', 'Bit Signage / Neomedia'];
+export function isGenericPipeline(pipelineName) {
+  return !HARDWARE_BY_PIPELINE.some((h) => h.match.test(pipelineName || ''));
+}
+
 export function hardwareOptionsForPipeline(pipelineName) {
   const found = HARDWARE_BY_PIPELINE.find((h) => h.match.test(pipelineName || ''));
   return found ? found.options : GENERIC_HARDWARE_OPTIONS;
