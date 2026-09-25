@@ -144,6 +144,10 @@ export default function DealDetail() {
   const [contactEditing, setContactEditing] = useState(false);
   const [contactQuery, setContactQuery] = useState('');
   const [contactResults, setContactResults] = useState([]);
+  const [extraContacts, setExtraContacts] = useState([]);
+  const [addingContact, setAddingContact] = useState(false);
+  const [extraContactQuery, setExtraContactQuery] = useState('');
+  const [extraContactResults, setExtraContactResults] = useState([]);
   const [selectedContactPick, setSelectedContactPick] = useState(null);
   const contactBoxRef = useRef(null);
   useOutsideClick(contactBoxRef, () => setContactResults([]), contactEditing && contactResults.length > 0);
@@ -194,6 +198,7 @@ export default function DealDetail() {
 
     api.get('/api/gmail/status').then(setGmailStatus).catch(() => setGmailStatus({ connected: false }));
     api.get('/api/calcom/status').then(setCalcomStatus).catch(() => setCalcomStatus({ connected: false }));
+    api.get(`/api/deals/${id}/contacts`).then(setExtraContacts).catch(() => setExtraContacts([]));
     if (dealData.contact_id) {
       api.get(`/api/gmail/messages/deal/${id}`).then(setGmailMessages).catch(() => setGmailMessages([]));
     }
@@ -243,6 +248,29 @@ export default function DealDetail() {
     }, 250);
     return () => clearTimeout(t);
   }, [contactQuery, contactEditing, selectedContactPick]);
+
+  useEffect(() => {
+    if (!addingContact || !extraContactQuery.trim()) { setExtraContactResults([]); return; }
+    const t = setTimeout(() => {
+      api.get(`/api/contacts?search=${encodeURIComponent(extraContactQuery.trim())}&limit=5`)
+        .then((res) => setExtraContactResults(res.data || []))
+        .catch(() => setExtraContactResults([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [extraContactQuery, addingContact]);
+
+  const addExtraContact = async (contact) => {
+    const linked = await api.post(`/api/deals/${id}/contacts`, { contact_id: contact.id });
+    setExtraContacts((prev) => [...prev, linked]);
+    setAddingContact(false);
+    setExtraContactQuery('');
+    setExtraContactResults([]);
+  };
+
+  const removeExtraContact = async (linkId) => {
+    await api.delete(`/api/deals/${id}/contacts/${linkId}`);
+    setExtraContacts((prev) => prev.filter((c) => c.id !== linkId));
+  };
 
   const [showLostModal, setShowLostModal] = useState(false);
   const [lostReason, setLostReason] = useState('');
@@ -1035,6 +1063,40 @@ export default function DealDetail() {
                     <button onClick={() => saveContactEdit()} className="text-xs text-brand-ice hover:underline">Guardar</button>
                     <button onClick={() => setContactEditing(false)} className="text-xs text-brand-muted hover:underline">Cancelar</button>
                   </div>
+                )}
+
+                {/* Personas adicionales del trato, además del contacto principal — para
+                    cuando hay varios interlocutores del lado del cliente. */}
+                {extraContacts.map((ec) => (
+                  <div key={ec.id} className="flex items-center gap-2 text-brand-muted ml-6 mt-1.5">
+                    <button onClick={() => setViewingContactId(ec.contacts.id)} className="text-brand-white hover:text-brand-ice hover:underline transition text-left text-sm">
+                      {ec.contacts.first_name} {ec.contacts.last_name}
+                    </button>
+                    <button onClick={() => removeExtraContact(ec.id)} className="text-brand-muted hover:text-red-400 text-xs">quitar</button>
+                  </div>
+                ))}
+                {addingContact ? (
+                  <div className="relative ml-6 mt-1.5">
+                    <input
+                      autoFocus value={extraContactQuery}
+                      onChange={(e) => setExtraContactQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Escape' && setAddingContact(false)}
+                      placeholder="Buscar otra persona..."
+                      className="bg-transparent border-b border-brand-border focus:outline-none focus:border-brand-violet text-sm text-brand-white"
+                    />
+                    {extraContactResults.length > 0 && (
+                      <div className="absolute z-10 mt-1 left-0 right-0 bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden">
+                        {extraContactResults.map((c) => (
+                          <button key={c.id} onClick={() => addExtraContact(c)} className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition">
+                            {c.first_name} {c.last_name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <button onClick={() => setAddingContact(false)} className="ml-2 text-xs text-brand-muted hover:underline">Cancelar</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setAddingContact(true)} className="text-xs text-brand-ice hover:underline ml-6 mt-1.5 block">+ Añadir otra persona</button>
                 )}
               </div>
 
