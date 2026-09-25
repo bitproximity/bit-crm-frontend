@@ -502,6 +502,8 @@ function ExchangeRatesAdmin() {
   const ALL_CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
   const [rates, setRates] = useState(null);
   const [editingCurrency, setEditingCurrency] = useState(null);
+  const [calcAmount, setCalcAmount] = useState('');
+  const [calcCurrency, setCalcCurrency] = useState('COP');
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -576,6 +578,39 @@ function ExchangeRatesAdmin() {
             </div>
           );
         })}
+      </div>
+
+      {/* Mini calculadora — convierte cualquier monto a USD con las tasas de arriba,
+          sin tener que hacer la cuenta a mano ni salir de este panel. */}
+      <div className="mt-5 pt-4 border-t border-brand-border">
+        <div className="text-xs text-brand-muted uppercase tracking-wide mb-2">Calculadora rápida</div>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            step="any"
+            value={calcAmount}
+            onChange={(e) => setCalcAmount(e.target.value)}
+            placeholder="Monto"
+            className="flex-1 px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm font-tech"
+          />
+          <select
+            value={calcCurrency}
+            onChange={(e) => setCalcCurrency(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm font-tech"
+            style={{ colorScheme: 'dark' }}
+          >
+            {ALL_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <span className="text-brand-muted text-sm flex-shrink-0">=</span>
+          <div className="flex-1 px-3 py-2 rounded-lg bg-brand-violet/10 border border-brand-violet/20 text-brand-ice text-sm font-tech text-right">
+            {(() => {
+              if (!calcAmount || isNaN(Number(calcAmount))) return '—';
+              const rate = calcCurrency === 'USD' ? 1 : rates?.find((r) => r.currency === calcCurrency)?.rate_to_usd;
+              if (rate === undefined) return 'Sin tasa';
+              return `$${(Number(calcAmount) * rate).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+            })()}
+          </div>
+        </div>
       </div>
     </div>
   );
