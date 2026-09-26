@@ -95,7 +95,7 @@ export default function Layout() {
   );
 
   return (
-    <div className="min-h-screen flex bg-brand-bg text-brand-white">
+    <div className="h-screen flex bg-brand-bg text-brand-white overflow-hidden">
       {/* Sidebar fija en desktop (md+) */}
       <aside className="hidden md:flex w-60 flex-shrink-0 border-r border-brand-border flex-col overflow-y-auto">
         {sidebarContent}
