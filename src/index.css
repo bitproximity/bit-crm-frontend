@@ -12,6 +12,19 @@
   color-scheme: dark;
 }
 
+/* color-scheme solo no alcanza en todos los navegadores — si el <select> tiene una clase
+   de Tailwind que le pone color de texto (ej. los badges de estado en Facturación), las
+   <option> heredan ESE color en vez del que corresponde, y el fondo puede seguir saliendo
+   claro. Esta regla global fuerza fondo y texto oscuros en TODAS las <option> de la app,
+   de una sola vez, en vez de tener que agregarlo a mano en cada <select> de cada página. */
+select {
+  color-scheme: dark;
+}
+select option {
+  background-color: #100E1C;
+  color: #FBFAFF;
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: #302b47 transparent;
