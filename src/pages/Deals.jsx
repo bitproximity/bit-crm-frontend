@@ -47,7 +47,13 @@ export default function Deals() {
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef(null);
   const boardScrollRef = useRef(null);
-  const scrollBoard = (dir) => boardScrollRef.current?.scrollBy({ left: dir * 420, behavior: 'smooth' });
+  const scrollBoard = (dir) => {
+    // Se apoya en el DOM directo (no solo en el ref) porque el ref solo, por alguna razón
+    // relacionada con el portal a document.body, quedaba en null pese a que el div existía
+    // — esto es un respaldo infalible que no depende de eso.
+    const el = boardScrollRef.current || document.querySelector('.board-scroll');
+    el?.scrollBy({ left: dir * 420, behavior: 'smooth' });
+  };
 
   const pipeline = pipelines.find((p) => p.id === pipelineId);
 
