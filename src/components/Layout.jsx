@@ -56,7 +56,7 @@ export default function Layout() {
           <X size={20} />
         </button>
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="px-3 py-4 space-y-0.5 overflow-y-auto">
         {visibleNav.map((item) => {
           const Icon = item.icon;
           return (
@@ -67,7 +67,7 @@ export default function Layout() {
           );
         })}
       </nav>
-      <div className="px-3 pb-3 space-y-0.5 flex-shrink-0">
+      <div className="mt-auto px-3 pb-3 space-y-0.5 flex-shrink-0">
         <NavLink to="/profile" onClick={() => setMobileOpen(false)} className={navLinkClass}>
           <UserCircle size={16} strokeWidth={2} />
           Mi Perfil
@@ -97,7 +97,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen flex bg-brand-bg text-brand-white">
       {/* Sidebar fija en desktop (md+) */}
-      <aside className="hidden md:flex w-60 flex-shrink-0 border-r border-brand-border flex-col">
+      <aside className="hidden md:flex w-60 flex-shrink-0 border-r border-brand-border flex-col overflow-y-auto">
         {sidebarContent}
       </aside>
 
@@ -105,7 +105,7 @@ export default function Layout() {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
-          <aside className="relative w-64 max-w-[80vw] bg-brand-bg border-r border-brand-border flex flex-col h-full">
+          <aside className="relative w-64 max-w-[80vw] bg-brand-bg border-r border-brand-border flex flex-col h-full overflow-y-auto">
             {sidebarContent}
           </aside>
         </div>

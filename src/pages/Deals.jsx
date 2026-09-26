@@ -7,7 +7,7 @@ import PipelineSelector from '../components/PipelineSelector';
 import { csvToDeals } from '../lib/csv';
 import {
   LayoutGrid, List, DollarSign, Archive, Plus, Search,
-  Info, ChevronDown, User, AlertTriangle, Upload, GripVertical,
+  Info, ChevronDown, User, AlertTriangle, Upload, GripVertical, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 function isOverdue(deal) {
@@ -45,6 +45,8 @@ export default function Deals() {
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef(null);
+  const boardScrollRef = useRef(null);
+  const scrollBoard = (dir) => boardScrollRef.current?.scrollBy({ left: dir * 420, behavior: 'smooth' });
 
   const pipeline = pipelines.find((p) => p.id === pipelineId);
 
@@ -260,7 +262,25 @@ export default function Deals() {
 
       {/* ── VISTA TABLERO (kanban) ── */}
       {view === 'board' && (
-        <div className="board-scroll flex gap-3 md:gap-4 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="relative">
+          {/* Flechas fijas para moverse entre columnas — más confiable que depender de la
+              barra de scroll delgada, que además queda lejos (al fondo del tablero, que
+              puede ser muy alto según cuántos tratos tenga la etapa con más tarjetas). */}
+          <button
+            onClick={() => scrollBoard(-1)}
+            className="absolute -left-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-brand-panel border border-brand-border shadow-lg flex items-center justify-center hover:border-brand-violet hover:text-brand-ice transition"
+            title="Desplazar a la izquierda"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <button
+            onClick={() => scrollBoard(1)}
+            className="absolute -right-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-brand-panel border border-brand-border shadow-lg flex items-center justify-center hover:border-brand-violet hover:text-brand-ice transition"
+            title="Desplazar a la derecha"
+          >
+            <ChevronRight size={16} />
+          </button>
+          <div ref={boardScrollRef} className="board-scroll flex gap-3 md:gap-4 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
           {pipeline.pipeline_stages.sort((a, b) => a.position - b.position).map((stage) => {
             const stageDeals = filteredDeals.filter((d) => d.stage_id === stage.id);
             return (
@@ -341,6 +361,7 @@ export default function Deals() {
               </div>
             );
           })}
+          </div>
         </div>
       )}
 
