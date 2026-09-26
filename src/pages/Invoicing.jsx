@@ -205,10 +205,10 @@ export default function Invoicing() {
         <select
           value={yearFilter}
           onChange={(e) => { setYearFilter(e.target.value); setMonthFilter(''); }}
-          className="px-2.5 py-1.5 rounded-full text-xs bg-brand-panel border border-brand-border text-brand-muted"
+          className="px-2.5 py-1.5 rounded-full text-xs bg-brand-panel border border-brand-border text-brand-muted" style={{ colorScheme: 'dark' }}
         >
-          <option value="">Todos los años</option>
-          {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
+          <option value="" style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>Todos los años</option>
+          {availableYears.map((y) => <option key={y} value={y} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{y}</option>)}
         </select>
         <select
           value={monthFilter ? monthFilter.slice(5, 7) : ''}
@@ -217,19 +217,19 @@ export default function Invoicing() {
             const y = yearFilter || new Date().getFullYear();
             setMonthFilter(`${y}-${e.target.value}`);
           }}
-          className="px-2.5 py-1.5 rounded-full text-xs bg-brand-panel border border-brand-border text-brand-muted"
+          className="px-2.5 py-1.5 rounded-full text-xs bg-brand-panel border border-brand-border text-brand-muted" style={{ colorScheme: 'dark' }}
         >
-          <option value="">Todos los meses</option>
-          {MONTHS.map((m) => <option key={m} value={m}>{MONTH_NAMES[m]}</option>)}
+          <option value="" style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>Todos los meses</option>
+          {MONTHS.map((m) => <option key={m} value={m} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{MONTH_NAMES[m]}</option>)}
         </select>
         {summary?.by_account?.length > 0 && (
           <select
             value={accountFilter}
             onChange={(e) => setAccountFilter(e.target.value)}
-            className="px-2.5 py-1.5 rounded-full text-xs bg-brand-panel border border-brand-border text-brand-muted"
+            className="px-2.5 py-1.5 rounded-full text-xs bg-brand-panel border border-brand-border text-brand-muted" style={{ colorScheme: 'dark' }}
           >
-            <option value="">Todas las empresas</option>
-            {summary.by_account.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
+            <option value="" style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>Todas las empresas</option>
+            {summary.by_account.map((a) => <option key={a.name} value={a.name} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{a.name}</option>)}
           </select>
         )}
         {(statusFilter || yearFilter || monthFilter || accountFilter || searchQuery) && (
@@ -357,7 +357,7 @@ export default function Invoicing() {
                       style={{ colorScheme: 'dark' }}
                       className={`px-2 py-1 rounded-full text-xs font-tech border-0 ${STATUS_COLORS[inv.status]}`}
                     >
-                      {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                      {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{v}</option>)}
                     </select>
                   </div>
                 </td>
@@ -422,7 +422,7 @@ export default function Invoicing() {
                   style={{ colorScheme: 'dark' }}
                   className={`px-2 py-1 rounded-full text-[11px] font-tech border-0 ${STATUS_COLORS[inv.status]}`}
                 >
-                  {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{v}</option>)}
                 </select>
               </div>
             </div>
@@ -540,8 +540,8 @@ function CreateInvoiceModal({ onClose, onCreated }) {
             </div>
             <div>
               <label className={labelClass}>Moneda</label>
-              <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} className={`${inputClass} font-tech`}>
-                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} className={`${inputClass} font-tech`} style={{ colorScheme: 'dark' }}>
+                {CURRENCIES.map((c) => <option key={c} value={c} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{c}</option>)}
               </select>
             </div>
             <div>
@@ -563,9 +563,10 @@ function CreateInvoiceModal({ onClose, onCreated }) {
                       if (p) { updateLine(i, 'description', p.name); updateLine(i, 'unit_price', p.price); }
                     }}
                     className="w-32 px-2 py-2 rounded-lg bg-brand-bg border border-brand-border text-xs flex-shrink-0"
+                    style={{ colorScheme: 'dark' }}
                   >
-                    <option value="">Personalizado</option>
-                    {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    <option value="" style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>Personalizado</option>
+                    {products.map((p) => <option key={p.id} value={p.id} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{p.name}</option>)}
                   </select>
                   <input placeholder="Descripción" value={li.description} onChange={(e) => updateLine(i, 'description', e.target.value)} className="flex-1 min-w-[100px] px-2 py-2 rounded-lg bg-brand-bg border border-brand-border text-xs" />
                   <input type="number" placeholder="Cant." value={li.quantity} onChange={(e) => updateLine(i, 'quantity', e.target.value)} className="w-16 px-2 py-2 rounded-lg bg-brand-bg border border-brand-border text-xs" />
@@ -804,10 +805,10 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
                 <label className={labelClass}>Empresa que facturó</label>
                 {editing ? (
                   <select value={fieldsEdit.source_account} onChange={(e) => setFieldsEdit({ ...fieldsEdit, source_account: e.target.value })} className={plainInputClass} style={{ colorScheme: 'dark' }}>
-                    <option value="">Sin especificar</option>
-                    {SOURCE_ACCOUNTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                    <option value="" style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>Sin especificar</option>
+                    {SOURCE_ACCOUNTS.map((s) => <option key={s} value={s} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{s}</option>)}
                     {fieldsEdit.source_account && !SOURCE_ACCOUNTS.includes(fieldsEdit.source_account) && (
-                      <option value={fieldsEdit.source_account}>{fieldsEdit.source_account} (actual)</option>
+                      <option value={fieldsEdit.source_account} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{fieldsEdit.source_account} (actual)</option>
                     )}
                   </select>
                 ) : (
@@ -828,8 +829,8 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
                 <label className={labelClass}>Moneda</label>
                 {editing ? (
                   <div className="flex items-center gap-2">
-                    <select value={currencyEdit} onChange={(e) => setCurrencyEdit(e.target.value)} className={`${plainInputClass} font-tech`}>
-                      {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    <select value={currencyEdit} onChange={(e) => setCurrencyEdit(e.target.value)} className={`${plainInputClass} font-tech`} style={{ colorScheme: 'dark' }}>
+                      {CURRENCIES.map((c) => <option key={c} value={c} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{c}</option>)}
                     </select>
                     {currencyEdit !== invoice.currency && (
                       <button onClick={saveCurrency} className="text-[11px] text-brand-ice hover:underline flex-shrink-0">Guardar</button>
@@ -864,7 +865,7 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
                     <label className={labelClass}>Estado</label>
                     {editing ? (
                       <select value={fieldsEdit.status} onChange={(e) => setFieldsEdit({ ...fieldsEdit, status: e.target.value })} className={plainInputClass} style={{ colorScheme: 'dark' }}>
-                        {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{v}</option>)}
                       </select>
                     ) : (
                       <div className="flex items-center gap-1.5">
