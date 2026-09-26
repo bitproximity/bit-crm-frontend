@@ -268,14 +268,14 @@ export default function Deals() {
               puede ser muy alto según cuántos tratos tenga la etapa con más tarjetas). */}
           <button
             onClick={() => scrollBoard(-1)}
-            className="absolute -left-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-brand-panel border border-brand-border shadow-lg flex items-center justify-center hover:border-brand-violet hover:text-brand-ice transition"
+            className="fixed left-2 md:left-[248px] top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-brand-panel border border-brand-border shadow-lg flex items-center justify-center hover:border-brand-violet hover:text-brand-ice transition"
             title="Desplazar a la izquierda"
           >
             <ChevronLeft size={16} />
           </button>
           <button
             onClick={() => scrollBoard(1)}
-            className="absolute -right-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-brand-panel border border-brand-border shadow-lg flex items-center justify-center hover:border-brand-violet hover:text-brand-ice transition"
+            className="fixed right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-brand-panel border border-brand-border shadow-lg flex items-center justify-center hover:border-brand-violet hover:text-brand-ice transition"
             title="Desplazar a la derecha"
           >
             <ChevronRight size={16} />
