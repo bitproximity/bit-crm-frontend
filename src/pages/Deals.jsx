@@ -1,5 +1,6 @@
 import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import AddDealModal from '../components/AddDealModal';
@@ -266,20 +267,29 @@ export default function Deals() {
           {/* Flechas fijas para moverse entre columnas — más confiable que depender de la
               barra de scroll delgada, que además queda lejos (al fondo del tablero, que
               puede ser muy alto según cuántos tratos tenga la etapa con más tarjetas). */}
-          <button
-            onClick={() => scrollBoard(-1)}
-            className="fixed left-2 md:left-[248px] top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-brand-panel border border-brand-border shadow-lg flex items-center justify-center hover:border-brand-violet hover:text-brand-ice transition"
-            title="Desplazar a la izquierda"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button
-            onClick={() => scrollBoard(1)}
-            className="fixed right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-brand-panel border border-brand-border shadow-lg flex items-center justify-center hover:border-brand-violet hover:text-brand-ice transition"
-            title="Desplazar a la derecha"
-          >
-            <ChevronRight size={16} />
-          </button>
+          {/* Portal directo a document.body — position:fixed no bastaba: algún ancestro en
+              este árbol tiene un transform aplicado, y eso convierte a "fixed" en relativo
+              a ESE ancestro (limitación conocida de CSS), no al viewport. El portal se
+              salta el problema del todo. */}
+          {createPortal(
+            <>
+              <button
+                onClick={() => scrollBoard(-1)}
+                className="fixed left-2 md:left-[248px] top-1/2 -translate-y-1/2 z-[100] w-8 h-8 rounded-full bg-brand-panel border border-brand-border shadow-lg flex items-center justify-center hover:border-brand-violet hover:text-brand-ice transition"
+                title="Desplazar a la izquierda"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                onClick={() => scrollBoard(1)}
+                className="fixed right-2 top-1/2 -translate-y-1/2 z-[100] w-8 h-8 rounded-full bg-brand-panel border border-brand-border shadow-lg flex items-center justify-center hover:border-brand-violet hover:text-brand-ice transition"
+                title="Desplazar a la derecha"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </>,
+            document.body
+          )}
           <div ref={boardScrollRef} className="board-scroll flex gap-3 md:gap-4 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
           {pipeline.pipeline_stages.sort((a, b) => a.position - b.position).map((stage) => {
             const stageDeals = filteredDeals.filter((d) => d.stage_id === stage.id);
