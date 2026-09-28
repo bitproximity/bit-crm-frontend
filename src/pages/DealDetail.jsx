@@ -109,6 +109,7 @@ export default function DealDetail() {
   const [noteMentionQuery, setNoteMentionQuery] = useState(null);
   const [activityForm, setActivityForm] = useState({ type: 'llamada', title: '', due_date: '' });
   const [activityCalendarWarning, setActivityCalendarWarning] = useState('');
+  const [activityError, setActivityError] = useState('');
   const [editingActivityId, setEditingActivityId] = useState(null);
   const [editActivityForm, setEditActivityForm] = useState({ type: 'llamada', title: '', due_date: '' });
 
@@ -381,13 +382,23 @@ export default function DealDetail() {
   const addActivity = async (e) => {
     e.preventDefault();
     if (!activityForm.title.trim()) return;
-    const created = await api.post('/api/activities', {
-      entity_type: 'deal', entity_id: id,
-      type: activityForm.type,
-      title: activityForm.title,
-      summary: activityForm.title,
-      due_date: activityForm.due_date || null,
-    });
+    setActivityError('');
+    let created;
+    try {
+      created = await api.post('/api/activities', {
+        entity_type: 'deal', entity_id: id,
+        type: activityForm.type,
+        title: activityForm.title,
+        summary: activityForm.title,
+        due_date: activityForm.due_date || null,
+      });
+    } catch (err) {
+      // Antes esto no tenía try/catch: si el servidor rechazaba la actividad (ej. tipo no
+      // permitido por la base) el error se perdía como promesa rechazada sin ningún aviso
+      // claro, y el formulario parecía simplemente "no hacer nada".
+      setActivityError(err.message || 'No se pudo registrar la actividad.');
+      return;
+    }
     setActivityForm({ type: 'llamada', title: '', due_date: '' });
     if (activityForm.due_date && created.calendar_sync && !created.calendar_sync.ok) {
       setActivityCalendarWarning(created.calendar_sync.reason);
@@ -1265,6 +1276,11 @@ export default function DealDetail() {
                 <DateTimePicker value={activityForm.due_date} onChange={(v) => setActivityForm({ ...activityForm, due_date: v })} />
                 <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">Registrar</button>
               </form>
+              {activityError && (
+                <div className="mb-4 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+                  No se pudo registrar la actividad: {activityError}
+                </div>
+              )}
               {activityCalendarWarning && (
                 <div className="mb-4 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs">
                   Se guardó, pero no se sincronizó con Google Calendar: {activityCalendarWarning}

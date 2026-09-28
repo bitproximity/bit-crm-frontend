@@ -29,6 +29,7 @@ export default function Activities() {
   const [activities, setActivities] = useState([]);
   const [tab, setTab] = useState('pendiente'); // solo para la vista Lista
   const [showForm, setShowForm] = useState(false);
+  const [formError, setFormError] = useState('');
   const [form, setForm] = useState({ title: '', type: 'llamada', due_date: '', summary: '' });
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
@@ -73,13 +74,19 @@ export default function Activities() {
 
   const create = async (e) => {
     e.preventDefault();
-    await api.post('/api/activities', {
-      title: form.title,
-      type: form.type,
-      due_date: form.due_date ? new Date(form.due_date).toISOString() : null,
-      summary: form.summary || form.title,
-      occurred_at: form.due_date ? new Date(form.due_date).toISOString() : new Date().toISOString(),
-    });
+    setFormError('');
+    try {
+      await api.post('/api/activities', {
+        title: form.title,
+        type: form.type,
+        due_date: form.due_date ? new Date(form.due_date).toISOString() : null,
+        summary: form.summary || form.title,
+        occurred_at: form.due_date ? new Date(form.due_date).toISOString() : new Date().toISOString(),
+      });
+    } catch (err) {
+      setFormError(err.message || 'No se pudo crear la actividad.');
+      return;
+    }
     setForm({ title: '', type: 'llamada', due_date: '', summary: '' });
     setShowForm(false);
     load();
@@ -251,6 +258,9 @@ export default function Activities() {
           <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
             Crear
           </button>
+          {formError && (
+            <div className="w-full px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">{formError}</div>
+          )}
         </form>
       )}
 
