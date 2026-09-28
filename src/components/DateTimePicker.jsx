@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -9,25 +10,70 @@ const DAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 // (para filtros de fecha simples, como "reunión desde/hasta").
 export default function DateTimePicker({ value, onChange, className = '', dateOnly = false, placeholder }) {
   const [open, setOpen] = useState(false);
-  const [openUpward, setOpenUpward] = useState(false);
+  const [panelStyle, setPanelStyle] = useState(null);
   const [viewDate, setViewDate] = useState(value ? new Date(value) : new Date());
   const [time, setTime] = useState(value ? new Date(value).toTimeString().slice(0, 5) : '09:00');
   const ref = useRef(null);
+  const panelRef = useRef(null);
   const buttonRef = useRef(null);
 
+  // El panel ya no vive dentro del modal (ver portal más abajo), así que "clic afuera" tiene
+  // que mirar los DOS: el botón y el panel. Antes solo miraba el contenedor, y con el panel
+  // fuera de él, cualquier clic dentro del calendario lo cerraba antes de poder elegir.
   useEffect(() => {
-    const onClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onClickOutside = (e) => {
+      const inButton = ref.current && ref.current.contains(e.target);
+      const inPanel = panelRef.current && panelRef.current.contains(e.target);
+      if (!inButton && !inPanel) setOpen(false);
+    };
     document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, []);
 
+  // Con el panel posicionado en pantalla (fixed), si algo se desplaza o cambia el tamaño
+  // de la ventana queda flotando en el lugar equivocado: se cierra.
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => { if (!panelRef.current || !panelRef.current.contains(e.target)) setOpen(false); };
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => { window.removeEventListener('scroll', close, true); window.removeEventListener('resize', close); };
+  }, [open]);
+
+  // Si el valor cambia desde afuera (ej. se abre otra actividad en el mismo formulario),
+  // el mes mostrado y la hora se ponen al día cuando el panel está cerrado.
+  useEffect(() => {
+    if (open || !value) return;
+    const d = new Date(dateOnly ? `${value}T00:00:00` : value);
+    if (isNaN(d.getTime())) return;
+    setViewDate(d);
+    if (!dateOnly) setTime(d.toTimeString().slice(0, 5));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const PANEL_W = 288; // w-72
+  const PANEL_H = dateOnly ? 330 : 390; // altura aproximada del panel completo
+  const MARGIN = 8;
+
   const toggleOpen = () => {
     if (!open && buttonRef.current) {
-      // Altura aproximada del panel (calendario + hora): ~360px. Si no cabe abajo
-      // en la ventana visible, se abre hacia arriba en vez de cortarse contra el borde.
       const rect = buttonRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      setOpenUpward(spaceBelow < 380 && rect.top > spaceBelow);
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const spaceBelow = vh - rect.bottom - MARGIN;
+      const spaceAbove = rect.top - MARGIN;
+      // Abre abajo si cabe; si no, arriba si cabe; si no cabe en ningún lado, del lado con más
+      // espacio y con scroll interno (maxHeight) en vez de recortarse.
+      const below = spaceBelow >= PANEL_H || spaceBelow >= spaceAbove;
+      const available = below ? spaceBelow : spaceAbove;
+      const left = Math.min(Math.max(rect.left, MARGIN), Math.max(vw - PANEL_W - MARGIN, MARGIN));
+      setPanelStyle({
+        position: 'fixed',
+        left,
+        width: PANEL_W,
+        maxHeight: Math.max(Math.min(PANEL_H, available), 200),
+        ...(below ? { top: rect.bottom + MARGIN } : { bottom: vh - rect.top + MARGIN }),
+      });
     }
     setOpen((v) => !v);
   };
@@ -83,9 +129,11 @@ export default function DateTimePicker({ value, onChange, className = '', dateOn
         </span>
       </button>
 
-      {open && (
+      {open && panelStyle && createPortal(
         <div
-          className={`absolute z-30 w-72 max-h-[80vh] overflow-y-auto bg-brand-panel border border-brand-border rounded-xl shadow-2xl p-3 ${openUpward ? 'bottom-full mb-2' : 'top-full mt-2'}`}
+          ref={panelRef}
+          style={panelStyle}
+          className="z-[300] overflow-y-auto bg-brand-panel border border-brand-border rounded-xl shadow-2xl p-3"
         >
           <div className="flex items-center justify-between mb-2">
             <button type="button" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))} className="p-1 text-brand-muted hover:text-white">
@@ -135,7 +183,8 @@ export default function DateTimePicker({ value, onChange, className = '', dateOn
               Listo
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
