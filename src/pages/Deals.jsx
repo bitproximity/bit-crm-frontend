@@ -153,9 +153,15 @@ export default function Deals() {
     loadDeals(pipelineId);
   };
 
-  const filteredDeals = search
-    ? deals.filter((d) => d.title.toLowerCase().includes(search.toLowerCase()) || d.companies?.name?.toLowerCase().includes(search.toLowerCase()))
-    : deals;
+  const matchesSearch = (d) => {
+    const q = search.toLowerCase();
+    return d.title.toLowerCase().includes(q) || d.companies?.name?.toLowerCase().includes(q);
+  };
+  const filteredDeals = search ? deals.filter(matchesSearch) : deals;
+  // La vista Archivo (Ganados/Perdidos) usa su propia lista (archivedDeals, cargada aparte
+  // por estado, no por etapa) y nunca pasaba por el buscador — escribir algo ahí no filtraba
+  // nada, siempre se veían los mismos 211 tratos sin importar lo que se buscara.
+  const filteredArchivedDeals = search ? archivedDeals.filter(matchesSearch) : archivedDeals;
 
   const toUsd = (value, currency) => Number(value || 0) * (exchangeRates[currency] ?? (currency === 'USD' || !currency ? 1 : 0));
 
@@ -244,7 +250,7 @@ export default function Deals() {
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-sm text-brand-muted">
-            <span>{(view === 'archive' ? archivedDeals.filter((d) => archiveFilter === 'todos' || d.status === archiveFilter) : filteredDeals).length} tratos</span>
+            <span>{(view === 'archive' ? filteredArchivedDeals.filter((d) => archiveFilter === 'todos' || d.status === archiveFilter) : filteredDeals).length} tratos</span>
             <Info size={13} />
           </div>
 
@@ -534,7 +540,7 @@ export default function Deals() {
               </tr>
             </thead>
             <tbody>
-              {archivedDeals
+              {filteredArchivedDeals
                 .filter((d) => archiveFilter === 'todos' || d.status === archiveFilter)
                 .slice(0, flatVisibleCount)
                 .map((deal, i) => (
@@ -559,7 +565,7 @@ export default function Deals() {
                   </td>
                 </tr>
               ))}
-              {archivedDeals.filter((d) => archiveFilter === 'todos' || d.status === archiveFilter).length === 0 && (
+              {filteredArchivedDeals.filter((d) => archiveFilter === 'todos' || d.status === archiveFilter).length === 0 && (
                 <tr><td colSpan={5} className="px-4 py-10 text-center text-brand-muted text-sm">Sin tratos {archiveFilter === 'todos' ? 'ganados o perdidos' : archiveFilter + 's'} todavía.</td></tr>
               )}
             </tbody>

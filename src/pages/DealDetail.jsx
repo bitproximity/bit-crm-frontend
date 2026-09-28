@@ -26,13 +26,13 @@ const LOST_REASONS = [
 ];
 
 const ACTIVITY_TYPES = [
-  { key: 'nota', label: 'Nota', icon: StickyNote },
-  { key: 'llamada', label: 'Llamada', icon: Phone },
-  { key: 'reunion', label: 'Reunión', icon: Video },
   { key: 'email', label: 'Email', icon: Mail },
-  { key: 'whatsapp', label: 'WhatsApp', icon: Phone },
-  { key: 'tarea', label: 'Tarea', icon: FileTextIcon },
   { key: 'followup', label: 'Follow up', icon: RefreshCcw },
+  { key: 'llamada', label: 'Llamada', icon: Phone },
+  { key: 'nota', label: 'Nota', icon: StickyNote },
+  { key: 'reunion', label: 'Reunión', icon: Video },
+  { key: 'tarea', label: 'Tarea', icon: FileTextIcon },
+  { key: 'whatsapp', label: 'WhatsApp', icon: Phone },
 ];
 
 function initials(name) {

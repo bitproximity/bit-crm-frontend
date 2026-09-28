@@ -6,10 +6,10 @@ import { useConfirm } from '../components/ConfirmModal';
 import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check, Upload, X, Trash2, LayoutGrid, List, RefreshCcw } from 'lucide-react';
 
 const TYPE_ICONS = {
-  llamada: Phone, email: Mail, reunion: Users, whatsapp: MessageCircle, nota: StickyNote, tarea: CheckSquare, followup: RefreshCcw,
+  email: Mail, followup: RefreshCcw, llamada: Phone, nota: StickyNote, reunion: Users, tarea: CheckSquare, whatsapp: MessageCircle,
 };
 const TYPE_LABELS = {
-  llamada: 'Llamada', email: 'Email', reunion: 'Reunión', whatsapp: 'WhatsApp', nota: 'Nota', tarea: 'Tarea', followup: 'Follow up',
+  email: 'Email', followup: 'Follow up', llamada: 'Llamada', nota: 'Nota', reunion: 'Reunión', tarea: 'Tarea', whatsapp: 'WhatsApp',
 };
 const COLUMNS = [
   { key: 'pendiente', label: 'Pendientes', color: '#6B7280', dot: 'bg-gray-400' },

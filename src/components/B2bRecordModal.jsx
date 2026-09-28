@@ -27,7 +27,7 @@ export const COUNTRY_OPTIONS = [
   'Panamá', 'Paraguay', 'Perú', 'Puerto Rico', 'República Dominicana', 'Uruguay', 'Venezuela',
 ];
 
-export const POSITION_OPTIONS = ['Gerente de Marketing', 'CEO', 'Gerente de IT', 'Trade Marketing', 'Gerente de Operaciones'];
+export const POSITION_OPTIONS = ['CEO', 'Gerente de IT', 'Gerente de Marketing', 'Gerente de Operaciones', 'Trade Marketing'];
 
 // Por cuál entidad/país se factura el trato — independiente del pipeline o del país de la
 // empresa (que ya se usaban de aproximación, pero no siempre coinciden con quién factura
@@ -46,13 +46,13 @@ const HARDWARE_BY_PIPELINE = [
   { match: /music/i, options: ['Android Box', 'Computadora', 'Tablet', 'Otro'] },
   { match: /signage|neomedia|cartel/i, options: ['LED', 'Monitor profesional', 'TV', 'Otro'] },
 ];
-const GENERIC_HARDWARE_OPTIONS = ['Parlante', 'Pantalla / TV', 'Reproductor Android', 'Router', 'Otro'];
+const GENERIC_HARDWARE_OPTIONS = ['Pantalla / TV', 'Parlante', 'Reproductor Android', 'Router', 'Otro'];
 
 // Para pipelines "genéricos" por país (Bit Colombia, Bit Paraguay, Bit México, etc.) el
 // nombre del pipeline no dice de qué línea de producto es el trato — a diferencia de
 // "Bit WiFi"/"Bit Music"/"Neomedia Digital", donde ya lo dice. En esos casos se pide
 // explícito con el campo "Producto", y el tipo de hardware sale de ahí en vez del pipeline.
-export const PRODUCT_LINE_OPTIONS = ['Bit WiFi', 'Bit Music', 'Bit Signage / Neomedia'];
+export const PRODUCT_LINE_OPTIONS = ['Bit Music', 'Bit Signage / Neomedia', 'Bit WiFi'];
 export function isGenericPipeline(pipelineName) {
   return !HARDWARE_BY_PIPELINE.some((h) => h.match.test(pipelineName || ''));
 }

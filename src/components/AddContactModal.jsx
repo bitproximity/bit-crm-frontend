@@ -4,8 +4,8 @@ import { X, Building2, Plus } from 'lucide-react';
 import { INDUSTRY_OPTIONS, POSITION_OPTIONS, COUNTRY_OPTIONS } from './B2bRecordModal';
 import { useOutsideClick } from '../hooks/useOutsideClick';
 
-const PHONE_TYPES = ['Trabajo', 'Personal', 'Móvil', 'Otro'];
-const EMAIL_TYPES = ['Trabajo', 'Personal', 'Otro'];
+const PHONE_TYPES = ['Móvil', 'Personal', 'Trabajo', 'Otro'];
+const EMAIL_TYPES = ['Personal', 'Trabajo', 'Otro'];
 
 export default function AddContactModal({ onClose, onCreated, presetCompany }) {
   const [firstName, setFirstName] = useState('');

@@ -4,7 +4,7 @@ import DateTimePicker from '../components/DateTimePicker';
 import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check, Search } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
-const SOURCE_ACCOUNTS = ['Bit Colombia SAS', 'BitProximity LLC', 'Mario Colombia', 'Diana Sánchez', 'Mario Ramos', 'Bithub SRL', 'Bit Paraguay EAS', 'Bit México'];
+const SOURCE_ACCOUNTS = ['Bit Colombia SAS', 'Bit México', 'Bit Paraguay EAS', 'Bithub SRL', 'BitProximity LLC', 'Diana Sánchez', 'Mario Colombia', 'Mario Ramos'];
 const STATUS_LABELS = { pendiente: 'Pendiente', parcial: 'Parcial', pagada: 'Pagada', cancelada: 'Cancelada' };
 const STATUS_COLORS = {
   pendiente: 'bg-yellow-500/15 text-yellow-300',
@@ -309,8 +309,8 @@ export default function Invoicing() {
               <th className="px-4 py-3 font-manrope font-normal">Empresa / Contacto</th>
               <th className="px-4 py-3 font-manrope font-normal">Trato</th>
               <th className="px-4 py-3 font-manrope font-normal">Año</th>
-              <th className="px-4 py-3 font-manrope font-normal">Total</th>
-              <th className="px-4 py-3 font-manrope font-normal">Cobrado</th>
+              <th className="px-4 py-3 font-manrope font-normal text-right">Total</th>
+              <th className="px-4 py-3 font-manrope font-normal text-right">Cobrado</th>
               <th className="px-4 py-3 font-manrope font-normal">Vencimiento</th>
               <th className="px-4 py-3 font-manrope font-normal">Estado</th>
               <th className="px-4 py-3 font-manrope font-normal text-center">Pagó</th>
@@ -345,8 +345,18 @@ export default function Invoicing() {
                 </td>
                 <td className="px-4 py-3 text-brand-muted">{inv.deals?.title || '—'}</td>
                 <td className="px-4 py-3 text-brand-muted font-tech text-xs">{inv.issue_date ? new Date(inv.issue_date).getFullYear() : '—'}</td>
-                <td className="px-4 py-3 text-brand-ice font-tech">{inv.currency} {Number(inv.total).toLocaleString()}</td>
-                <td className="px-4 py-3 text-brand-muted font-tech">{inv.currency} {Number(inv.paid_amount).toLocaleString()}</td>
+                <td className="px-4 py-3 text-brand-ice font-tech">
+                  <div className="flex items-baseline justify-end gap-1.5">
+                    <span className="w-8 flex-shrink-0 text-[10px] text-brand-muted text-left">{inv.currency}</span>
+                    <span className="text-right">{Number(inv.total).toLocaleString()}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-brand-muted font-tech">
+                  <div className="flex items-baseline justify-end gap-1.5">
+                    <span className="w-8 flex-shrink-0 text-[10px] text-brand-muted/70 text-left">{inv.currency}</span>
+                    <span className="text-right">{Number(inv.paid_amount).toLocaleString()}</span>
+                  </div>
+                </td>
                 <td className="px-4 py-3 text-brand-muted font-tech text-xs">{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1.5">

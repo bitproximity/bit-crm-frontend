@@ -8,9 +8,9 @@ import { useConfirm } from '../components/ConfirmModal';
 import { useOutsideClick } from '../hooks/useOutsideClick';
 
 const PROJECT_TYPES = [
-  { key: 'onboarding_cliente', label: 'Onboarding de cliente' },
-  { key: 'instalacion', label: 'Instalación' },
   { key: 'implementacion', label: 'Implementación' },
+  { key: 'instalacion', label: 'Instalación' },
+  { key: 'onboarding_cliente', label: 'Onboarding de cliente' },
   { key: 'soporte', label: 'Soporte' },
   { key: 'otro', label: 'Otro' },
 ];
