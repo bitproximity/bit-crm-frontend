@@ -132,6 +132,10 @@ export default function Tasks() {
   const [view, setView] = useState('tablero');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: '', due_date: '', assignee_id: '', project_id: '' });
+  const [projectQuery, setProjectQuery] = useState('');
+  const [projectOpen, setProjectOpen] = useState(false);
+  const projectBoxRef = useRef(null);
+  useOutsideClick(projectBoxRef, () => { setProjectOpen(false); setProjectQuery(''); }, projectOpen);
   const [expanded, setExpanded] = useState({});
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -159,6 +163,7 @@ export default function Tasks() {
       project_id: form.project_id || null,
     });
     setForm({ title: '', due_date: '', assignee_id: '', project_id: '' });
+    setProjectQuery('');
     setShowForm(false);
     load();
   };
@@ -240,16 +245,43 @@ export default function Tasks() {
             className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
           />
           <div className="flex flex-wrap gap-3">
-            <div className="flex-1 min-w-[180px]">
+            <div className="flex-1 min-w-[180px] relative" ref={projectBoxRef}>
               <label className="block text-xs text-brand-muted mb-1">Proyecto</label>
-              <select
-                value={form.project_id}
-                onChange={(e) => setForm({ ...form, project_id: e.target.value })}
+              <input
+                value={projectOpen ? projectQuery : (projects.find((p) => p.id === form.project_id)?.name || '')}
+                onChange={(e) => { setProjectQuery(e.target.value); setProjectOpen(true); }}
+                onFocus={() => { setProjectOpen(true); setProjectQuery(''); }}
+                placeholder="Sin proyecto"
+                autoComplete="off"
                 className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
-              >
-                <option value="">Sin proyecto</option>
-                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              />
+              {projectOpen && (() => {
+                const filtered = projects.filter((p) => p.name.toLowerCase().includes(projectQuery.toLowerCase()));
+                return (
+                  <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-brand-bg border border-brand-border rounded-lg shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => { setForm({ ...form, project_id: '' }); setProjectOpen(false); setProjectQuery(''); }}
+                      className="w-full text-left px-3 py-2 text-sm text-brand-muted hover:bg-brand-panel transition"
+                    >
+                      Sin proyecto
+                    </button>
+                    {filtered.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => { setForm({ ...form, project_id: p.id }); setProjectOpen(false); setProjectQuery(''); }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition truncate"
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                    {projectQuery && filtered.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-brand-muted">Sin resultados para "{projectQuery}".</div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             <div className="flex-1 min-w-[220px]">
               <label className="block text-xs text-brand-muted mb-1">Fecha y hora límite</label>
