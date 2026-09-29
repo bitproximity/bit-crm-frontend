@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { FolderKanban, Calendar, Plus, X, Building2, DollarSign, LayoutGrid, List } from 'lucide-react';
+import { FolderKanban, Calendar, Plus, X, Building2, DollarSign, LayoutGrid, List, Search } from 'lucide-react';
 import { colorForName, initials } from '../lib/avatar';
 import RowActionButtons from '../components/RowActionButtons';
 import { useConfirm } from '../components/ConfirmModal';
@@ -157,6 +157,7 @@ export default function Projects() {
   const navigate = useNavigate();
   const confirm = useConfirm();
   const [projects, setProjects] = useState([]);
+  const [search, setSearch] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [view, setView] = useState('lista');
 
@@ -186,6 +187,10 @@ export default function Projects() {
     archivado: 'bg-brand-border text-brand-muted',
   };
 
+  const filteredProjects = search
+    ? projects.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.companies?.name?.toLowerCase().includes(search.toLowerCase()))
+    : projects;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
@@ -194,9 +199,18 @@ export default function Projects() {
           <Plus size={14} /> Nuevo proyecto
         </button>
       </div>
-      <p className="text-brand-muted text-sm mb-6">{projects.length} proyectos</p>
+      <p className="text-brand-muted text-sm mb-6">{filteredProjects.length} proyectos{search ? ` de ${projects.length}` : ''}</p>
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nombre o empresa..."
+            className="w-full pl-9 pr-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm focus:outline-none focus:border-brand-violet transition"
+          />
+        </div>
         <div className="flex bg-brand-panel border border-brand-border rounded-xl p-1">
           <button
             onClick={() => setView('lista')}
@@ -227,7 +241,7 @@ export default function Projects() {
               </tr>
             </thead>
             <tbody>
-              {projects.map((p, i) => (
+              {filteredProjects.map((p, i) => (
                 <tr
                   key={p.id}
                   onClick={() => navigate(`/projects/${p.id}`)}
@@ -263,7 +277,7 @@ export default function Projects() {
                   </td>
                 </tr>
               ))}
-              {projects.length === 0 && (
+              {filteredProjects.length === 0 && (
                 <tr><td colSpan={6} className="px-4 py-10 text-center text-brand-muted text-sm">Sin proyectos aún.</td></tr>
               )}
             </tbody>
@@ -273,7 +287,7 @@ export default function Projects() {
 
       {view === 'tarjetas' && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {projects.map((p, i) => (
+        {filteredProjects.map((p, i) => (
           <div
             onClick={() => navigate(`/projects/${p.id}`)}
             key={p.id}
@@ -316,7 +330,7 @@ export default function Projects() {
             </div>
           </div>
         ))}
-        {projects.length === 0 && (
+        {filteredProjects.length === 0 && (
           <div className="col-span-3 text-center py-12 text-brand-muted text-sm border border-dashed border-brand-border rounded-xl">
             Sin proyectos aún. Se crean automáticamente al ganar un deal con plantilla de onboarding, o dale a "+ Nuevo proyecto" para crear uno manual.
           </div>
