@@ -33,6 +33,8 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
   const [selectedCompany, setSelectedCompany] = useState(presetCompany || null);
   const companyBoxRef = useRef(null);
   useOutsideClick(companyBoxRef, () => setCompanyResults([]), companyResults.length > 0);
+  const contactBoxRef = useRef(null);
+  useOutsideClick(contactBoxRef, () => setContactResults([]), contactResults.length > 0);
   const [industry, setIndustry] = useState('');
 
   const [allTags, setAllTags] = useState([]);
@@ -310,7 +312,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 px-6 py-5">
             {/* ── Columna izquierda: datos del trato ── */}
             <div className="space-y-4">
-              <div className="relative">
+              <div className="relative" ref={contactBoxRef}>
                 <label className={labelClass}>Persona de contacto</label>
                 <div className="relative">
                   <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />

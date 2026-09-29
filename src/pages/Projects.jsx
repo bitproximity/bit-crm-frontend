@@ -27,6 +27,8 @@ function NewProjectModal({ onClose, onCreated }) {
   const [dealQuery, setDealQuery] = useState('');
   const [dealResults, setDealResults] = useState([]);
   const [selectedDeal, setSelectedDeal] = useState(null);
+  const dealBoxRef = useRef(null);
+  useOutsideClick(dealBoxRef, () => setDealResults([]), dealResults.length > 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -112,7 +114,7 @@ function NewProjectModal({ onClose, onCreated }) {
               </div>
             )}
           </div>
-          <div className="relative">
+          <div className="relative" ref={dealBoxRef}>
             <label className={labelClass}>Trato relacionado (opcional — ej. el trato que ganaste)</label>
             <div className="relative">
               <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />

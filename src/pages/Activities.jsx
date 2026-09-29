@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import DateTimePicker from '../components/DateTimePicker';
+import { useOutsideClick } from '../hooks/useOutsideClick';
 import { csvToActivities } from '../lib/csv';
 import { useConfirm } from '../components/ConfirmModal';
 import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check, Upload, X, Trash2, LayoutGrid, List, RefreshCcw } from 'lucide-react';
@@ -39,6 +40,8 @@ export default function Activities() {
   const [saving, setSaving] = useState(false);
   const [dealQuery, setDealQuery] = useState('');
   const [dealResults, setDealResults] = useState([]);
+  const dealBoxRef = useRef(null);
+  useOutsideClick(dealBoxRef, () => setDealResults([]), dealResults.length > 0);
   const [selectedDeal, setSelectedDeal] = useState(null);
   const dragActivityId = useRef(null);
 
@@ -428,7 +431,7 @@ export default function Activities() {
                   <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editForm.done ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
                 </button>
               </label>
-              <div className="relative">
+              <div className="relative" ref={dealBoxRef}>
                 <label className="block text-xs text-brand-muted mb-1.5">Relacionado con (trato)</label>
                 <input
                   value={dealQuery}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useOutsideClick } from '../hooks/useOutsideClick';
 import { api } from '../lib/api';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, CalendarClock, History,
@@ -97,6 +98,8 @@ export default function B2bMeetings() {
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState('');
   const [companyResults, setCompanyResults] = useState([]);
+  const companyBoxRef = useRef(null);
+  useOutsideClick(companyBoxRef, () => setCompanyResults([]), companyResults.length > 0);
   const [copiedLink, setCopiedLink] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -489,7 +492,7 @@ export default function B2bMeetings() {
       )}
 
       {showAddClient && (
-        <div className="relative mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 max-w-md">
+        <div className="relative mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 max-w-md" ref={companyBoxRef}>
           <label className="block text-xs text-brand-muted mb-1.5">Buscar empresa existente en tu CRM</label>
           <div className="relative">
             <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />

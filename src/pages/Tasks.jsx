@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useOutsideClick } from '../hooks/useOutsideClick';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
@@ -466,6 +467,8 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
   const mentionResults = mentionQuery !== null
     ? (team || []).filter((m) => m.full_name.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 5)
     : [];
+  const mentionBoxRef = useRef(null);
+  useOutsideClick(mentionBoxRef, () => setMentionQuery(null), mentionResults.length > 0);
 
   const addComment = async (e) => {
     e.preventDefault();
@@ -582,7 +585,7 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
               ))}
               {(task.comments || []).length === 0 && <div className="text-brand-muted text-xs">Sin comentarios todavía.</div>}
             </div>
-            <form onSubmit={addComment} className="relative flex gap-2">
+            <form onSubmit={addComment} className="relative flex gap-2" ref={mentionBoxRef}>
               {mentionResults.length > 0 && (
                 <div className="absolute bottom-full mb-1 left-0 w-56 bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden z-10">
                   {mentionResults.map((m) => (

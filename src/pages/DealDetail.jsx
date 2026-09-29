@@ -149,6 +149,8 @@ export default function DealDetail() {
   const [addingContact, setAddingContact] = useState(false);
   const [extraContactQuery, setExtraContactQuery] = useState('');
   const [extraContactResults, setExtraContactResults] = useState([]);
+  const extraContactBoxRef = useRef(null);
+  useOutsideClick(extraContactBoxRef, () => setExtraContactResults([]), extraContactResults.length > 0);
   const [selectedContactPick, setSelectedContactPick] = useState(null);
   const contactBoxRef = useRef(null);
   useOutsideClick(contactBoxRef, () => setContactResults([]), contactEditing && contactResults.length > 0);
@@ -369,6 +371,8 @@ export default function DealDetail() {
   const noteMentionResults = noteMentionQuery !== null
     ? team.filter((m) => m.full_name.toLowerCase().includes(noteMentionQuery.toLowerCase())).slice(0, 5)
     : [];
+  const noteMentionBoxRef = useRef(null);
+  useOutsideClick(noteMentionBoxRef, () => setNoteMentionQuery(null), noteMentionResults.length > 0);
 
   const addNote = async (e) => {
     e.preventDefault();
@@ -1087,7 +1091,7 @@ export default function DealDetail() {
                   </div>
                 ))}
                 {addingContact ? (
-                  <div className="relative ml-6 mt-1.5">
+                  <div className="relative ml-6 mt-1.5" ref={extraContactBoxRef}>
                     <input
                       autoFocus value={extraContactQuery}
                       onChange={(e) => setExtraContactQuery(e.target.value)}
@@ -1231,7 +1235,7 @@ export default function DealDetail() {
 
           {tab === 'notas' && (
             <div className="mb-6">
-              <form onSubmit={addNote} className="relative flex gap-2 mb-4">
+              <form onSubmit={addNote} className="relative flex gap-2 mb-4" ref={noteMentionBoxRef}>
                 <input
                   value={noteText}
                   onChange={onNoteTextChange}

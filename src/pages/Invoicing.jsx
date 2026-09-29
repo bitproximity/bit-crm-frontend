@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import DateTimePicker from '../components/DateTimePicker';
+import { useOutsideClick } from '../hooks/useOutsideClick';
 import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check, Search } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
@@ -628,6 +629,8 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
   const [dealQuery, setDealQuery] = useState('');
   const [dealResults, setDealResults] = useState([]);
   const [dealSearching, setDealSearching] = useState(false);
+  const dealBoxRef = useRef(null);
+  useOutsideClick(dealBoxRef, () => setDealResults([]), dealResults.length > 0);
 
   const load = () => api.get(`/api/invoices/${invoiceId}`).then((data) => {
     setInvoice(data);
@@ -673,6 +676,8 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyResults, setCompanyResults] = useState([]);
   const [companySearching, setCompanySearching] = useState(false);
+  const companyBoxRef = useRef(null);
+  useOutsideClick(companyBoxRef, () => setCompanyResults([]), companyResults.length > 0);
 
   useEffect(() => {
     if (!companyQuery.trim()) { setCompanyResults([]); return; }
@@ -906,7 +911,7 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
               <div>
                 <div className="text-xs font-tech tracking-wide text-brand-muted uppercase mb-3 pb-2 border-b border-brand-border">Vinculado al CRM</div>
                 <div className="space-y-4">
-                  <div className="relative">
+                  <div className="relative" ref={dealBoxRef}>
                     <label className={labelClass}>Trato</label>
                     {invoice.deals?.title ? (
                       <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm">
@@ -932,7 +937,7 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
                       </div>
                     )}
                   </div>
-                  <div>
+                  <div ref={companyBoxRef}>
                     <label className={labelClass}>Empresa / Contacto (CRM)</label>
                     {invoice.companies?.name || contactName(invoice.contacts) ? (
                       <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm">
