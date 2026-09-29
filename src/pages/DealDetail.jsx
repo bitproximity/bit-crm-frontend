@@ -153,6 +153,17 @@ export default function DealDetail() {
   useOutsideClick(extraContactBoxRef, () => setExtraContactResults([]), extraContactResults.length > 0);
   const [selectedContactPick, setSelectedContactPick] = useState(null);
   const contactBoxRef = useRef(null);
+
+  // Movido aquí desde más abajo (después del "if (loading || !deal) return") — un hook
+  // declarado después de un return condicional se salta en el primer render (mientras
+  // loading=true) y aparece en el siguiente, lo que rompe el orden de hooks de React y
+  // tira el error #310 ("Rendered fewer hooks than expected") en TODOS los tratos, no
+  // solo en éste — simplemente no se había topado con ese caso todavía.
+  const noteMentionResults = noteMentionQuery !== null
+    ? team.filter((m) => m.full_name.toLowerCase().includes(noteMentionQuery.toLowerCase())).slice(0, 5)
+    : [];
+  const noteMentionBoxRef = useRef(null);
+  useOutsideClick(noteMentionBoxRef, () => setNoteMentionQuery(null), noteMentionResults.length > 0);
   useOutsideClick(contactBoxRef, () => setContactResults([]), contactEditing && contactResults.length > 0);
 
   // Datos "globales" que casi nunca cambian dentro de una sesión — se piden UNA sola vez
@@ -367,12 +378,6 @@ export default function DealDetail() {
     setNoteText(`${beforeMention}@${member.full_name} `);
     setNoteMentionQuery(null);
   };
-
-  const noteMentionResults = noteMentionQuery !== null
-    ? team.filter((m) => m.full_name.toLowerCase().includes(noteMentionQuery.toLowerCase())).slice(0, 5)
-    : [];
-  const noteMentionBoxRef = useRef(null);
-  useOutsideClick(noteMentionBoxRef, () => setNoteMentionQuery(null), noteMentionResults.length > 0);
 
   const addNote = async (e) => {
     e.preventDefault();
