@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { useAuth } from '../hooks/useAuth';
 import { useConfirm } from '../components/ConfirmModal';
 import { Zap, Plus, Trash2, ArrowRight } from 'lucide-react';
 
@@ -11,6 +12,8 @@ const selectStyle = { colorScheme: 'dark' };
 
 export default function Automations() {
   const confirm = useConfirm();
+  const { profile } = useAuth();
+  const canManage = profile?.role === 'admin' || profile?.permissions?.automations?.can_manage;
   const [rules, setRules] = useState(null);
   const [pipelines, setPipelines] = useState([]);
   const [team, setTeam] = useState([]);
@@ -93,15 +96,17 @@ export default function Automations() {
     <div>
       <div className="flex items-center justify-between mb-1">
         <h1 className="font-headline text-xl font-semibold flex items-center gap-2"><Zap size={20} /> Automatizaciones</h1>
-        <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium flex items-center gap-1.5">
-          <Plus size={14} /> Nueva regla
-        </button>
+        {canManage && (
+          <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium flex items-center gap-1.5">
+            <Plus size={14} /> Nueva regla
+          </button>
+        )}
       </div>
       <p className="text-brand-muted text-sm mb-6">Reglas "cuando pasa X, hace Y" — sin que nadie tenga que dispararlas a mano.</p>
 
       {error && <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
 
-      {showForm && (
+      {showForm && canManage && (
         <form onSubmit={create} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 space-y-4">
           <input autoFocus required placeholder="Nombre de la regla (ej. Follow up tras propuesta)" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
 
@@ -208,10 +213,12 @@ export default function Automations() {
                 <span>{describeAction(r)}</span>
               </div>
             </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <button onClick={() => toggleActive(r)} className="text-xs text-brand-ice hover:underline">{r.active ? 'Pausar' : 'Reactivar'}</button>
-              <button onClick={() => remove(r)} className="text-brand-muted hover:text-red-400"><Trash2 size={14} /></button>
-            </div>
+            {canManage && (
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <button onClick={() => toggleActive(r)} className="text-xs text-brand-ice hover:underline">{r.active ? 'Pausar' : 'Reactivar'}</button>
+                <button onClick={() => remove(r)} className="text-brand-muted hover:text-red-400"><Trash2 size={14} /></button>
+              </div>
+            )}
           </div>
         ))}
       </div>

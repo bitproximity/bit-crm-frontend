@@ -1,5 +1,5 @@
 import { SkeletonLine } from '../components/Skeleton';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { ChevronDown as ChevronDownIcon, Pencil as PencilIcon, Trash2 as Trash2Icon, GripVertical as GripVerticalIcon, X as XIcon } from 'lucide-react';
 import { useConfirm } from '../components/ConfirmModal';
@@ -14,6 +14,7 @@ export default function Settings() {
       <CustomFieldsAdmin />
       <PipelinesAdmin />
       <ExchangeRatesAdmin />
+      <RolePermissionsAdmin />
       <McpKeysAdmin />
     </div>
   );
@@ -498,6 +499,86 @@ function PipelinesAdmin() {
     </div>
   );
 }
+const ROLE_LABELS = { operaciones: 'Operaciones', outbound: 'Outbound', wifi_partner: 'Socio externo (Bit WiFi)', ventas: 'Ventas' };
+const RESOURCE_LABELS = { automations: 'Automatizaciones' };
+
+function RolePermissionsAdmin() {
+  const [rows, setRows] = useState(null);
+  const [error, setError] = useState('');
+
+  const load = () => api.get('/api/role-permissions').then(setRows).catch((err) => setError(err.message));
+  useEffect(() => { load(); }, []);
+
+  const toggle = async (row, field) => {
+    const next = { ...row, [field]: !row[field] };
+    // Gestionar sin poder ver no tiene sentido — al prender "gestionar" se prende "ver" solo.
+    if (field === 'can_manage' && next.can_manage) next.can_view = true;
+    setRows((prev) => prev.map((r) => (r.role === row.role && r.resource === row.resource ? next : r)));
+    try {
+      await api.patch('/api/role-permissions', { role: row.role, resource: row.resource, can_view: next.can_view, can_manage: next.can_manage });
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar.');
+      load(); // revierte al estado real si falló
+    }
+  };
+
+  const resources = [...new Set((rows || []).map((r) => r.resource))];
+  const roles = [...new Set((rows || []).map((r) => r.role))];
+
+  return (
+    <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mt-4">
+      <div className="font-manrope font-medium mb-1">Permisos por rol</div>
+      <p className="text-brand-muted text-sm mb-4">
+        Quién puede ver y gestionar cada sección, sin tocar código. Admin siempre tiene acceso total a todo.
+      </p>
+      {error && <div className="mb-3 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+      {rows === null ? (
+        <SkeletonLine />
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-brand-muted text-left border-b border-brand-border">
+              <th className="py-2 pr-3 font-normal">Rol</th>
+              {resources.map((res) => (
+                <th key={res} className="py-2 px-3 font-normal text-center" colSpan={2}>{RESOURCE_LABELS[res] || res}</th>
+              ))}
+            </tr>
+            <tr className="text-brand-muted text-xs text-center border-b border-brand-border">
+              <th />
+              {resources.map((res) => (
+                <Fragment key={res}>
+                  <th className="py-1 px-3 font-normal">Ver</th>
+                  <th className="py-1 px-3 font-normal">Gestionar</th>
+                </Fragment>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {roles.map((role) => (
+              <tr key={role} className="border-b border-brand-border/60 last:border-0">
+                <td className="py-2.5 pr-3">{ROLE_LABELS[role] || role}</td>
+                {resources.map((res) => {
+                  const row = rows.find((r) => r.role === role && r.resource === res);
+                  return (
+                    <Fragment key={res}>
+                      <td className="py-2.5 px-3 text-center">
+                        <input type="checkbox" checked={row?.can_view || false} onChange={() => toggle(row, 'can_view')} className="accent-brand-violet w-4 h-4 cursor-pointer" />
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <input type="checkbox" checked={row?.can_manage || false} onChange={() => toggle(row, 'can_manage')} className="accent-brand-violet w-4 h-4 cursor-pointer" />
+                      </td>
+                    </Fragment>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 function ExchangeRatesAdmin() {
   const ALL_CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
   const [rates, setRates] = useState(null);

@@ -36,14 +36,21 @@ export default function Layout() {
   const role = profile?.role;
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const visibleNav = nav.filter((item) => canAccessPath(role, item.to));
+  // /automations no sigue la lista fija de roles — su visibilidad depende de un permiso
+  // configurable desde Configuración (profile.permissions), no de a qué rol perteneces.
+  const visibleNav = nav.filter((item) => {
+    if (item.to === '/automations') return profile?.permissions?.automations?.can_view || false;
+    return canAccessPath(role, item.to);
+  });
 
   // Si acaba de entrar y "/" no le corresponde, lo mandamos directo a su primera sección permitida.
   if (location.pathname === '/' && !canAccessPath(role, '/')) {
     return <Navigate to={firstAllowedPath(role)} replace />;
   }
 
-  const hasAccess = canAccessPath(role, location.pathname);
+  const hasAccess = location.pathname.startsWith('/automations')
+    ? (profile?.permissions?.automations?.can_view || isAdmin(role))
+    : canAccessPath(role, location.pathname);
 
   const navLinkClass = ({ isActive }) =>
     `group flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-manrope transition-all duration-200 ${
