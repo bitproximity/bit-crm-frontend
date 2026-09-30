@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
 import RowActionButtons from '../components/RowActionButtons';
-import { Boxes, ChevronRight, ChevronDown, FolderKanban, Plus } from 'lucide-react';
+import { Boxes, ChevronRight, ChevronDown, FolderKanban, Plus, Search } from 'lucide-react';
 
 const COLORS = ['#8500FF', '#E000FF', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6', '#ef4444'];
 
@@ -21,6 +21,7 @@ export default function Spaces() {
   const [loading, setLoading] = useState(true);
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
+  const [search, setSearch] = useState('');
 
   const load = () => {
     setError('');
@@ -91,6 +92,10 @@ export default function Spaces() {
     setSpaces((prev) => prev.map((s) => (s.id === spaceId ? { ...s, project_count: s.project_count + 1 } : s)));
   };
 
+  const filteredSpaces = search
+    ? spaces.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()))
+    : spaces;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
@@ -102,7 +107,17 @@ export default function Spaces() {
           <Plus size={14} /> Nuevo espacio
         </button>
       </div>
-      <p className="text-brand-muted text-sm mb-6">{spaces.length} espacios · agrupan tus proyectos por marca, país o equipo</p>
+      <p className="text-brand-muted text-sm mb-4">{filteredSpaces.length} espacios{search ? ` de ${spaces.length}` : ''} · agrupan tus proyectos por marca, país o equipo</p>
+
+      <div className="relative max-w-xs mb-6">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar espacio..."
+          className="w-full pl-9 pr-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm focus:outline-none focus:border-brand-violet transition"
+        />
+      </div>
 
       {error && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
@@ -131,7 +146,7 @@ export default function Spaces() {
       )}
 
       <div className="space-y-2">
-        {spaces.map((s, i) => (
+        {filteredSpaces.map((s, i) => (
           <div
             key={s.id}
             className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden panel-depth stagger-item"
@@ -222,6 +237,11 @@ export default function Spaces() {
             )}
           </div>
         ))}
+        {filteredSpaces.length === 0 && spaces.length > 0 && (
+          <div className="text-center py-12 text-brand-muted text-sm border border-dashed border-brand-border rounded-xl">
+            Sin resultados para "{search}".
+          </div>
+        )}
         {spaces.length === 0 && (
           <div className="text-center py-12 text-brand-muted text-sm border border-dashed border-brand-border rounded-xl">
             Sin espacios todavía. Crea uno para agrupar tus proyectos por marca o país.
