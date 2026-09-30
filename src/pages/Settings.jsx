@@ -826,6 +826,8 @@ function TeamAdmin() {
               <option value="admin">Admin</option>
               <option value="outbound">Outbound</option>
               <option value="operaciones">Operaciones</option>
+              <option value="wifi_partner">Socio externo (Bit WiFi)</option>
+              <option value="ventas">Ventas</option>
             </select>
           </div>
           <button disabled={inviting} className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium disabled:opacity-50">
@@ -856,6 +858,8 @@ function TeamAdmin() {
                 <option value="admin">Admin</option>
                 <option value="outbound">Outbound</option>
                 <option value="operaciones">Operaciones</option>
+                <option value="wifi_partner">Socio externo (Bit WiFi)</option>
+                <option value="ventas">Ventas</option>
               </select>
               {m.active ? (
                 <>
