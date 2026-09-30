@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useOutsideClick } from '../hooks/useOutsideClick';
+import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, CalendarClock, History,
@@ -104,6 +105,22 @@ export default function B2bMeetings() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [leaderboard, setLeaderboard] = useState(null);
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const [quotas, setQuotas] = useState(null);
+  const [editingQuotaId, setEditingQuotaId] = useState(null);
+  const [quotaInput, setQuotaInput] = useState('');
+
+  const loadQuotas = () => api.get(`/api/quotas?month=${currentMonth}`).then((d) => setQuotas(d.rows)).catch(() => setQuotas([]));
+
+  const saveQuota = async (teamMemberId, value) => {
+    const target = Number(value);
+    if (!target || target < 1) { setEditingQuotaId(null); return; }
+    await api.post('/api/quotas', { team_member_id: teamMemberId, month: currentMonth, target_meetings: target }).catch(() => {});
+    setEditingQuotaId(null);
+    loadQuotas();
+  };
   const [expandedPerson, setExpandedPerson] = useState(null);
   const [reordering, setReordering] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -134,6 +151,7 @@ export default function B2bMeetings() {
   useEffect(() => {
     if (tab !== 'team') return;
     api.get('/api/b2b/leaderboard').then(setLeaderboard).catch((err) => setError(err.message));
+    loadQuotas();
   }, [tab]);
 
   const loadClientData = () => {
@@ -361,6 +379,55 @@ export default function B2bMeetings() {
                 <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
                   <div className="flex items-center gap-1.5 text-yellow-300 text-xs mb-1"><TrendingUp size={12} /> Este mes</div>
                   <div className="text-2xl font-headline font-semibold text-yellow-300">{leaderboard.meetings_this_month}</div>
+                </div>
+              </div>
+
+              <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden mb-6">
+                <div className="px-5 py-4 border-b border-brand-border flex items-center gap-2">
+                  <Target size={15} className="text-brand-ice" />
+                  <div className="text-sm font-manrope font-medium">Meta de reuniones — {currentMonth}</div>
+                </div>
+                <div className="divide-y divide-brand-border">
+                  {quotas === null && <div className="px-5 py-4 text-brand-muted text-sm">Cargando...</div>}
+                  {quotas?.map((q) => {
+                    const pct = q.target ? Math.min(100, Math.round((q.actual / q.target) * 100)) : null;
+                    return (
+                      <div key={q.team_member_id} className="px-5 py-3 flex items-center gap-4">
+                        <div className="w-32 flex-shrink-0 text-sm truncate">{q.full_name}</div>
+                        {q.target ? (
+                          <>
+                            <div className="flex-1 h-2 rounded-full bg-brand-bg overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${pct >= 100 ? 'bg-green-400' : 'bg-gradient-to-r from-brand-violet to-brand-magenta'}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <div className="w-20 flex-shrink-0 text-xs font-tech text-right">
+                              <span className={pct >= 100 ? 'text-green-300' : 'text-brand-ice'}>{q.actual}</span>
+                              <span className="text-brand-muted"> / {q.target}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex-1 text-xs text-brand-muted">Sin meta puesta — {q.actual} reunión(es) este mes</div>
+                        )}
+                        {isAdmin && (
+                          editingQuotaId === q.team_member_id ? (
+                            <input
+                              autoFocus type="number" min="1" defaultValue={q.target || ''}
+                              onBlur={(e) => saveQuota(q.team_member_id, e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && saveQuota(q.team_member_id, e.target.value)}
+                              className="w-16 flex-shrink-0 px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs text-right"
+                            />
+                          ) : (
+                            <button onClick={() => { setEditingQuotaId(q.team_member_id); setQuotaInput(q.target || ''); }} className="flex-shrink-0 text-xs text-brand-ice hover:underline">
+                              {q.target ? 'editar' : '+ meta'}
+                            </button>
+                          )
+                        )}
+                      </div>
+                    );
+                  })}
+                  {quotas?.length === 0 && <div className="px-5 py-4 text-brand-muted text-sm">Sin vendedores activos todavía.</div>}
                 </div>
               </div>
 
