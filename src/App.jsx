@@ -20,6 +20,8 @@ const Tasks = lazy(() => import('./pages/Tasks'));
 const Contacts = lazy(() => import('./pages/Contacts'));
 const Companies = lazy(() => import('./pages/Companies'));
 const Duplicates = lazy(() => import('./pages/Duplicates'));
+const LeadForms = lazy(() => import('./pages/LeadForms'));
+const PublicLeadForm = lazy(() => import('./pages/PublicLeadForm'));
 const CompanyDetail = lazy(() => import('./pages/CompanyDetail'));
 const Projects = lazy(() => import('./pages/Projects'));
 const Spaces = lazy(() => import('./pages/Spaces'));
@@ -109,6 +111,7 @@ export default function App() {
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/public/b2b/:token" element={<Suspense fallback={<PageFallback />}><PublicB2bReport /></Suspense>} />
+            <Route path="/public/lead-forms/:id" element={<Suspense fallback={<PageFallback />}><PublicLeadForm /></Suspense>} />
             <Route element={<PrivateRoutes />}>
               <Route path="/" element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>} />
               <Route path="/deals" element={<Suspense fallback={<PageFallback />}><Deals /></Suspense>} />
@@ -120,6 +123,7 @@ export default function App() {
               <Route path="/contacts" element={<Suspense fallback={<PageFallback />}><Contacts /></Suspense>} />
               <Route path="/companies" element={<Suspense fallback={<PageFallback />}><Companies /></Suspense>} />
               <Route path="/duplicates" element={<Suspense fallback={<PageFallback />}><Duplicates /></Suspense>} />
+              <Route path="/lead-forms" element={<Suspense fallback={<PageFallback />}><LeadForms /></Suspense>} />
               <Route path="/companies/:id" element={<Suspense fallback={<PageFallback />}><CompanyDetail /></Suspense>} />
               <Route path="/projects" element={<Suspense fallback={<PageFallback />}><Projects /></Suspense>} />
               <Route path="/projects/:id" element={<Suspense fallback={<PageFallback />}><ProjectDetail /></Suspense>} />
