@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Check } from 'lucide-react';
 import { api } from '../lib/api';
-import { useOutsideClick } from '../hooks/useOutsideClick';
 
 const TYPE_ICON_COLOR = {
   task_assigned: 'text-brand-ice',
@@ -25,8 +25,37 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [count, setCount] = useState(0);
   const [items, setItems] = useState(null);
-  const boxRef = useRef(null);
-  useOutsideClick(boxRef, () => setOpen(false), open);
+  const [panelStyle, setPanelStyle] = useState(null);
+  const buttonRef = useRef(null);
+  const panelRef = useRef(null);
+
+  // El panel va en un portal al body (ver más abajo) — "clic afuera" tiene que mirar el
+  // botón Y el panel, no solo uno, o clickear el botón para cerrar terminaría reabriéndolo
+  // (el mismo problema que ya resolvimos en el selector de fecha).
+  useEffect(() => {
+    if (!open) return undefined;
+    const handle = (e) => {
+      const inButton = buttonRef.current?.contains(e.target);
+      const inPanel = panelRef.current?.contains(e.target);
+      if (!inButton && !inPanel) setOpen(false);
+    };
+    const handleKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', handle);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handle);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
+
+  // Con el panel en position:fixed, si la ventana cambia de tamaño mientras está abierto
+  // queda flotando en el lugar equivocado — más simple cerrarlo que recalcular en vivo.
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = () => setOpen(false);
+    window.addEventListener('resize', close);
+    return () => window.removeEventListener('resize', close);
+  }, [open]);
 
   const loadCount = () => api.get('/api/notifications/unread-count').then((d) => setCount(d.count)).catch(() => {});
 
@@ -38,8 +67,23 @@ export default function NotificationBell() {
     return () => clearInterval(interval);
   }, []);
 
+  const PANEL_W = 320;
+  const MARGIN = 8;
+
   const toggleOpen = () => {
-    if (!open) api.get('/api/notifications?limit=20').then(setItems).catch(() => setItems([]));
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      // Antes el panel se abría "left-0" respecto al botón, y como el botón vive en un
+      // menú angosto (~230px) con el panel de 320px, se salía de la pantalla por la
+      // derecha (exactamente lo que se veía cortado en la captura). Ahora se posiciona
+      // respecto al viewport de verdad, y se acomoda contra el borde si no cabe.
+      const left = Math.min(Math.max(rect.left, MARGIN), vw - PANEL_W - MARGIN);
+      const maxHeight = Math.min(vh * 0.7, vh - rect.bottom - MARGIN - 8);
+      setPanelStyle({ position: 'fixed', top: rect.bottom + MARGIN, left, width: PANEL_W, maxHeight: Math.max(maxHeight, 200) });
+      api.get('/api/notifications?limit=20').then(setItems).catch(() => setItems([]));
+    }
     setOpen((v) => !v);
   };
 
@@ -60,8 +104,8 @@ export default function NotificationBell() {
   };
 
   return (
-    <div className="relative" ref={boxRef}>
-      <button onClick={toggleOpen} className="relative text-brand-muted hover:text-brand-white transition p-1">
+    <div className="relative">
+      <button ref={buttonRef} onClick={toggleOpen} className="relative text-brand-muted hover:text-brand-white transition p-1">
         <Bell size={18} />
         {count > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-brand-magenta text-white text-[10px] font-tech flex items-center justify-center leading-none">
@@ -70,8 +114,12 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {open && (
-        <div className="absolute z-50 top-full mt-2 left-0 w-80 max-h-[70vh] overflow-y-auto bg-brand-panel border border-brand-border rounded-xl shadow-2xl">
+      {open && panelStyle && createPortal(
+        <div
+          ref={panelRef}
+          style={panelStyle}
+          className="z-[200] overflow-y-auto bg-brand-panel border border-brand-border rounded-xl shadow-2xl"
+        >
           <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border sticky top-0 bg-brand-panel">
             <span className="font-manrope font-medium text-sm">Notificaciones</span>
             {count > 0 && (
@@ -98,7 +146,8 @@ export default function NotificationBell() {
               </div>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
