@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { canAccessPath, firstAllowedPath, isAdmin } from '../lib/permissions';
+import NotificationBell from './NotificationBell';
 import {
   LayoutDashboard, GitBranch, CheckSquare, Users, Building2,
   FolderKanban, Package, BarChart3, Settings as SettingsIcon, LogOut, Clock3, UserCircle,
@@ -53,9 +54,12 @@ export default function Layout() {
     <>
       <div className="px-5 py-5 border-b border-brand-border flex items-center justify-between">
         <img src="/brand/logo.png" alt="Bit Proximity" className="h-6" />
-        <button onClick={() => setMobileOpen(false)} className="md:hidden text-brand-muted hover:text-brand-white">
-          <X size={20} />
-        </button>
+        <div className="flex items-center gap-3">
+          <NotificationBell />
+          <button onClick={() => setMobileOpen(false)} className="md:hidden text-brand-muted hover:text-brand-white">
+            <X size={20} />
+          </button>
+        </div>
       </div>
       <nav className="px-3 py-4 space-y-0.5 overflow-y-auto">
         {visibleNav.map((item) => {
