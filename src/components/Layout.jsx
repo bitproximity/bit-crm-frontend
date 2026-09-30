@@ -6,7 +6,7 @@ import NotificationBell from './NotificationBell';
 import {
   LayoutDashboard, GitBranch, CheckSquare, Users, Building2,
   FolderKanban, Package, BarChart3, Settings as SettingsIcon, LogOut, Clock3, UserCircle,
-  Boxes, FileText, Receipt, CircleDollarSign, Handshake, Menu, X, Search, List, Copy, ClipboardList,
+  Boxes, FileText, Receipt, CircleDollarSign, Handshake, Menu, X, Search, List, Copy, ClipboardList, Zap,
 } from 'lucide-react';
 
 const nav = [
@@ -19,6 +19,7 @@ const nav = [
   { to: '/lists', label: 'Listas', icon: List },
   { to: '/companies', label: 'Empresas', icon: Building2 },
   { to: '/duplicates', label: 'Duplicados', icon: Copy },
+  { to: '/automations', label: 'Automatizaciones', icon: Zap },
   { to: '/lead-forms', label: 'Formularios', icon: ClipboardList },
   { to: '/spaces', label: 'Espacios', icon: Boxes },
   { to: '/projects', label: 'Proyectos', icon: FolderKanban },

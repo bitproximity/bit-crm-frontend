@@ -21,6 +21,7 @@ const Contacts = lazy(() => import('./pages/Contacts'));
 const Companies = lazy(() => import('./pages/Companies'));
 const Duplicates = lazy(() => import('./pages/Duplicates'));
 const LeadForms = lazy(() => import('./pages/LeadForms'));
+const Automations = lazy(() => import('./pages/Automations'));
 const PublicLeadForm = lazy(() => import('./pages/PublicLeadForm'));
 const CompanyDetail = lazy(() => import('./pages/CompanyDetail'));
 const Projects = lazy(() => import('./pages/Projects'));
@@ -124,6 +125,7 @@ export default function App() {
               <Route path="/companies" element={<Suspense fallback={<PageFallback />}><Companies /></Suspense>} />
               <Route path="/duplicates" element={<Suspense fallback={<PageFallback />}><Duplicates /></Suspense>} />
               <Route path="/lead-forms" element={<Suspense fallback={<PageFallback />}><LeadForms /></Suspense>} />
+              <Route path="/automations" element={<Suspense fallback={<PageFallback />}><Automations /></Suspense>} />
               <Route path="/companies/:id" element={<Suspense fallback={<PageFallback />}><CompanyDetail /></Suspense>} />
               <Route path="/projects" element={<Suspense fallback={<PageFallback />}><Projects /></Suspense>} />
               <Route path="/projects/:id" element={<Suspense fallback={<PageFallback />}><ProjectDetail /></Suspense>} />
