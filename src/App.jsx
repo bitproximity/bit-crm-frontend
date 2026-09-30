@@ -19,6 +19,7 @@ const DealDetail = lazy(() => import('./pages/DealDetail'));
 const Tasks = lazy(() => import('./pages/Tasks'));
 const Contacts = lazy(() => import('./pages/Contacts'));
 const Companies = lazy(() => import('./pages/Companies'));
+const Duplicates = lazy(() => import('./pages/Duplicates'));
 const CompanyDetail = lazy(() => import('./pages/CompanyDetail'));
 const Projects = lazy(() => import('./pages/Projects'));
 const Spaces = lazy(() => import('./pages/Spaces'));
@@ -118,6 +119,7 @@ export default function App() {
               <Route path="/tasks" element={<Suspense fallback={<PageFallback />}><Tasks /></Suspense>} />
               <Route path="/contacts" element={<Suspense fallback={<PageFallback />}><Contacts /></Suspense>} />
               <Route path="/companies" element={<Suspense fallback={<PageFallback />}><Companies /></Suspense>} />
+              <Route path="/duplicates" element={<Suspense fallback={<PageFallback />}><Duplicates /></Suspense>} />
               <Route path="/companies/:id" element={<Suspense fallback={<PageFallback />}><CompanyDetail /></Suspense>} />
               <Route path="/projects" element={<Suspense fallback={<PageFallback />}><Projects /></Suspense>} />
               <Route path="/projects/:id" element={<Suspense fallback={<PageFallback />}><ProjectDetail /></Suspense>} />
