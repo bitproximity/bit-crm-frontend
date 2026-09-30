@@ -8,6 +8,7 @@ export default function PublicLeadForm() {
   const [form, setForm] = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [values, setValues] = useState({ name: '', email: '', phone: '', company: '', message: '' });
+  const [customAnswers, setCustomAnswers] = useState({});
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
@@ -28,7 +29,7 @@ export default function PublicLeadForm() {
       const r = await fetch(`${API_URL}/api/public/lead-forms/${id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, custom_answers: customAnswers }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || 'No se pudo enviar el formulario.');
@@ -80,6 +81,37 @@ export default function PublicLeadForm() {
         <input style={styles.input} type="email" placeholder="Correo electrónico" value={values.email} onChange={(e) => setValues({ ...values, email: e.target.value })} />
         <input style={styles.input} placeholder="Teléfono" value={values.phone} onChange={(e) => setValues({ ...values, phone: e.target.value })} />
         <input style={styles.input} placeholder="Empresa" value={values.company} onChange={(e) => setValues({ ...values, company: e.target.value })} />
+        {(form.custom_fields || []).map((f) => (
+          <div key={f.id} style={{ marginBottom: 12 }}>
+            <label style={styles.label}>{f.label}</label>
+            {f.field_type === 'select' ? (
+              <select
+                style={styles.input}
+                value={customAnswers[f.id] || ''}
+                onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.value })}
+              >
+                <option value="">Elige...</option>
+                {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            ) : f.field_type === 'boolean' ? (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FBFAFF', fontSize: 14 }}>
+                <input
+                  type="checkbox"
+                  checked={customAnswers[f.id] === 'Sí'}
+                  onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.checked ? 'Sí' : 'No' })}
+                />
+                Sí
+              </label>
+            ) : (
+              <input
+                style={styles.input}
+                type={f.field_type === 'number' ? 'number' : f.field_type === 'date' ? 'date' : 'text'}
+                value={customAnswers[f.id] || ''}
+                onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.value })}
+              />
+            )}
+          </div>
+        ))}
         <textarea style={{ ...styles.input, minHeight: 80, resize: 'vertical' }} placeholder="Mensaje (opcional)" value={values.message} onChange={(e) => setValues({ ...values, message: e.target.value })} />
         <button type="submit" disabled={sending} style={styles.button}>{sending ? 'Enviando...' : 'Enviar'}</button>
       </form>
@@ -94,4 +126,5 @@ const styles = {
   input: { width: '100%', boxSizing: 'border-box', padding: '10px 14px', marginBottom: 12, borderRadius: 8, background: '#080712', border: '1px solid #211D34', color: '#FBFAFF', fontSize: 14, fontFamily: 'inherit' },
   button: { width: '100%', padding: '11px 14px', borderRadius: 8, background: 'linear-gradient(90deg, #8500FF 0%, #E000FF 100%)', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
   error: { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: '8px 12px', borderRadius: 8, fontSize: 13, marginBottom: 12 },
+  label: { display: 'block', color: '#8B87A3', fontSize: 12, marginBottom: 4 },
 };
