@@ -1206,7 +1206,7 @@ export default function DealDetail() {
                         await api.put(`/api/custom-fields/values/${id}`, { field_id: f.field_id, value: e.target.value });
                         refreshDeal();
                       }}
-                      className="flex-1 text-right bg-transparent border-b border-transparent hover:border-brand-border focus:border-brand-violet focus:outline-none px-1 py-0.5 text-sm"
+                      className="flex-1 min-w-0 text-right bg-transparent border-b border-transparent hover:border-brand-border focus:border-brand-violet focus:outline-none px-1 py-0.5 text-sm"
                     />
                   </div>
                 ))}
