@@ -4,7 +4,7 @@ import { useConfirm } from '../components/ConfirmModal';
 import {
   ClipboardList, Plus, Copy, Trash2, Check, X, GripVertical,
   Type, Hash, Calendar, CheckSquare, List, ChevronUp, ChevronDown,
-  Sparkles, Link2, Code2, Users2, Target,
+  Sparkles, Link2, Code2, Users2, Target, Eye,
 } from 'lucide-react';
 
 const PUBLIC_APP_URL = 'https://crm.bitproximity.com';
@@ -208,6 +208,100 @@ function QuestionsEditor({ allFields, selectedIds, onChange, onFieldCreated }) {
   );
 }
 
+const previewInputClass = 'w-full px-3.5 py-2.5 rounded-xl bg-[#080712] border border-[#211D34] text-[#FBFAFF] text-sm placeholder:text-[#5B5775] focus:border-[#8500FF] focus:outline-none transition';
+const previewLabelClass = 'block text-xs text-[#8B87A3] mb-1.5';
+
+// Exactamente lo que ve el visitante en /public/lead-forms/:id — mismos campos, mismo
+// orden, mismo estilo — pero nada se manda a ningún lado al "enviar".
+function LeadFormPreviewModal({ form, fields, onClose }) {
+  const [values, setValues] = useState({ name: '', email: '', phone: '', company: '', message: '' });
+  const [customAnswers, setCustomAnswers] = useState({});
+  const [triedSubmit, setTriedSubmit] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 overlay-in" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[480px] max-h-[88vh] overflow-y-auto modal-in">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center gap-2">
+            <Eye size={14} className="text-brand-ice" />
+            <span className="text-xs font-tech uppercase tracking-wide text-brand-ice">Vista previa — así lo ve quien lo llena</span>
+          </div>
+          <button onClick={onClose} className="text-brand-muted hover:text-white transition"><X size={18} /></button>
+        </div>
+
+        <form onSubmit={(e) => { e.preventDefault(); setTriedSubmit(true); }} className="bg-[#100E1C] border border-[#211D34] rounded-2xl p-7 shadow-2xl">
+          <h1 className="text-xl font-semibold text-white mb-5" style={{ fontFamily: 'Sora, sans-serif' }}>{form.name}</h1>
+
+          {triedSubmit && (
+            <div className="mb-4 px-3.5 py-2.5 rounded-xl bg-brand-violet/10 border border-brand-violet/30 text-brand-ice text-sm">
+              Esto es solo una vista previa — no se envía nada de verdad.
+            </div>
+          )}
+
+          <div className="space-y-3.5">
+            <div>
+              <label className={previewLabelClass}>Nombre *</label>
+              <input className={previewInputClass} value={values.name} onChange={(e) => setValues({ ...values, name: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={previewLabelClass}>Correo</label>
+                <input className={previewInputClass} value={values.email} onChange={(e) => setValues({ ...values, email: e.target.value })} />
+              </div>
+              <div>
+                <label className={previewLabelClass}>Teléfono</label>
+                <input className={previewInputClass} value={values.phone} onChange={(e) => setValues({ ...values, phone: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <label className={previewLabelClass}>Empresa</label>
+              <input className={previewInputClass} value={values.company} onChange={(e) => setValues({ ...values, company: e.target.value })} />
+            </div>
+
+            {fields.length > 0 && (
+              <div className="space-y-3.5" style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid #211D34' }}>
+                {fields.map((f) => (
+                  <div key={f.id}>
+                    <label className={previewLabelClass}>{f.label}</label>
+                    {f.field_type === 'select' ? (
+                      <select className={previewInputClass} style={{ colorScheme: 'dark' }} value={customAnswers[f.id] || ''} onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.value })}>
+                        <option value="">Elige...</option>
+                        {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    ) : f.field_type === 'boolean' ? (
+                      <label className="flex items-center gap-2 text-sm text-white py-1 cursor-pointer">
+                        <input type="checkbox" checked={customAnswers[f.id] === 'Sí'} onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.checked ? 'Sí' : 'No' })} className="w-4 h-4 accent-[#8500FF]" />
+                        Sí
+                      </label>
+                    ) : (
+                      <input className={previewInputClass} type={f.field_type === 'number' ? 'number' : f.field_type === 'date' ? 'date' : 'text'} value={customAnswers[f.id] || ''} onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.value })} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div>
+              <label className={previewLabelClass}>Mensaje (opcional)</label>
+              <textarea className={`${previewInputClass} min-h-[80px] resize-y`} value={values.message} onChange={(e) => setValues({ ...values, message: e.target.value })} />
+            </div>
+          </div>
+
+          <button type="submit" className="w-full mt-5 py-3 rounded-xl bg-gradient-to-r from-[#8500FF] to-[#E000FF] hover:opacity-90 transition text-white text-sm font-semibold">
+            Enviar
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function LeadForms() {
   const confirm = useConfirm();
   const [forms, setForms] = useState(null);
@@ -217,6 +311,7 @@ export default function LeadForms() {
   const [showForm, setShowForm] = useState(false);
   const [newForm, setNewForm] = useState({ name: '', pipeline_id: '', stage_id: '', owner_id: '', field_ids: [] });
   const [editingFieldsId, setEditingFieldsId] = useState(null);
+  const [previewFormId, setPreviewFormId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [error, setError] = useState('');
 
@@ -315,6 +410,9 @@ export default function LeadForms() {
           <div className="flex gap-2 pt-1">
             <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 transition rounded-lg text-sm font-medium">Crear formulario</button>
             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-brand-muted text-sm hover:text-brand-white transition">Cancelar</button>
+            <button type="button" onClick={() => setPreviewFormId('__new__')} className="ml-auto flex items-center gap-1 px-3 py-2 text-brand-ice text-sm hover:underline">
+              <Eye size={13} /> Vista previa
+            </button>
           </div>
         </form>
       )}
@@ -369,6 +467,9 @@ export default function LeadForms() {
 
                 <div className="flex items-center gap-2">
                   <input readOnly value={publicUrl} className="flex-1 px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs font-tech text-brand-muted" />
+                  <button onClick={() => setPreviewFormId(f.id)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition flex-shrink-0">
+                    <Eye size={12} /> Vista previa
+                  </button>
                   <button onClick={() => copy(publicUrl, `link-${f.id}`)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition flex-shrink-0">
                     {copiedId === `link-${f.id}` ? <Check size={12} /> : <Link2 size={12} />} Link
                   </button>
@@ -381,6 +482,16 @@ export default function LeadForms() {
           );
         })}
       </div>
+
+      {(() => {
+        if (!previewFormId) return null;
+        const isNew = previewFormId === '__new__';
+        const previewForm = isNew ? { name: newForm.name || 'Formulario sin nombre' } : forms?.find((f) => f.id === previewFormId);
+        if (!previewForm) return null;
+        const fieldIds = isNew ? newForm.field_ids : (previewForm.field_ids || []);
+        const previewFields = fieldIds.map((id) => dealFields.find((df) => df.id === id)).filter(Boolean);
+        return <LeadFormPreviewModal form={previewForm} fields={previewFields} onClose={() => setPreviewFormId(null)} />;
+      })()}
     </div>
   );
 }
