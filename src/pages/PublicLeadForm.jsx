@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://bit-crm-backend-production.up.railway.app';
+
+const inputClass = 'w-full px-3.5 py-2.5 rounded-xl bg-[#080712] border border-[#211D34] text-[#FBFAFF] text-sm placeholder:text-[#5B5775] focus:border-[#8500FF] focus:outline-none transition';
+const labelClass = 'block text-xs text-[#8B87A3] mb-1.5';
 
 export default function PublicLeadForm() {
   const { id } = useParams();
@@ -41,90 +45,113 @@ export default function PublicLeadForm() {
     }
   };
 
-  if (notFound) {
-    return (
-      <div style={styles.wrap}>
-        <div style={styles.card}>
-          <p style={{ color: '#8B87A3' }}>Este formulario no existe o ya no está disponible.</p>
-        </div>
-      </div>
-    );
-  }
-  if (!form) return <div style={styles.wrap} />;
-  if (!form.active) {
-    return (
-      <div style={styles.wrap}>
-        <div style={styles.card}>
-          <p style={{ color: '#8B87A3' }}>Este formulario ya no está activo.</p>
-        </div>
-      </div>
-    );
-  }
+  const Shell = ({ children }) => (
+    <div className="min-h-screen bg-[#080712] flex items-center justify-center p-5" style={{ fontFamily: 'Manrope, sans-serif' }}>
+      <div className="w-full max-w-[440px]">{children}</div>
+    </div>
+  );
 
+  if (notFound) {
+    return <Shell><div className="bg-[#100E1C] border border-[#211D34] rounded-2xl p-8 text-center text-[#8B87A3] text-sm">Este formulario no existe o ya no está disponible.</div></Shell>;
+  }
+  if (!form) {
+    return <Shell><div className="flex justify-center py-12"><Loader2 size={22} className="text-[#8B87A3] animate-spin" /></div></Shell>;
+  }
+  if (!form.active) {
+    return <Shell><div className="bg-[#100E1C] border border-[#211D34] rounded-2xl p-8 text-center text-[#8B87A3] text-sm">Este formulario ya no está activo.</div></Shell>;
+  }
   if (sent) {
     return (
-      <div style={styles.wrap}>
-        <div style={styles.card}>
-          <h1 style={styles.title}>¡Gracias!</h1>
-          <p style={{ color: '#8B87A3', marginTop: 8 }}>Recibimos tu información y te vamos a contactar pronto.</p>
+      <Shell>
+        <div className="bg-[#100E1C] border border-[#211D34] rounded-2xl p-8 text-center">
+          <div className="w-14 h-14 rounded-full bg-green-500/15 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 size={28} className="text-green-400" />
+          </div>
+          <h1 className="text-xl font-semibold text-white mb-1.5" style={{ fontFamily: 'Sora, sans-serif' }}>¡Gracias!</h1>
+          <p className="text-[#8B87A3] text-sm">Recibimos tu información y te vamos a contactar pronto.</p>
         </div>
-      </div>
+      </Shell>
     );
   }
 
   return (
-    <div style={styles.wrap}>
-      <form onSubmit={submit} style={styles.card}>
-        <h1 style={styles.title}>{form.name}</h1>
-        {error && <div style={styles.error}>{error}</div>}
-        <input style={styles.input} placeholder="Nombre*" value={values.name} onChange={(e) => setValues({ ...values, name: e.target.value })} />
-        <input style={styles.input} type="email" placeholder="Correo electrónico" value={values.email} onChange={(e) => setValues({ ...values, email: e.target.value })} />
-        <input style={styles.input} placeholder="Teléfono" value={values.phone} onChange={(e) => setValues({ ...values, phone: e.target.value })} />
-        <input style={styles.input} placeholder="Empresa" value={values.company} onChange={(e) => setValues({ ...values, company: e.target.value })} />
-        {(form.custom_fields || []).map((f) => (
-          <div key={f.id} style={{ marginBottom: 12 }}>
-            <label style={styles.label}>{f.label}</label>
-            {f.field_type === 'select' ? (
-              <select
-                style={styles.input}
-                value={customAnswers[f.id] || ''}
-                onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.value })}
-              >
-                <option value="">Elige...</option>
-                {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
-              </select>
-            ) : f.field_type === 'boolean' ? (
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#FBFAFF', fontSize: 14 }}>
-                <input
-                  type="checkbox"
-                  checked={customAnswers[f.id] === 'Sí'}
-                  onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.checked ? 'Sí' : 'No' })}
-                />
-                Sí
-              </label>
-            ) : (
-              <input
-                style={styles.input}
-                type={f.field_type === 'number' ? 'number' : f.field_type === 'date' ? 'date' : 'text'}
-                value={customAnswers[f.id] || ''}
-                onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.value })}
-              />
-            )}
+    <Shell>
+      <form onSubmit={submit} className="bg-[#100E1C] border border-[#211D34] rounded-2xl p-7 shadow-2xl">
+        <h1 className="text-xl font-semibold text-white mb-5" style={{ fontFamily: 'Sora, sans-serif' }}>{form.name}</h1>
+
+        {error && <div className="mb-4 px-3.5 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+
+        <div className="space-y-3.5">
+          <div>
+            <label className={labelClass}>Nombre *</label>
+            <input className={inputClass} value={values.name} onChange={(e) => setValues({ ...values, name: e.target.value })} />
           </div>
-        ))}
-        <textarea style={{ ...styles.input, minHeight: 80, resize: 'vertical' }} placeholder="Mensaje (opcional)" value={values.message} onChange={(e) => setValues({ ...values, message: e.target.value })} />
-        <button type="submit" disabled={sending} style={styles.button}>{sending ? 'Enviando...' : 'Enviar'}</button>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Correo</label>
+              <input className={inputClass} type="email" value={values.email} onChange={(e) => setValues({ ...values, email: e.target.value })} />
+            </div>
+            <div>
+              <label className={labelClass}>Teléfono</label>
+              <input className={inputClass} value={values.phone} onChange={(e) => setValues({ ...values, phone: e.target.value })} />
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>Empresa</label>
+            <input className={inputClass} value={values.company} onChange={(e) => setValues({ ...values, company: e.target.value })} />
+          </div>
+
+          {(form.custom_fields || []).length > 0 && (
+            <div className="pt-1 border-t border-[#211D34] space-y-3.5" style={{ marginTop: 18, paddingTop: 18 }}>
+              {form.custom_fields.map((f) => (
+                <div key={f.id}>
+                  <label className={labelClass}>{f.label}</label>
+                  {f.field_type === 'select' ? (
+                    <select
+                      className={inputClass} style={{ colorScheme: 'dark' }}
+                      value={customAnswers[f.id] || ''}
+                      onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.value })}
+                    >
+                      <option value="">Elige...</option>
+                      {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  ) : f.field_type === 'boolean' ? (
+                    <label className="flex items-center gap-2 text-sm text-white py-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={customAnswers[f.id] === 'Sí'}
+                        onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.checked ? 'Sí' : 'No' })}
+                        className="w-4 h-4 accent-[#8500FF]"
+                      />
+                      Sí
+                    </label>
+                  ) : (
+                    <input
+                      className={inputClass}
+                      type={f.field_type === 'number' ? 'number' : f.field_type === 'date' ? 'date' : 'text'}
+                      value={customAnswers[f.id] || ''}
+                      onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.value })}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div>
+            <label className={labelClass}>Mensaje (opcional)</label>
+            <textarea className={`${inputClass} min-h-[80px] resize-y`} value={values.message} onChange={(e) => setValues({ ...values, message: e.target.value })} />
+          </div>
+        </div>
+
+        <button
+          type="submit" disabled={sending}
+          className="w-full mt-5 py-3 rounded-xl bg-gradient-to-r from-[#8500FF] to-[#E000FF] hover:opacity-90 transition text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {sending && <Loader2 size={14} className="animate-spin" />}
+          {sending ? 'Enviando...' : 'Enviar'}
+        </button>
       </form>
-    </div>
+    </Shell>
   );
 }
-
-const styles = {
-  wrap: { minHeight: '100vh', background: '#080712', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'Manrope, sans-serif' },
-  card: { width: '100%', maxWidth: 420, background: '#100E1C', border: '1px solid #211D34', borderRadius: 16, padding: 28 },
-  title: { color: '#FBFAFF', fontSize: 20, fontWeight: 600, marginBottom: 16, fontFamily: 'Sora, sans-serif' },
-  input: { width: '100%', boxSizing: 'border-box', padding: '10px 14px', marginBottom: 12, borderRadius: 8, background: '#080712', border: '1px solid #211D34', color: '#FBFAFF', fontSize: 14, fontFamily: 'inherit' },
-  button: { width: '100%', padding: '11px 14px', borderRadius: 8, background: 'linear-gradient(90deg, #8500FF 0%, #E000FF 100%)', color: 'white', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
-  error: { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', padding: '8px 12px', borderRadius: 8, fontSize: 13, marginBottom: 12 },
-  label: { display: 'block', color: '#8B87A3', fontSize: 12, marginBottom: 4 },
-};

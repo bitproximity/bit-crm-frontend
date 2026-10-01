@@ -1,16 +1,34 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
-import { ClipboardList, Plus, Copy, Trash2, Check, ListChecks, Settings2 } from 'lucide-react';
+import {
+  ClipboardList, Plus, Copy, Trash2, Check, X, GripVertical,
+  Type, Hash, Calendar, CheckSquare, List, ChevronUp, ChevronDown,
+  Sparkles, Link2, Code2, Users2, Target,
+} from 'lucide-react';
 
 const PUBLIC_APP_URL = 'https://crm.bitproximity.com';
 const API_URL = import.meta.env.VITE_API_URL || 'https://bit-crm-backend-production.up.railway.app';
 
+const TYPE_META = {
+  text: { icon: Type, label: 'Texto' },
+  number: { icon: Hash, label: 'Número' },
+  date: { icon: Calendar, label: 'Fecha' },
+  boolean: { icon: CheckSquare, label: 'Sí/No' },
+  select: { icon: List, label: 'Lista' },
+};
+
+function slugify(label) {
+  return label
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
 // El código que se pega en el sitio externo — las preguntas personalizadas se mandan
-// aparte como custom_answers: { field_id: valor }, no como campos sueltos, porque así
-// es como el backend sabe a qué campo personalizado (de los que ya existen para "trato"
-// en Configuración) corresponde cada respuesta.
+// aparte como custom_answers: { field_id: valor }, porque así sabe el backend a qué
+// campo personalizado corresponde cada respuesta.
 function embedSnippet(formId, fields) {
   const customInputs = (fields || []).map((f) => {
     if (f.field_type === 'select') {
@@ -52,6 +70,144 @@ document.getElementById('bit-lead-${formId}').addEventListener('submit', functio
 </script>`;
 }
 
+// Editor de preguntas — crear una pregunta nueva, agregar una que ya existe, reordenar
+// o quitar. Vive directo acá, sin mandar a nadie a Configuración.
+function QuestionsEditor({ allFields, selectedIds, onChange, onFieldCreated }) {
+  const [showNew, setShowNew] = useState(false);
+  const [newQ, setNewQ] = useState({ label: '', field_type: 'text', options: '' });
+  const [showAddExisting, setShowAddExisting] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
+
+  const selected = selectedIds.map((id) => allFields.find((f) => f.id === id)).filter(Boolean);
+  const available = allFields.filter((f) => !selectedIds.includes(f.id));
+
+  const removeOne = (id) => onChange(selectedIds.filter((x) => x !== id));
+  const move = (index, dir) => {
+    const next = [...selectedIds];
+    const target = index + dir;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  };
+
+  const createQuestion = async (e) => {
+    e.preventDefault();
+    setError('');
+    setCreating(true);
+    try {
+      const created = await api.post('/api/custom-fields', {
+        entity_type: 'deal',
+        key: slugify(newQ.label) || `pregunta_${Date.now()}`,
+        label: newQ.label,
+        field_type: newQ.field_type,
+        options: newQ.field_type === 'select' ? newQ.options.split(',').map((o) => o.trim()).filter(Boolean) : null,
+      });
+      onFieldCreated(created);
+      onChange([...selectedIds, created.id]);
+      setNewQ({ label: '', field_type: 'text', options: '' });
+      setShowNew(false);
+    } catch (err) {
+      setError(err.message || 'No se pudo crear la pregunta.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-brand-border bg-brand-bg/40 overflow-hidden">
+      {selected.length > 0 && (
+        <div className="divide-y divide-brand-border/60">
+          {selected.map((f, i) => {
+            const Icon = TYPE_META[f.field_type]?.icon || Type;
+            return (
+              <div key={f.id} className="flex items-center gap-2 px-3 py-2 group">
+                <GripVertical size={13} className="text-brand-muted/40 flex-shrink-0" />
+                <div className="w-7 h-7 rounded-lg bg-brand-violet/15 flex items-center justify-center flex-shrink-0">
+                  <Icon size={13} className="text-brand-ice" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm truncate">{f.label}</div>
+                  <div className="text-[10px] text-brand-muted font-tech uppercase">{TYPE_META[f.field_type]?.label}</div>
+                </div>
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
+                  <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="p-1 text-brand-muted hover:text-brand-white disabled:opacity-20"><ChevronUp size={13} /></button>
+                  <button type="button" onClick={() => move(i, 1)} disabled={i === selected.length - 1} className="p-1 text-brand-muted hover:text-brand-white disabled:opacity-20"><ChevronDown size={13} /></button>
+                  <button type="button" onClick={() => removeOne(f.id)} className="p-1 text-brand-muted hover:text-red-400"><X size={13} /></button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {selected.length === 0 && !showNew && (
+        <div className="px-3 py-4 text-center text-xs text-brand-muted">Sin preguntas todavía — agrega una abajo.</div>
+      )}
+
+      <div className="p-2 flex flex-wrap gap-1.5 border-t border-brand-border/60 bg-brand-panel/40">
+        {available.length > 0 && (
+          <div className="relative">
+            <button type="button" onClick={() => setShowAddExisting(!showAddExisting)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-brand-ice hover:bg-brand-bg transition">
+              <Plus size={12} /> Usar una existente
+            </button>
+            {showAddExisting && (
+              <div className="absolute z-20 top-full mt-1 left-0 w-56 max-h-48 overflow-y-auto bg-brand-panel border border-brand-border rounded-lg shadow-xl">
+                {available.map((f) => (
+                  <button
+                    key={f.id} type="button"
+                    onClick={() => { onChange([...selectedIds, f.id]); setShowAddExisting(false); }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-brand-bg transition truncate"
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <button type="button" onClick={() => setShowNew(!showNew)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-brand-ice hover:bg-brand-bg transition">
+          <Sparkles size={12} /> Crear pregunta nueva
+        </button>
+      </div>
+
+      {showNew && (
+        <form onSubmit={createQuestion} className="p-3 border-t border-brand-border/60 bg-brand-panel/60 space-y-2">
+          {error && <div className="text-xs text-red-300">{error}</div>}
+          <input
+            autoFocus required placeholder="¿Qué quieres preguntar? (ej. Presupuesto mensual)"
+            value={newQ.label} onChange={(e) => setNewQ({ ...newQ, label: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
+          />
+          <div className="flex gap-1.5 flex-wrap">
+            {Object.entries(TYPE_META).map(([key, { icon: Icon, label }]) => (
+              <button
+                key={key} type="button" onClick={() => setNewQ({ ...newQ, field_type: key })}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border transition ${newQ.field_type === key ? 'bg-brand-violet/20 border-brand-violet text-brand-white' : 'border-brand-border text-brand-muted hover:border-brand-muted'}`}
+              >
+                <Icon size={12} /> {label}
+              </button>
+            ))}
+          </div>
+          {newQ.field_type === 'select' && (
+            <input
+              placeholder="Opciones separadas por coma (ej. Bajo, Medio, Alto)"
+              value={newQ.options} onChange={(e) => setNewQ({ ...newQ, options: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
+            />
+          )}
+          <div className="flex gap-2">
+            <button disabled={creating} className="px-3 py-1.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-xs font-medium disabled:opacity-50">
+              {creating ? 'Creando...' : 'Agregar pregunta'}
+            </button>
+            <button type="button" onClick={() => setShowNew(false)} className="px-3 py-1.5 text-brand-muted text-xs hover:text-brand-white">Cancelar</button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export default function LeadForms() {
   const confirm = useConfirm();
   const [forms, setForms] = useState(null);
@@ -74,8 +230,7 @@ export default function LeadForms() {
   }, []);
 
   const selectedPipeline = pipelines.find((p) => p.id === newForm.pipeline_id);
-
-  const toggleFieldId = (list, fieldId) => (list.includes(fieldId) ? list.filter((id) => id !== fieldId) : [...list, fieldId]);
+  const onFieldCreated = (field) => setDealFields((prev) => [...prev, field]);
 
   const create = async (e) => {
     e.preventDefault();
@@ -110,115 +265,117 @@ export default function LeadForms() {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
-  const fieldPicker = (selectedIds, onChange) => (
-    <div className="space-y-1.5 max-h-40 overflow-y-auto bg-brand-bg border border-brand-border rounded-lg p-2.5">
-      {dealFields.length === 0 ? (
-        <p className="text-xs text-brand-muted">
-          Todavía no tienes campos personalizados de trato. <Link to="/settings" className="text-brand-ice hover:underline">Crea uno en Configuración</Link> y aparecerá acá.
-        </p>
-      ) : (
-        dealFields.map((f) => (
-          <label key={f.id} className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" checked={selectedIds.includes(f.id)} onChange={() => onChange(toggleFieldId(selectedIds, f.id))} className="accent-brand-violet" />
-            {f.label} <span className="text-[10px] text-brand-muted font-tech">{f.field_type}</span>
-          </label>
-        ))
-      )}
-    </div>
-  );
-
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <h1 className="font-headline text-xl font-semibold flex items-center gap-2"><ClipboardList size={20} /> Formularios de captura</h1>
-        <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium flex items-center gap-1.5">
+        <h1 className="font-headline text-xl font-semibold flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center">
+            <ClipboardList size={16} className="text-white" />
+          </div>
+          Formularios de captura
+        </h1>
+        <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 transition rounded-lg text-sm font-medium flex items-center gap-1.5">
           <Plus size={14} /> Nuevo formulario
         </button>
       </div>
-      <p className="text-brand-muted text-sm mb-6">Cada envío crea (o reutiliza) contacto y empresa, y cae directo a un trato en el pipeline y etapa que elijas — sin cargar nada a mano. Agrega preguntas propias para llevar mejor data.</p>
+      <p className="text-brand-muted text-sm mb-6">Cada envío crea (o reutiliza) contacto y empresa, y cae directo a un trato en el pipeline y etapa que elijas. Agrega tus propias preguntas para llevar mejor data.</p>
 
       {error && <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
 
       {showForm && (
-        <form onSubmit={create} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 space-y-3">
+        <form onSubmit={create} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth space-y-4">
           <input
             autoFocus required placeholder="Nombre del formulario (ej. Web — Contacto)"
             value={newForm.name} onChange={(e) => setNewForm({ ...newForm, name: e.target.value })}
-            className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm focus:border-brand-violet focus:outline-none transition"
           />
           <div className="grid grid-cols-3 gap-3">
-            <select required value={newForm.pipeline_id} onChange={(e) => setNewForm({ ...newForm, pipeline_id: e.target.value, stage_id: '' })} className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" style={{ colorScheme: 'dark' }}>
+            <select required value={newForm.pipeline_id} onChange={(e) => setNewForm({ ...newForm, pipeline_id: e.target.value, stage_id: '' })} className="px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm" style={{ colorScheme: 'dark' }}>
               <option value="">Pipeline...</option>
               {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <select required disabled={!selectedPipeline} value={newForm.stage_id} onChange={(e) => setNewForm({ ...newForm, stage_id: e.target.value })} className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm disabled:opacity-50" style={{ colorScheme: 'dark' }}>
+            <select required disabled={!selectedPipeline} value={newForm.stage_id} onChange={(e) => setNewForm({ ...newForm, stage_id: e.target.value })} className="px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm disabled:opacity-50" style={{ colorScheme: 'dark' }}>
               <option value="">Etapa...</option>
               {selectedPipeline?.pipeline_stages?.sort((a, b) => a.position - b.position).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-            <select value={newForm.owner_id} onChange={(e) => setNewForm({ ...newForm, owner_id: e.target.value })} className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm" style={{ colorScheme: 'dark' }}>
+            <select value={newForm.owner_id} onChange={(e) => setNewForm({ ...newForm, owner_id: e.target.value })} className="px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm" style={{ colorScheme: 'dark' }}>
               <option value="">Sin dueño</option>
               {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-brand-muted mb-1.5 flex items-center gap-1"><ListChecks size={12} /> Preguntas extra (opcional)</label>
-            {fieldPicker(newForm.field_ids, (ids) => setNewForm({ ...newForm, field_ids: ids }))}
+            <label className="flex items-center gap-1.5 text-xs font-tech uppercase tracking-wide text-brand-muted mb-2"><Sparkles size={12} /> Preguntas de este formulario</label>
+            <QuestionsEditor
+              allFields={dealFields}
+              selectedIds={newForm.field_ids}
+              onChange={(ids) => setNewForm({ ...newForm, field_ids: ids })}
+              onFieldCreated={onFieldCreated}
+            />
           </div>
-          <div className="flex gap-2">
-            <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">Crear</button>
-            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-brand-muted text-sm hover:text-brand-white">Cancelar</button>
+          <div className="flex gap-2 pt-1">
+            <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 transition rounded-lg text-sm font-medium">Crear formulario</button>
+            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-brand-muted text-sm hover:text-brand-white transition">Cancelar</button>
           </div>
         </form>
       )}
 
       {forms === null && <div className="text-brand-muted text-sm">Cargando...</div>}
       {forms?.length === 0 && (
-        <div className="text-center py-16 text-brand-muted text-sm border border-dashed border-brand-border rounded-xl">
-          Sin formularios todavía. Crea uno para empezar a capturar leads desde tu web.
+        <div className="text-center py-16 border border-dashed border-brand-border rounded-xl">
+          <ClipboardList size={28} className="mx-auto mb-3 text-brand-muted/50" />
+          <p className="text-brand-muted text-sm">Sin formularios todavía. Crea uno para empezar a capturar leads desde tu web.</p>
         </div>
       )}
 
       <div className="space-y-3">
         {forms?.map((f) => {
           const publicUrl = `${PUBLIC_APP_URL}/public/lead-forms/${f.id}`;
-          const formFields = dealFields.filter((df) => (f.field_ids || []).includes(df.id));
+          const formFields = (f.field_ids || []).map((id) => dealFields.find((df) => df.id === id)).filter(Boolean);
           return (
-            <div key={f.id} className="bg-brand-panel border border-brand-border rounded-xl p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <div className="font-manrope font-medium flex items-center gap-2">
-                    {f.name}
-                    <span className={`text-[10px] font-tech uppercase px-1.5 py-0.5 rounded-full ${f.active ? 'bg-green-500/15 text-green-300' : 'bg-brand-muted/15 text-brand-muted'}`}>{f.active ? 'Activo' : 'Pausado'}</span>
+            <div key={f.id} className="bg-brand-panel border border-brand-border rounded-xl panel-depth overflow-hidden">
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="font-manrope font-medium flex items-center gap-2">
+                      {f.name}
+                      <span className={`text-[10px] font-tech uppercase px-1.5 py-0.5 rounded-full ${f.active ? 'bg-green-500/15 text-green-300' : 'bg-brand-muted/15 text-brand-muted'}`}>{f.active ? 'Activo' : 'Pausado'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-brand-muted mt-1">
+                      <span className="flex items-center gap-1"><Target size={11} />{f.pipelines?.name} · {f.pipeline_stages?.name}</span>
+                      <span className="flex items-center gap-1"><Users2 size={11} />{f.team_members?.full_name || 'Sin dueño'}</span>
+                      <span>{f.submissions_count || 0} envío(s)</span>
+                    </div>
                   </div>
-                  <div className="text-xs text-brand-muted mt-0.5">
-                    {f.pipelines?.name} · {f.pipeline_stages?.name} · {f.team_members?.full_name || 'Sin dueño'} · {f.submissions_count || 0} envío(s)
-                    {formFields.length > 0 && ` · ${formFields.length} pregunta(s) extra`}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <button onClick={() => toggleActive(f)} className="text-xs text-brand-ice hover:underline">{f.active ? 'Pausar' : 'Reactivar'}</button>
+                    <button onClick={() => remove(f)} className="text-brand-muted hover:text-red-400 transition"><Trash2 size={14} /></button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button onClick={() => setEditingFieldsId(editingFieldsId === f.id ? null : f.id)} className="flex items-center gap-1 text-xs text-brand-ice hover:underline">
-                    <Settings2 size={12} /> Preguntas
+
+                <button onClick={() => setEditingFieldsId(editingFieldsId === f.id ? null : f.id)} className="flex items-center gap-1.5 text-xs text-brand-ice hover:underline mb-2">
+                  <Sparkles size={12} /> {formFields.length > 0 ? `${formFields.length} pregunta(s)` : 'Agregar preguntas'} {editingFieldsId === f.id ? '▴' : '▾'}
+                </button>
+
+                {editingFieldsId === f.id && (
+                  <div className="mb-3">
+                    <QuestionsEditor
+                      allFields={dealFields}
+                      selectedIds={f.field_ids || []}
+                      onChange={(ids) => saveFieldIds(f, ids)}
+                      onFieldCreated={onFieldCreated}
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <input readOnly value={publicUrl} className="flex-1 px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs font-tech text-brand-muted" />
+                  <button onClick={() => copy(publicUrl, `link-${f.id}`)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition flex-shrink-0">
+                    {copiedId === `link-${f.id}` ? <Check size={12} /> : <Link2 size={12} />} Link
                   </button>
-                  <button onClick={() => toggleActive(f)} className="text-xs text-brand-ice hover:underline">{f.active ? 'Pausar' : 'Reactivar'}</button>
-                  <button onClick={() => remove(f)} className="text-brand-muted hover:text-red-400"><Trash2 size={14} /></button>
+                  <button onClick={() => copy(embedSnippet(f.id, formFields), `embed-${f.id}`)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition flex-shrink-0">
+                    {copiedId === `embed-${f.id}` ? <Check size={12} /> : <Code2 size={12} />} Código para tu web
+                  </button>
                 </div>
-              </div>
-
-              {editingFieldsId === f.id && (
-                <div className="mb-3">
-                  <p className="text-xs text-brand-muted mb-1.5">Se guarda solo — marca o desmarca y listo.</p>
-                  {fieldPicker(f.field_ids || [], (ids) => saveFieldIds(f, ids))}
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 mb-2">
-                <input readOnly value={publicUrl} className="flex-1 px-2 py-1.5 rounded bg-brand-bg border border-brand-border text-xs font-tech text-brand-muted" />
-                <button onClick={() => copy(publicUrl, `link-${f.id}`)} className="flex items-center gap-1 px-2 py-1.5 rounded bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition flex-shrink-0">
-                  {copiedId === `link-${f.id}` ? <Check size={12} /> : <Copy size={12} />} Link
-                </button>
-                <button onClick={() => copy(embedSnippet(f.id, formFields), `embed-${f.id}`)} className="flex items-center gap-1 px-2 py-1.5 rounded bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition flex-shrink-0">
-                  {copiedId === `embed-${f.id}` ? <Check size={12} /> : <Copy size={12} />} Código para tu web
-                </button>
               </div>
             </div>
           );
