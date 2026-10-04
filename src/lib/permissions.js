@@ -25,6 +25,7 @@ export const BLOCKED_PAGE_PATHS = {
   b2b: ['/b2b-meetings'],
   productos: ['/products'],
   forecast: [],
+  agenda_equipo: [], // no es una página: limita Actividades a las propias
 };
 
 export function isPageBlocked(blockedPages, pageKey) {

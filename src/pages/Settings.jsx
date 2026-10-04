@@ -701,6 +701,7 @@ function ExchangeRatesAdmin() {
 // admin). roles = roles no-admin que tienen esa sección por defecto (a los demás no aplica).
 const BLOCKABLE = [
   { key: 'facturacion', label: 'Facturación', roles: [] },
+  { key: 'agenda_equipo', label: 'Agenda del equipo', roles: ['operaciones', 'outbound', 'wifi_partner'] },
   { key: 'forecast', label: 'Forecast', roles: [] },
   { key: 'metricas', label: 'Métricas', roles: ['wifi_partner'] },
   { key: 'deals', label: 'Pipeline', roles: ['operaciones', 'wifi_partner'] },

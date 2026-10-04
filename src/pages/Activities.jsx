@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { isPageBlocked } from '../lib/permissions';
 import { api } from '../lib/api';
 import DateTimePicker from '../components/DateTimePicker';
 import { useOutsideClick } from '../hooks/useOutsideClick';
@@ -26,6 +28,12 @@ function activityStatus(a) {
 
 export default function Activities() {
   const confirm = useConfirm();
+  const { profile } = useAuth();
+  // Quien tiene bloqueada la "Agenda del equipo" solo ve sus propias actividades (el backend
+  // lo fuerza igual); el resto elige entre Mías / Equipo.
+  const teamAgendaBlocked = isPageBlocked(profile?.blocked_pages, 'agenda_equipo');
+  const [scope, setScope] = useState('equipo');
+  const onlyMine = teamAgendaBlocked || scope === 'mias';
   const [view, setView] = useState('tablero'); // tablero | lista
   const [activities, setActivities] = useState([]);
   const [tab, setTab] = useState('pendiente'); // solo para la vista Lista
@@ -67,13 +75,16 @@ export default function Activities() {
   };
 
   const load = () => {
-    const query = view === 'tablero' ? '' : `?status=${tab}`;
-    return api.get(`/api/activities${query}`).then(setActivities).catch(console.error);
+    const params = new URLSearchParams();
+    if (view !== 'tablero') params.set('status', tab);
+    if (onlyMine) params.set('mine', 'true');
+    const qs = params.toString();
+    return api.get(`/api/activities${qs ? `?${qs}` : ''}`).then(setActivities).catch(console.error);
   };
 
   useEffect(() => {
     load();
-  }, [tab, view]);
+  }, [tab, view, onlyMine]);
 
   const create = async (e) => {
     e.preventDefault();
@@ -179,7 +190,16 @@ export default function Activities() {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <h1 className="font-headline text-xl font-semibold">Actividades</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="font-headline text-xl font-semibold">Actividades</h1>
+          {!teamAgendaBlocked && (
+            <div className="flex bg-brand-panel border border-brand-border rounded-lg p-0.5 text-xs">
+              {[['mias', 'Mías'], ['equipo', 'Equipo']].map(([k, label]) => (
+                <button key={k} onClick={() => setScope(k)} className={`px-2.5 py-1 rounded-md transition ${scope === k ? 'bg-brand-violet/25 text-brand-ice' : 'text-brand-muted hover:text-white'}`}>{label}</button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="flex gap-2">
           <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileSelect} className="hidden" />
           <button
