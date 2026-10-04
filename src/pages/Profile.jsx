@@ -101,6 +101,12 @@ export default function Profile() {
           Hubo un error conectando Gmail. Intenta de nuevo.
         </div>
       )}
+      {gmailFlag === 'taken' && (
+        <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-300">
+          La cuenta de Google <strong>{params.get('email')}</strong> pertenece a otra persona del equipo y no se puede conectar en tu perfil.
+          Cierra esa sesión de Google en el navegador (o usa una ventana de incógnito) y conecta tu propia cuenta.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">

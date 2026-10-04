@@ -697,6 +697,17 @@ function ExchangeRatesAdmin() {
   );
 }
 
+// Secciones que se le pueden quitar a una persona puntual, encima de su rol (incluso a un
+// admin). roles = roles no-admin que tienen esa sección por defecto (a los demás no aplica).
+const BLOCKABLE = [
+  { key: 'facturacion', label: 'Facturación', roles: [] },
+  { key: 'forecast', label: 'Forecast', roles: [] },
+  { key: 'metricas', label: 'Métricas', roles: ['wifi_partner'] },
+  { key: 'deals', label: 'Pipeline', roles: ['operaciones', 'wifi_partner'] },
+  { key: 'b2b', label: 'Bit Prospect', roles: ['outbound'] },
+  { key: 'productos', label: 'Productos', roles: ['operaciones', 'outbound'] },
+];
+
 function TeamAdmin() {
   const confirm = useConfirm();
   const [members, setMembers] = useState([]);
@@ -722,6 +733,19 @@ function TeamAdmin() {
       setError(err.message || 'No se pudo invitar al usuario.');
     }
     setInviting(false);
+  };
+
+  const toggleBlocked = async (member, pageKey) => {
+    setError('');
+    const current = member.blocked_pages || [];
+    const next = current.includes(pageKey) ? current.filter((p) => p !== pageKey) : [...current, pageKey];
+    setMembers((prev) => prev.map((m) => (m.id === member.id ? { ...m, blocked_pages: next } : m)));
+    try {
+      await api.patch(`/api/team/${member.id}`, { blocked_pages: next });
+    } catch (err) {
+      setError(err.message || 'No se pudo actualizar las restricciones.');
+      load();
+    }
   };
 
   const changeRole = async (id, role) => {
@@ -838,7 +862,8 @@ function TeamAdmin() {
 
       <div className="space-y-1.5">
         {members.map((m) => (
-          <div key={m.id} className={`flex items-center justify-between px-3 py-2 rounded-lg ${m.active ? 'bg-brand-bg' : 'bg-brand-bg/40'}`}>
+          <div key={m.id} className={`px-3 py-2 rounded-lg ${m.active ? 'bg-brand-bg' : 'bg-brand-bg/40'}`}>
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center text-[10px] font-tech font-bold flex-shrink-0">
                 {(m.full_name || '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
@@ -881,6 +906,25 @@ function TeamAdmin() {
                 </>
               )}
             </div>
+          </div>
+          {m.active && (
+            <div className="flex flex-wrap items-center gap-1.5 mt-2 pl-10">
+              <span className="text-[10px] font-tech uppercase text-brand-muted mr-1">Bloquear:</span>
+              {BLOCKABLE.filter((b) => m.role === 'admin' || b.roles.includes(m.role)).map((b) => {
+                const on = (m.blocked_pages || []).includes(b.key);
+                return (
+                  <button
+                    key={b.key}
+                    onClick={() => toggleBlocked(m, b.key)}
+                    title={on ? `${m.full_name} NO ve ${b.label}. Clic para devolverle acceso.` : `Clic para que ${m.full_name} no vea ${b.label}.`}
+                    className={`text-[11px] px-2 py-0.5 rounded-full border transition ${on ? 'bg-red-500/15 border-red-500/40 text-red-300 line-through' : 'border-brand-border text-brand-muted hover:border-brand-violet/50 hover:text-brand-ice'}`}
+                  >
+                    {b.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           </div>
         ))}
         {members.length === 0 && <div className="text-brand-muted text-xs">Sin miembros todavía.</div>}

@@ -40,7 +40,7 @@ export default function Layout() {
   // configurable desde Configuración (profile.permissions), no de a qué rol perteneces.
   const visibleNav = nav.filter((item) => {
     if (item.to === '/automations') return profile?.permissions?.automations?.can_view || false;
-    return canAccessPath(role, item.to);
+    return canAccessPath(role, item.to, profile?.blocked_pages);
   });
 
   // Si acaba de entrar y "/" no le corresponde, lo mandamos directo a su primera sección permitida.
@@ -50,7 +50,7 @@ export default function Layout() {
 
   const hasAccess = location.pathname.startsWith('/automations')
     ? (profile?.permissions?.automations?.can_view || isAdmin(role))
-    : canAccessPath(role, location.pathname);
+    : canAccessPath(role, location.pathname, profile?.blocked_pages);
 
   const navLinkClass = ({ isActive }) =>
     `group flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-manrope transition-all duration-200 ${

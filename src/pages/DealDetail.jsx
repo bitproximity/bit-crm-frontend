@@ -1,4 +1,6 @@
 import { SkeletonPage } from '../components/Skeleton';
+import { useAuth } from '../hooks/useAuth';
+import { canAccessPath } from '../lib/permissions';
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -63,6 +65,8 @@ function computeStageDays(deal) {
 }
 
 export default function DealDetail() {
+  const { profile } = useAuth();
+  const canSeeInvoices = canAccessPath(profile?.role, '/invoicing', profile?.blocked_pages);
   const { id } = useParams();
   const navigate = useNavigate();
   const confirm = useConfirm();
@@ -231,7 +235,7 @@ export default function DealDetail() {
         setBookings(email ? data.filter((b) => b.attendees?.includes(email)) : data);
       }).catch(() => setBookings([]));
     }
-    if (tab === 'factura') {
+    if (tab === 'factura' && canSeeInvoices) {
       api.get(`/api/invoices?deal_id=${id}`).then(setDealInvoices).catch(() => setDealInvoices([]));
     }
     if (tab === 'archivos') {
@@ -1227,7 +1231,7 @@ export default function DealDetail() {
               { key: 'archivos', label: 'Archivos' },
               { key: 'documentos', label: 'Documentos' },
               { key: 'factura', label: 'Factura' },
-            ].map((t) => (
+            ].filter((t) => t.key !== 'factura' || canSeeInvoices).map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
