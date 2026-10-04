@@ -245,7 +245,7 @@ export default function ProjectDetail() {
           <button onClick={createDoc} className="text-xs text-brand-ice hover:underline">+ Nuevo documento</button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {docs.map((d) => (
+          {docs.filter((d) => !d.parent_id || !docs.some((x) => x.id === d.parent_id)).map((d) => (
             <Link key={d.id} to={`/documents?open=${d.id}`} className="flex items-center gap-2 bg-brand-panel border border-brand-border rounded-lg p-3 text-sm hover:border-brand-violet/40 transition">
               <FileText size={14} className="text-brand-muted flex-shrink-0" />
               {d.title || 'Sin título'}

@@ -26,6 +26,15 @@ export default function CompanyDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [docs, setDocs] = useState([]);
+  const loadDocs = () => api.get(`/api/documents/tree?company_id=${id}`).then(setDocs).catch(() => setDocs([]));
+  useEffect(() => { loadDocs(); }, [id]);
+
+  const createDoc = async () => {
+    const created = await api.post('/api/documents', { title: `${company.name} — nuevo documento`, content: '', company_id: id });
+    navigate(`/documents?open=${created.id}`);
+  };
+
   const load = () => api.get(`/api/companies/${id}`).then((data) => {
     setCompany(data);
     setForm({
@@ -272,6 +281,8 @@ export default function CompanyDetail() {
         </div>
       </div>
 
+      <CompanyDocuments docs={docs} onCreate={createDoc} />
+
       {selectedContactId && (
         <ContactDetailPanel
           contactId={selectedContactId}
@@ -298,6 +309,59 @@ export default function CompanyDetail() {
           onClose={() => setShowAddDeal(false)}
           onCreated={() => { setShowAddDeal(false); load(); }}
         />
+      )}
+    </div>
+  );
+}
+
+// Documentos de la empresa agrupados igual que en la página Documentos: primero los
+// generales de la empresa, luego uno por proyecto y uno por trato.
+function CompanyDocuments({ docs, onCreate }) {
+  const ids = new Set(docs.map((d) => d.id));
+  const roots = docs.filter((d) => !d.parent_id || !ids.has(d.parent_id));
+  const childCount = (id) => docs.filter((d) => d.parent_id === id).length;
+  const groups = [];
+  const general = roots.filter((d) => !d.project_id && !d.deal_id);
+  if (general.length) groups.push({ key: 'general', label: 'General', docs: general });
+  const byProject = {};
+  roots.filter((d) => d.project_id).forEach((d) => { (byProject[d.project_id] ||= { label: d.project_name || 'Proyecto', docs: [] }).docs.push(d); });
+  Object.entries(byProject).forEach(([k, g]) => groups.push({ key: `p-${k}`, label: `Proyecto · ${g.label}`, docs: g.docs }));
+  const byDeal = {};
+  roots.filter((d) => !d.project_id && d.deal_id).forEach((d) => { (byDeal[d.deal_id] ||= { label: d.deal_title || 'Trato', docs: [] }).docs.push(d); });
+  Object.entries(byDeal).forEach(([k, g]) => groups.push({ key: `d-${k}`, label: `Trato · ${g.label}`, docs: g.docs }));
+
+  return (
+    <div className="mt-4 bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <FileText size={15} className="text-brand-muted" />
+          <span className="font-manrope font-medium text-sm">Documentos ({docs.length})</span>
+        </div>
+        <button onClick={onCreate} className="icon-btn p-1 rounded text-brand-muted hover:text-brand-ice transition" title="Nuevo documento">
+          <Plus size={15} />
+        </button>
+      </div>
+      {groups.length === 0 ? (
+        <div className="text-brand-muted text-xs text-center py-6 border border-dashed border-brand-border rounded-lg">
+          Sin documentos todavía. Los documentos de sus proyectos y tratos también aparecen aquí.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {groups.map((g) => (
+            <div key={g.key}>
+              <div className="text-[10px] font-tech uppercase tracking-wide text-brand-muted mb-1.5">{g.label}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {g.docs.map((d) => (
+                  <Link key={d.id} to={`/documents?open=${d.id}`} className="flex items-center gap-2 bg-brand-bg border border-brand-border rounded-lg px-3 py-2.5 text-sm hover:border-brand-violet/40 transition min-w-0">
+                    <FileText size={14} className="text-brand-muted flex-shrink-0" />
+                    <span className="truncate flex-1">{d.title || 'Sin título'}</span>
+                    {childCount(d.id) > 0 && <span className="text-[10px] font-tech text-brand-muted">+{childCount(d.id)}</span>}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

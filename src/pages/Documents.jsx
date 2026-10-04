@@ -1,21 +1,12 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
 import {
-  FileText, Plus, ChevronRight, ChevronDown, Trash2, Bold, Italic, Underline,
-  List, ListOrdered, Link as LinkIcon, Paperclip, X,
+  FileText, Plus, Bold, Italic, Underline, Building2, FolderKanban, CircleDollarSign,
+  List, ListOrdered, Link as LinkIcon, Paperclip, X, MapPin, ChevronRight, Inbox,
 } from 'lucide-react';
-
-function buildTree(flat) {
-  const byParent = {};
-  flat.forEach((d) => {
-    const key = d.parent_id || 'root';
-    byParent[key] = byParent[key] || [];
-    byParent[key].push(d);
-  });
-  return byParent;
-}
+import DocumentsSidebar, { AssignPopover, groupDocuments } from '../components/DocumentsSidebar';
 
 // Conversión ligera de markdown -> HTML, solo para migrar contenido viejo la primera vez que se abre.
 function markdownToHtml(md) {
@@ -35,54 +26,6 @@ function markdownToHtml(md) {
   return html;
 }
 
-function TreeNode({ node, byParent, depth, activeId, onSelect, onAddChild, onDelete, expanded, toggleExpand }) {
-  const children = byParent[node.id] || [];
-  const isExpanded = expanded[node.id];
-  return (
-    <div>
-      <div
-        onClick={() => onSelect(node.id)}
-        className={`group flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer text-sm transition ${
-          activeId === node.id
-            ? 'bg-gradient-to-r from-brand-violet/20 to-brand-magenta/10 text-brand-ice border-l-2 border-brand-violet'
-            : 'hover:bg-brand-bg text-brand-white border-l-2 border-transparent'
-        }`}
-        style={{ paddingLeft: `${depth * 14 + 8}px` }}
-      >
-        <button
-          onClick={(e) => { e.stopPropagation(); toggleExpand(node.id); }}
-          className={`w-4 h-4 flex items-center justify-center text-brand-muted flex-shrink-0 transition-transform ${children.length === 0 ? 'invisible' : ''} ${isExpanded ? 'rotate-0' : ''}`}
-        >
-          {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        </button>
-        <FileText size={13} className={`flex-shrink-0 ${activeId === node.id ? 'text-brand-ice' : 'text-brand-muted'}`} />
-        <span className="truncate flex-1">{node.title || 'Sin título'}</span>
-        <button
-          onClick={(e) => { e.stopPropagation(); onAddChild(node.id); }}
-          className="icon-btn opacity-0 group-hover:opacity-100 text-brand-muted hover:text-brand-ice flex-shrink-0"
-          title="Nueva subpágina"
-        >
-          <Plus size={12} />
-        </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(node.id); }}
-          className="icon-btn opacity-0 group-hover:opacity-100 text-brand-muted hover:text-red-400 flex-shrink-0"
-          title="Eliminar"
-        >
-          <Trash2 size={12} />
-        </button>
-      </div>
-      {isExpanded && children.map((c) => (
-        <TreeNode
-          key={c.id} node={c} byParent={byParent} depth={depth + 1}
-          activeId={activeId} onSelect={onSelect} onAddChild={onAddChild} onDelete={onDelete}
-          expanded={expanded} toggleExpand={toggleExpand}
-        />
-      ))}
-    </div>
-  );
-}
-
 const FONTS = ['Manrope', 'Sora', 'Space Mono', 'Georgia', 'Arial', 'Courier New'];
 const COLORS = ['#FBFAFF', '#D9F6FF', '#8500FF', '#E000FF', '#22c55e', '#f59e0b', '#ef4444', '#94a3b8'];
 const SIZES = [{ label: 'Pequeño', value: '2' }, { label: 'Normal', value: '3' }, { label: 'Grande', value: '5' }, { label: 'Enorme', value: '7' }];
@@ -90,7 +33,7 @@ const SIZES = [{ label: 'Pequeño', value: '2' }, { label: 'Normal', value: '3' 
 export default function Documents() {
   const confirm = useConfirm();
   const [tree, setTree] = useState([]);
-  const [expanded, setExpanded] = useState({});
+  const [assignOpen, setAssignOpen] = useState(false);
   const [activeId, setActiveId] = useState(null);
   const [doc, setDoc] = useState(null);
   const [title, setTitle] = useState('');
@@ -113,17 +56,15 @@ export default function Documents() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const openDoc = async (id) => {
+  const openDoc = async (id, { assign = false } = {}) => {
     setActiveId(id);
+    setAssignOpen(assign);
     setError('');
     try {
       const data = await api.get(`/api/documents/${id}`);
       setDoc(data);
       setTitle(data.title);
       setSaveState('idle');
-      const raw = data.content || '';
-      const isHtml = /^\s*</.test(raw);
-      if (editorRef.current) editorRef.current.innerHTML = isHtml ? raw : markdownToHtml(raw);
       savedRange.current = null;
       api.get(`/api/document-files?document_id=${id}`).then(setFiles).catch(() => setFiles([]));
     } catch (err) {
@@ -131,17 +72,37 @@ export default function Documents() {
     }
   };
 
-  const toggleExpand = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-
+  // Subpágina: hereda empresa/proyecto/trato del padre (lo resuelve el backend)
   const createDoc = async (parentId) => {
     setError('');
     try {
       const created = await api.post('/api/documents', { title: 'Sin título', content: '', parent_id: parentId || null });
-      if (parentId) setExpanded((prev) => ({ ...prev, [parentId]: true }));
       await loadTree();
       openDoc(created.id);
     } catch (err) {
       setError(err.message || 'No se pudo crear la página.');
+    }
+  };
+
+  // Documento nuevo dentro de una empresa/proyecto/trato. Sin contexto (botón "Nuevo"),
+  // se abre directo el selector para asignarlo — así no se vuelven a acumular sueltos.
+  const createIn = async (assoc) => {
+    setError('');
+    try {
+      const created = await api.post('/api/documents', { title: 'Sin título', content: '', ...(assoc || {}) });
+      await loadTree();
+      openDoc(created.id, { assign: !assoc });
+    } catch (err) {
+      setError(err.message || 'No se pudo crear el documento.');
+    }
+  };
+
+  const afterAssign = async () => {
+    setAssignOpen(false);
+    await loadTree();
+    if (activeId) {
+      const data = await api.get(`/api/documents/${activeId}`).catch(() => null);
+      if (data) setDoc(data);
     }
   };
 
@@ -228,57 +189,38 @@ export default function Documents() {
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
 
-  const byParent = buildTree(tree);
-  const roots = byParent['root'] || [];
+  const grouped = groupDocuments(tree);
+  const recent = [...tree].filter((d) => d.updated_at).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)).slice(0, 8);
+
+  // El contenido se carga en el editor DESPUÉS de que se monta: antes se asignaba dentro de
+  // openDoc, cuando el editor todavía no existía en pantalla (al abrir el primer documento
+  // desde la vista vacía), así que se veía en blanco — y si alguien escribía encima, el
+  // autoguardado pisaba el contenido real con ese texto.
+  useEffect(() => {
+    if (!doc || !editorRef.current) return;
+    const raw = doc.content || '';
+    editorRef.current.innerHTML = /^\s*</.test(raw) ? raw : markdownToHtml(raw);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc?.id]);
 
   const toolBtn = 'w-8 h-8 flex items-center justify-center rounded-lg text-brand-muted hover:text-brand-white hover:bg-brand-bg transition';
 
   return (
     <div className="-m-6 flex h-[calc(100vh-0px)]">
-      {/* Sidebar árbol de páginas */}
-      <div className="w-72 border-r border-brand-border p-4 overflow-y-auto flex-shrink-0 bg-brand-panel/40">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="font-headline text-lg font-semibold flex items-center gap-2">
-            <FileText size={17} className="text-brand-ice" /> Documentos
-          </h1>
-          <button onClick={() => createDoc(null)} className="icon-btn p-1.5 rounded-lg bg-brand-violet/15 text-brand-ice hover:bg-brand-violet/25 transition" title="Nueva página">
-            <Plus size={15} />
-          </button>
-        </div>
-        <div className="space-y-0.5">
-          {error && (
-            <div className="mb-3 px-2 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
-              {error}
-            </div>
-          )}
-          {roots.map((n) => (
-            <TreeNode
-              key={n.id} node={n} byParent={byParent} depth={0}
-              activeId={activeId} onSelect={openDoc} onAddChild={createDoc} onDelete={deleteDoc}
-              expanded={expanded} toggleExpand={toggleExpand}
-            />
-          ))}
-          {roots.length === 0 && (
-            <button onClick={() => createDoc(null)} className="w-full flex flex-col items-center gap-2 text-brand-muted text-xs py-8 text-center border border-dashed border-brand-border rounded-xl hover:border-brand-violet/50 hover:text-brand-ice transition">
-              <FileText size={20} />
-              Sin páginas todavía.<br />Crea la primera.
-            </button>
-          )}
-        </div>
-      </div>
+      <DocumentsSidebar
+        tree={tree}
+        activeId={activeId}
+        onSelect={(id) => openDoc(id)}
+        onAddChild={createDoc}
+        onDelete={deleteDoc}
+        onCreateIn={createIn}
+        error={error}
+      />
 
       {/* Editor */}
       <div className="flex-1 overflow-y-auto">
         {!doc ? (
-          <div className="h-full flex flex-col items-center justify-center text-brand-muted text-sm gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-violet/20 to-brand-magenta/10 flex items-center justify-center">
-              <FileText size={24} className="text-brand-ice" />
-            </div>
-            <div>Selecciona una página o crea una nueva.</div>
-            <button onClick={() => createDoc(null)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-white text-sm font-medium hover:opacity-90 transition">
-              <Plus size={14} /> Nueva página
-            </button>
-          </div>
+          <DocumentsOverview grouped={grouped} recent={recent} total={tree.length} onOpen={(id) => openDoc(id)} onCreate={() => createIn(null)} />
         ) : (
           <div>
             {/* Barra de formato */}
@@ -334,6 +276,33 @@ export default function Documents() {
             </div>
 
             <div className="max-w-3xl mx-auto px-10 py-8">
+              <div className="relative flex items-center gap-1.5 mb-3 text-xs text-brand-muted min-h-[28px]">
+                {doc.companies ? (
+                  <Link to={`/companies/${doc.companies.id}`} className="flex items-center gap-1 hover:text-brand-ice"><Building2 size={12} /> {doc.companies.name}</Link>
+                ) : null}
+                {doc.projects ? (
+                  <>
+                    {doc.companies && <ChevronRight size={11} />}
+                    <Link to={`/projects/${doc.projects.id}`} className="flex items-center gap-1 hover:text-brand-ice"><FolderKanban size={12} /> {doc.projects.name}</Link>
+                  </>
+                ) : null}
+                {doc.deals ? (
+                  <>
+                    {(doc.companies || doc.projects) && <ChevronRight size={11} />}
+                    <Link to={`/deals/${doc.deals.id}`} className="flex items-center gap-1 hover:text-brand-ice"><CircleDollarSign size={12} /> {doc.deals.title}</Link>
+                  </>
+                ) : null}
+                {!doc.companies && !doc.projects && !doc.deals && (
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/25 text-yellow-200/90">Sin asignar</span>
+                )}
+                <button
+                  onClick={() => setAssignOpen(true)}
+                  className="ml-1 flex items-center gap-1 px-2 py-0.5 rounded-md border border-brand-border hover:border-brand-violet/50 hover:text-brand-ice transition"
+                >
+                  <MapPin size={11} /> {doc.companies || doc.projects || doc.deals ? 'Mover' : 'Asignar'}
+                </button>
+                {assignOpen && <AssignPopover key={doc.id} doc={doc} onClose={() => setAssignOpen(false)} onSaved={afterAssign} />}
+              </div>
               <input
                 value={title}
                 onChange={(e) => onTitleChange(e.target.value)}
@@ -390,6 +359,82 @@ export default function Documents() {
         .doc-editor a { color: #D9F6FF; text-decoration: underline; }
         .doc-editor:empty:before { content: attr(data-placeholder); color: rgba(255,255,255,0.3); }
       `}</style>
+    </div>
+  );
+}
+
+// Vista inicial (sin documento abierto): resumen por empresa + recientes, en vez de un
+// panel vacío.
+function DocumentsOverview({ grouped, recent, total, onOpen, onCreate }) {
+  const unassignedCount = grouped.countDeep(grouped.unassigned);
+  return (
+    <div className="max-w-4xl mx-auto px-10 py-10">
+      <div className="flex items-end justify-between mb-6">
+        <div>
+          <h2 className="font-headline text-2xl font-semibold">Documentos</h2>
+          <p className="text-sm text-brand-muted mt-1">{total} documento{total !== 1 ? 's' : ''} · organizados por empresa y proyecto</p>
+        </div>
+        <button onClick={onCreate} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-white text-sm font-medium hover:opacity-90 transition">
+          <Plus size={14} /> Nuevo documento
+        </button>
+      </div>
+
+      {unassignedCount > 0 && (
+        <div className="mb-6 flex items-center gap-3 px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/25 text-sm">
+          <Inbox size={16} className="text-yellow-300 flex-shrink-0" />
+          <span className="text-yellow-100/90">{unassignedCount} documento{unassignedCount !== 1 ? 's' : ''} sin empresa ni proyecto. Están al final del panel izquierdo, en <strong>Sin asignar</strong>.</span>
+        </div>
+      )}
+
+      {grouped.companies.length > 0 && (
+        <>
+          <div className="text-[10px] font-tech uppercase tracking-wider text-brand-muted mb-2">Por empresa</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+            {grouped.companies.map((c) => {
+              const first = c.general[0] || c.projects[0]?.docs[0] || c.deals[0]?.docs[0];
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => first && onOpen(first.id)}
+                  className="text-left bg-brand-panel border border-brand-border rounded-xl p-4 hover:border-brand-violet/40 transition panel-depth"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Building2 size={14} className="text-brand-ice flex-shrink-0" />
+                    <span className="font-medium truncate">{c.name}</span>
+                  </div>
+                  <div className="text-xs text-brand-muted">
+                    {c.total} documento{c.total !== 1 ? 's' : ''}
+                    {c.projects.length > 0 && ` · ${c.projects.length} proyecto${c.projects.length !== 1 ? 's' : ''}`}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {recent.length > 0 && (
+        <>
+          <div className="text-[10px] font-tech uppercase tracking-wider text-brand-muted mb-2">Editados recientemente</div>
+          <div className="bg-brand-panel border border-brand-border rounded-xl divide-y divide-brand-border/60">
+            {recent.map((d) => (
+              <button key={d.id} onClick={() => onOpen(d.id)} className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-brand-bg/60 transition">
+                <FileText size={14} className="text-brand-muted flex-shrink-0" />
+                <span className="truncate flex-1">{d.title || 'Sin título'}</span>
+                <span className="text-xs text-brand-muted truncate max-w-[45%]">
+                  {[d.company_name, d.project_name || d.deal_title].filter(Boolean).join(' › ') || 'Sin asignar'}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {total === 0 && (
+        <div className="text-center text-brand-muted text-sm py-16 border border-dashed border-brand-border rounded-xl">
+          Todavía no hay documentos. Crea el primero desde una empresa, un proyecto o con el botón de arriba.
+        </div>
+      )}
     </div>
   );
 }
