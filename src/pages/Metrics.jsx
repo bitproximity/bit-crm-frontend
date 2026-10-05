@@ -28,6 +28,7 @@ const ACTION_LABELS = {
   status_changed: 'cambió el estado de',
   assigned: 'asignó',
   imported: 'importó una base a Bit Prospect en',
+  merged_duplicates: 'fusionó duplicados en',
 };
 
 const ENTITY_LABELS = {
