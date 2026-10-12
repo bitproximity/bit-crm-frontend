@@ -12,17 +12,21 @@ export default function Companies() {
   const confirm = useConfirm();
   const [companies, setCompanies] = useState([]);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const PAGE_SIZE = 60;
   const [showForm, setShowForm] = useState(false);
 
   const load = () =>
-    api.get(`/api/companies${search ? `?search=${encodeURIComponent(search)}` : ''}`)
-      .then((r) => setCompanies(r.data))
+    api.get(`/api/companies?page=${page}&limit=${PAGE_SIZE}${search ? `&search=${encodeURIComponent(search)}` : ''}`)
+      .then((r) => { setCompanies(r.data || []); setTotal(r.count ?? (r.data || []).length); })
       .catch(console.error);
 
   useEffect(() => {
     const t = setTimeout(load, 300);
     return () => clearTimeout(t);
-  }, [search]);
+  }, [search, page]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const createCompany = async (form) => {
     await api.post('/api/companies', form);
@@ -50,7 +54,7 @@ export default function Companies() {
       <div className="flex items-center justify-between mb-1">
         <h1 className="font-headline text-xl font-semibold">Empresas</h1>
       </div>
-      <p className="text-brand-muted text-sm mb-6">{companies.length} empresas registradas</p>
+      <p className="text-brand-muted text-sm mb-6">{total.toLocaleString('es')} empresas registradas</p>
 
       <div className="flex items-center gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
@@ -58,7 +62,7 @@ export default function Companies() {
           <input
             placeholder="Buscar empresa..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full pl-9 pr-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
           />
         </div>
@@ -117,6 +121,25 @@ export default function Companies() {
           </div>
         )}
       </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 mt-6 text-sm">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-3 py-1.5 rounded-lg border border-brand-border hover:border-brand-violet disabled:opacity-40 disabled:hover:border-brand-border"
+          >
+            Anterior
+          </button>
+          <span className="text-brand-muted">Página {page} de {totalPages}</span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            className="px-3 py-1.5 rounded-lg border border-brand-border hover:border-brand-violet disabled:opacity-40 disabled:hover:border-brand-border"
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
     </div>
   );
 }

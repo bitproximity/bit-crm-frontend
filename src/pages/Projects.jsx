@@ -35,7 +35,7 @@ function NewProjectModal({ onClose, onCreated }) {
   useEffect(() => {
     if (!companyQuery.trim() || selectedCompany?.name === companyQuery) { setCompanyResults([]); return; }
     const t = setTimeout(() => {
-      api.get(`/api/companies?search=${encodeURIComponent(companyQuery.trim())}&limit=6`).then(setCompanyResults).catch(() => setCompanyResults([]));
+      api.get(`/api/companies?search=${encodeURIComponent(companyQuery.trim())}&limit=6`).then((r) => setCompanyResults(Array.isArray(r) ? r : r.data || [])).catch(() => setCompanyResults([]));
     }, 250);
     return () => clearTimeout(t);
   }, [companyQuery, selectedCompany]);
