@@ -62,9 +62,13 @@ export default function NotificationBell() {
   useEffect(() => {
     loadCount();
     // Sondeo simple cada 30s — sin websockets, pero suficiente para que la campanita
-    // no se quede pegada en 0 mientras la pestaña está abierta.
-    const interval = setInterval(loadCount, 30000);
-    return () => clearInterval(interval);
+    // no se quede pegada en 0 mientras la pestaña está abierta. Solo consulta si la pestaña se
+    // está viendo (antes seguía llamando al servidor con la pestaña en segundo plano) y refresca
+    // en el momento en que vuelves a ella.
+    const tick = () => { if (document.visibilityState === 'visible') loadCount(); };
+    const interval = setInterval(tick, 30000);
+    document.addEventListener('visibilitychange', tick);
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', tick); };
   }, []);
 
   const PANEL_W = 320;

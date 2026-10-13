@@ -61,7 +61,19 @@ export default function Dashboard() {
   const { profile } = useAuth();
 
   useEffect(() => {
-    const loadDashboard = () => api.get('/api/dashboard').then(setData).catch(console.error);
+    // Entrar a la pantalla dispara además "focus" y "visibilitychange": sin este freno el mismo
+    // dashboard se pedía 3 veces seguidas (≈3 s de trabajo del servidor para lo mismo). Ahora no se
+    // vuelve a pedir mientras hay uno en curso ni en los 5 s siguientes.
+    let running = false;
+    let lastAt = 0;
+    const loadDashboard = () => {
+      if (running || Date.now() - lastAt < 5000) return;
+      running = true;
+      api.get('/api/dashboard')
+        .then((d) => { lastAt = Date.now(); setData(d); })
+        .catch(console.error)
+        .finally(() => { running = false; });
+    };
     loadDashboard();
     api.get('/api/gmail/calendar/events?days=7')
       .then(setEvents)

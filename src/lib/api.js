@@ -2,6 +2,41 @@ import { supabase } from './supabase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://bit-crm-backend-production.up.railway.app';
 
+// ── Menos viajes al servidor, mismos datos ────────────────────────────────────────────────
+// Cada petición cuesta ~160 ms solo de viaje (Panamá → servidor) más lo que tarde la base. Dos reglas:
+//  1) PETICIONES IGUALES A LA VEZ se juntan en una sola (antes el Dashboard pedía lo mismo 3 veces
+//     al cargar). Todos reciben su propia copia del resultado.
+//  2) DATOS QUE CASI NUNCA CAMBIAN (embudos, tasas de cambio, ajustes, mi perfil, listas) se
+//     recuerdan unos segundos para no volver a pedirlos en cada pantalla. Cualquier escritura
+//     (POST/PATCH/DELETE) vacía todo lo recordado, y también al cerrar sesión. Todo lo demás
+//     (tratos, contactos, tareas, dashboard...) sigue yendo siempre al servidor: "no-store".
+const REMEMBER = [
+  [/^\/api\/pipelines$/, 60000],
+  [/^\/api\/exchange-rates$/, 60000],
+  [/^\/api\/settings\/[^/?]+$/, 60000],
+  [/^\/api\/team\/me$/, 60000],
+  [/^\/api\/tags\/with-contact-counts$/, 30000],
+];
+const READ_ONLY_POSTS = new Set(['/api/prospecting/search', '/api/prospeccion-tool/search']);
+const remembered = new Map(); // path -> { value, expiresAt }
+const inflight = new Map(); // path -> Promise (resultado sin copiar)
+
+export function clearApiCache() {
+  remembered.clear();
+  inflight.clear();
+}
+
+// Al cerrar sesión se olvida todo, para que la siguiente persona no vea datos de la anterior.
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') clearApiCache();
+});
+
+const rememberTtl = (path) => {
+  const hit = REMEMBER.find(([re]) => re.test(path));
+  return hit ? hit[1] : 0;
+};
+const copy = (v) => (v == null || typeof v !== 'object' ? v : structuredClone(v));
+
 async function getToken(forceRefresh = false) {
   if (forceRefresh) {
     // getSession() normalmente refresca sola si el token venció, pero si la pestaña
@@ -67,10 +102,40 @@ async function request(path, options = {}, _retried = false) {
   return res.json();
 }
 
+async function get(path) {
+  const ttl = rememberTtl(path);
+  if (ttl) {
+    const hit = remembered.get(path);
+    if (hit && hit.expiresAt > Date.now()) return copy(hit.value);
+  }
+  let pending = inflight.get(path);
+  if (!pending) {
+    const generation = writes;
+    pending = request(path)
+      .then((value) => {
+        // Si hubo una escritura mientras se pedía, el dato pudo quedar viejo: se entrega, pero no se recuerda.
+        if (ttl && generation === writes) remembered.set(path, { value, expiresAt: Date.now() + ttl });
+        return value;
+      })
+      .finally(() => inflight.delete(path));
+    inflight.set(path, pending);
+  }
+  return copy(await pending);
+}
+
+// Contador de escrituras: sube con cada POST/PATCH/DELETE/upload.
+let writes = 0;
+const write = (path, options) => {
+  writes++;
+  clearApiCache();
+  return request(path, options).finally(() => { writes++; clearApiCache(); });
+};
+
 export const api = {
-  get: (path) => request(path),
-  post: (path, body) => request(path, { method: 'POST', body: JSON.stringify(body) }),
-  patch: (path, body) => request(path, { method: 'PATCH', body: JSON.stringify(body) }),
-  delete: (path, body) => request(path, { method: 'DELETE', ...(body ? { body: JSON.stringify(body) } : {}) }),
-  upload: (path, formData) => request(path, { method: 'POST', body: formData, headers: { 'Content-Type': undefined } }),
+  get,
+  // Las búsquedas de Prospección son POST pero solo leen: no tienen por qué vaciar lo recordado.
+  post: (path, body) => (READ_ONLY_POSTS.has(path) ? request(path, { method: 'POST', body: JSON.stringify(body) }) : write(path, { method: 'POST', body: JSON.stringify(body) })),
+  patch: (path, body) => write(path, { method: 'PATCH', body: JSON.stringify(body) }),
+  delete: (path, body) => write(path, { method: 'DELETE', ...(body ? { body: JSON.stringify(body) } : {}) }),
+  upload: (path, formData) => write(path, { method: 'POST', body: formData, headers: { 'Content-Type': undefined } }),
 };

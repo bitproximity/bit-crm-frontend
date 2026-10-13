@@ -13,6 +13,11 @@
     <link rel="icon" type="image/png" href="/brand/favicon-32.png" />
     <link rel="apple-touch-icon" href="/brand/favicon-512.png" />
     <title>Bit CRM</title>
+    <!-- Abre la conexión con el backend (DNS + TCP + TLS ≈ 3 viajes de ~160 ms desde Panamá) mientras
+         se descarga el JavaScript, en vez de esperar a que termine para recién empezar. Ahorra
+         ~0,3–0,5 s en la primera pantalla de cada visita. -->
+    <link rel="preconnect" href="https://bit-crm-backend-production.up.railway.app" crossorigin />
+    <link rel="dns-prefetch" href="https://bit-crm-backend-production.up.railway.app" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
