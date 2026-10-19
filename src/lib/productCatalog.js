@@ -23,7 +23,7 @@ const FAMILIES = [
 const GENERIC_HARDWARE = ['Pantalla / TV', 'Parlante', 'Reproductor Android', 'Router', 'Otro'];
 
 // Si el catálogo no se puede leer (rol sin acceso a Productos, o caído) se usa esta lista.
-export const FALLBACK_PRODUCTS = ['Bit Music', 'Bit Signage', 'Neomedia', 'Bit WiFi', 'Email Marketing', 'WhatsApp Marketing', 'Loyalty', 'SMS'];
+export const FALLBACK_PRODUCTS = ['Bit Music', 'Bit Signage', 'Cartelería Digital (Neomedia)', 'Bit WiFi', 'Email Marketing', 'WhatsApp Marketing', 'Loyalty', 'SMS'];
 // Valor viejo que mezclaba dos líneas distintas; se conserva legible en tratos ya guardados.
 export const LEGACY_SIGNAGE_NEOMEDIA = 'Bit Signage / Neomedia';
 

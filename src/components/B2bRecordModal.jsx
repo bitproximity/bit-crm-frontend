@@ -54,7 +54,7 @@ const GENERIC_HARDWARE_OPTIONS = ['Pantalla / TV', 'Parlante', 'Reproductor Andr
 // explícito con el campo "Producto", y el tipo de hardware sale de ahí en vez del pipeline.
 // Bit Signage y Neomedia son líneas distintas (antes venían juntas en una sola opción). Esta lista es
 // solo el respaldo: en los tratos el desplegable sale del catálogo de Productos (lib/productCatalog).
-export const PRODUCT_LINE_OPTIONS = ['Bit Music', 'Bit Signage', 'Neomedia', 'Bit WiFi', 'Email Marketing', 'WhatsApp Marketing', 'Loyalty', 'SMS'];
+export const PRODUCT_LINE_OPTIONS = ['Bit Music', 'Bit Signage', 'Cartelería Digital (Neomedia)', 'Bit WiFi', 'Email Marketing', 'WhatsApp Marketing', 'Loyalty', 'SMS'];
 export function isGenericPipeline(pipelineName) {
   return !HARDWARE_BY_PIPELINE.some((h) => h.match.test(pipelineName || ''));
 }
