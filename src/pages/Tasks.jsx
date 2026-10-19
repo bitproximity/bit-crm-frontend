@@ -7,6 +7,7 @@ import DateTimePicker from '../components/DateTimePicker';
 import { LayoutGrid, List, Plus, Flag, Calendar, ChevronRight, ChevronDown, X, Send, Trash2, FolderKanban, CheckCircle2, Circle } from 'lucide-react';
 import { Video, CalendarCheck, MessageSquare, User, ListChecks, ChevronDown as Chevron } from 'lucide-react';
 import MeetingLinkField from '../components/MeetingLinkField';
+import NewTaskModal from '../components/NewTaskModal';
 
 export const STATUSES = [
   { key: 'pendiente', label: 'Pendiente', color: '#6B7280', dot: 'bg-gray-400' },
@@ -133,11 +134,7 @@ export default function Tasks() {
   const [team, setTeam] = useState([]);
   const [view, setView] = useState('tablero');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: '', due_date: '', assignee_id: '', project_id: '' });
-  const [projectQuery, setProjectQuery] = useState('');
-  const [projectOpen, setProjectOpen] = useState(false);
-  const projectBoxRef = useRef(null);
-  useOutsideClick(projectBoxRef, () => { setProjectOpen(false); setProjectQuery(''); }, projectOpen);
+  const [createdNotice, setCreatedNotice] = useState('');
   const [expanded, setExpanded] = useState({});
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -154,20 +151,6 @@ export default function Tasks() {
   const updateStatus = async (taskId, status) => {
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status } : t)));
     await api.patch(`/api/tasks/${taskId}`, { status });
-  };
-
-  const createTask = async (e) => {
-    e.preventDefault();
-    await api.post('/api/tasks', {
-      title: form.title,
-      due_date: form.due_date || null,
-      assignee_id: form.assignee_id || null,
-      project_id: form.project_id || null,
-    });
-    setForm({ title: '', due_date: '', assignee_id: '', project_id: '' });
-    setProjectQuery('');
-    setShowForm(false);
-    load();
   };
 
   const quickCreate = async (title, status, projectId) => {
@@ -229,84 +212,31 @@ export default function Tasks() {
           </button>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => setShowForm(true)}
           className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium flex items-center gap-1.5"
         >
           <Plus size={14} /> Nueva tarea
         </button>
       </div>
 
+      {createdNotice && (
+        <div className="mb-4 px-4 py-3 rounded-xl text-sm bg-green-500/10 border border-green-500/30 text-green-300 flex items-center justify-between">
+          {createdNotice}
+          <button onClick={() => setCreatedNotice('')} className="text-xs underline ml-3">Cerrar</button>
+        </div>
+      )}
+
       {showForm && (
-        <form onSubmit={createTask} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 space-y-3">
-          <input
-            placeholder="Título de la tarea"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            required
-            autoFocus
-            className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
-          />
-          <div className="flex flex-wrap gap-3">
-            <div className="flex-1 min-w-[180px] relative" ref={projectBoxRef}>
-              <label className="block text-xs text-brand-muted mb-1">Proyecto</label>
-              <input
-                value={projectOpen ? projectQuery : (projects.find((p) => p.id === form.project_id)?.name || '')}
-                onChange={(e) => { setProjectQuery(e.target.value); setProjectOpen(true); }}
-                onFocus={() => { setProjectOpen(true); setProjectQuery(''); }}
-                placeholder="Sin proyecto"
-                autoComplete="off"
-                className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
-              />
-              {projectOpen && (() => {
-                const filtered = projects.filter((p) => p.name.toLowerCase().includes(projectQuery.toLowerCase()));
-                return (
-                  <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-brand-bg border border-brand-border rounded-lg shadow-xl">
-                    <button
-                      type="button"
-                      onClick={() => { setForm({ ...form, project_id: '' }); setProjectOpen(false); setProjectQuery(''); }}
-                      className="w-full text-left px-3 py-2 text-sm text-brand-muted hover:bg-brand-panel transition"
-                    >
-                      Sin proyecto
-                    </button>
-                    {filtered.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => { setForm({ ...form, project_id: p.id }); setProjectOpen(false); setProjectQuery(''); }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition truncate"
-                      >
-                        {p.name}
-                      </button>
-                    ))}
-                    {projectQuery && filtered.length === 0 && (
-                      <div className="px-3 py-2 text-xs text-brand-muted">Sin resultados para "{projectQuery}".</div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-            <div className="flex-1 min-w-[220px]">
-              <label className="block text-xs text-brand-muted mb-1">Fecha y hora límite</label>
-              <DateTimePicker value={form.due_date} onChange={(v) => setForm({ ...form, due_date: v })} className="w-full" />
-            </div>
-            <div className="flex-1 min-w-[180px]">
-              <label className="block text-xs text-brand-muted mb-1">Responsable</label>
-              <select
-                value={form.assignee_id}
-                onChange={(e) => setForm({ ...form, assignee_id: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
-              >
-                <option value="">Sin asignar</option>
-                {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
-              Crear tarea
-            </button>
-          </div>
-        </form>
+        <NewTaskModal
+          projects={projects}
+          team={team}
+          onClose={() => setShowForm(false)}
+          onCreated={(created, { another }) => {
+            if (!another) setShowForm(false);
+            setCreatedNotice(created?.due_date && created?.assignee_id ? 'Tarea creada. Si el responsable tiene Google conectado, aparecerá en su calendario.' : 'Tarea creada.');
+            load();
+          }}
+        />
       )}
 
       {view === 'proyecto' ? (

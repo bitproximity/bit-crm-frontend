@@ -39,7 +39,7 @@ export function Modal({ title, subtitle, icon, onClose, children, footer, width 
       <div className={`relative w-full ${width} max-h-[90vh] bg-brand-panel border border-brand-border rounded-2xl shadow-2xl flex flex-col overflow-hidden modal-in`}>
         <Header icon={icon} title={title} subtitle={subtitle} onClose={onClose} />
         <div className="px-6 py-5 overflow-y-auto flex-1">{children}</div>
-        {footer && <div className="px-6 py-4 border-t border-brand-border bg-brand-bg/40 flex items-center gap-2">{footer}</div>}
+        {footer && <div className="px-6 py-4 border-t border-brand-border bg-brand-bg/40 flex items-center gap-2 flex-wrap">{footer}</div>}
       </div>
     </div>
   );
@@ -56,7 +56,7 @@ export function Drawer({ title, subtitle, icon, onClose, children, footer, width
       >
         <Header icon={icon} title={title} subtitle={subtitle} onClose={onClose} />
         <div className="px-6 py-5 overflow-y-auto flex-1">{children}</div>
-        {footer && <div className="px-6 py-4 border-t border-brand-border bg-brand-bg/40 flex items-center gap-2">{footer}</div>}
+        {footer && <div className="px-6 py-4 border-t border-brand-border bg-brand-bg/40 flex items-center gap-2 flex-wrap">{footer}</div>}
       </div>
     </div>
   );
@@ -75,5 +75,5 @@ export function Field({ label, hint, children, className = '' }) {
 
 export const inputCls = 'w-full px-3.5 py-2.5 rounded-xl bg-brand-bg border border-brand-border text-sm placeholder:text-brand-muted/60 focus:outline-none focus:border-brand-violet focus:ring-2 focus:ring-brand-violet/20 transition';
 export const selectCls = `${inputCls} cursor-pointer`;
-export const primaryBtn = 'px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition';
-export const ghostBtn = 'px-4 py-2.5 rounded-xl text-sm text-brand-muted hover:text-brand-white hover:bg-brand-bg transition';
+export const primaryBtn = 'whitespace-nowrap px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition';
+export const ghostBtn = 'whitespace-nowrap px-4 py-2.5 rounded-xl text-sm text-brand-muted hover:text-brand-white hover:bg-brand-bg transition';
