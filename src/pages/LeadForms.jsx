@@ -6,6 +6,9 @@ import {
   Type, Hash, Calendar, CheckSquare, List, ChevronUp, ChevronDown,
   Sparkles, Link2, Code2, Users2, Target, Eye,
 } from 'lucide-react';
+import { Inbox, ArrowRight, Radio } from 'lucide-react';
+import { Drawer, Field, inputCls, selectCls, primaryBtn, ghostBtn } from '../components/Modal';
+import { colorForName, initials } from '../lib/avatar';
 
 const PUBLIC_APP_URL = 'https://crm.bitproximity.com';
 const API_URL = import.meta.env.VITE_API_URL || 'https://bit-crm-backend-production.up.railway.app';
@@ -302,6 +305,29 @@ function LeadFormPreviewModal({ form, fields, onClose }) {
   );
 }
 
+function StatTile({ icon: Icon, label, value, tone = 'text-brand-ice' }) {
+  return (
+    <div className="bg-brand-panel border border-brand-border rounded-2xl px-4 py-3.5 panel-depth flex items-center gap-3">
+      <div className="w-9 h-9 rounded-xl bg-brand-violet/15 flex items-center justify-center flex-shrink-0"><Icon size={16} className="text-brand-ice" /></div>
+      <div>
+        <div className={`font-headline text-xl font-semibold leading-none ${tone}`}>{value}</div>
+        <div className="text-[11px] text-brand-muted mt-1">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+function Switch({ on, onChange, label }) {
+  return (
+    <button
+      type="button" role="switch" aria-checked={on} aria-label={label} onClick={onChange}
+      className={`relative w-10 h-[22px] rounded-full transition-colors flex-shrink-0 ${on ? 'bg-green-500' : 'bg-brand-border'}`}
+    >
+      <span className={`absolute left-0 top-[3px] w-4 h-4 rounded-full bg-white transition-transform ${on ? 'translate-x-[21px]' : 'translate-x-[3px]'}`} />
+    </button>
+  );
+}
+
 export default function LeadForms() {
   const confirm = useConfirm();
   const [forms, setForms] = useState(null);
@@ -313,6 +339,7 @@ export default function LeadForms() {
   const [editingFieldsId, setEditingFieldsId] = useState(null);
   const [previewFormId, setPreviewFormId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
   const load = () => api.get('/api/lead-forms').then(setForms).catch((err) => setError(err.message));
@@ -328,8 +355,10 @@ export default function LeadForms() {
   const onFieldCreated = (field) => setDealFields((prev) => [...prev, field]);
 
   const create = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
+    if (!newForm.name.trim() || !newForm.pipeline_id || !newForm.stage_id || creating) return;
     setError('');
+    setCreating(true);
     try {
       await api.post('/api/lead-forms', newForm);
       setNewForm({ name: '', pipeline_id: '', stage_id: '', owner_id: '', field_ids: [] });
@@ -337,6 +366,8 @@ export default function LeadForms() {
       load();
     } catch (err) {
       setError(err.message || 'No se pudo crear el formulario.');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -360,121 +391,117 @@ export default function LeadForms() {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
+  const totalSubmissions = (forms || []).reduce((n, f) => n + (f.submissions_count || 0), 0);
+  const activeCount = (forms || []).filter((f) => f.active).length;
+  const canCreate = newForm.name.trim() && newForm.pipeline_id && newForm.stage_id;
+  const stages = [...(selectedPipeline?.pipeline_stages || [])].sort((a, b) => a.position - b.position);
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="font-headline text-xl font-semibold flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center">
-            <ClipboardList size={16} className="text-white" />
-          </div>
-          Formularios de captura
-        </h1>
-        <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 transition rounded-lg text-sm font-medium flex items-center gap-1.5">
-          <Plus size={14} /> Nuevo formulario
+    <div className="max-w-5xl">
+      <div className="flex items-end justify-between gap-4 mb-5 flex-wrap">
+        <div>
+          <h1 className="font-headline text-2xl font-semibold flex items-center gap-2.5">
+            <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center"><ClipboardList size={18} className="text-white" /></span>
+            Formularios de captura
+          </h1>
+          <p className="text-brand-muted text-sm mt-1.5 max-w-2xl">Cada envío crea (o reutiliza) contacto y empresa, y cae directo a un trato en el pipeline y etapa que elijas. Agrega tus propias preguntas para llevar mejor data.</p>
+        </div>
+        <button onClick={() => { setError(''); setShowForm(true); }} className="px-4 py-2.5 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 transition rounded-xl text-sm font-medium flex items-center gap-1.5">
+          <Plus size={15} /> Nuevo formulario
         </button>
       </div>
-      <p className="text-brand-muted text-sm mb-6">Cada envío crea (o reutiliza) contacto y empresa, y cae directo a un trato en el pipeline y etapa que elijas. Agrega tus propias preguntas para llevar mejor data.</p>
 
-      {error && <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
-
-      {showForm && (
-        <form onSubmit={create} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth space-y-4">
-          <input
-            autoFocus required placeholder="Nombre del formulario (ej. Web — Contacto)"
-            value={newForm.name} onChange={(e) => setNewForm({ ...newForm, name: e.target.value })}
-            className="w-full px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm focus:border-brand-violet focus:outline-none transition"
-          />
-          <div className="grid grid-cols-3 gap-3">
-            <select required value={newForm.pipeline_id} onChange={(e) => setNewForm({ ...newForm, pipeline_id: e.target.value, stage_id: '' })} className="px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm" style={{ colorScheme: 'dark' }}>
-              <option value="">Pipeline...</option>
-              {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <select required disabled={!selectedPipeline} value={newForm.stage_id} onChange={(e) => setNewForm({ ...newForm, stage_id: e.target.value })} className="px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm disabled:opacity-50" style={{ colorScheme: 'dark' }}>
-              <option value="">Etapa...</option>
-              {selectedPipeline?.pipeline_stages?.sort((a, b) => a.position - b.position).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <select value={newForm.owner_id} onChange={(e) => setNewForm({ ...newForm, owner_id: e.target.value })} className="px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm" style={{ colorScheme: 'dark' }}>
-              <option value="">Sin dueño</option>
-              {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="flex items-center gap-1.5 text-xs font-tech uppercase tracking-wide text-brand-muted mb-2"><Sparkles size={12} /> Preguntas de este formulario</label>
-            <QuestionsEditor
-              allFields={dealFields}
-              selectedIds={newForm.field_ids}
-              onChange={(ids) => setNewForm({ ...newForm, field_ids: ids })}
-              onFieldCreated={onFieldCreated}
-            />
-          </div>
-          <div className="flex gap-2 pt-1">
-            <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 transition rounded-lg text-sm font-medium">Crear formulario</button>
-            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-brand-muted text-sm hover:text-brand-white transition">Cancelar</button>
-            <button type="button" onClick={() => setPreviewFormId('__new__')} className="ml-auto flex items-center gap-1 px-3 py-2 text-brand-ice text-sm hover:underline">
-              <Eye size={13} /> Vista previa
-            </button>
-          </div>
-        </form>
+      {forms && forms.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+          <StatTile icon={ClipboardList} label="Formularios" value={forms.length} />
+          <StatTile icon={Radio} label="Recibiendo envíos" value={activeCount} tone="text-green-300" />
+          <StatTile icon={Inbox} label="Envíos en total" value={totalSubmissions.toLocaleString('es')} />
+        </div>
       )}
 
-      {forms === null && <div className="text-brand-muted text-sm">Cargando...</div>}
+      {error && !showForm && <div className="mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+
+      {forms === null && (
+        <div className="space-y-3">{[0, 1].map((i) => <div key={i} className="skeleton h-36 rounded-2xl" />)}</div>
+      )}
       {forms?.length === 0 && (
-        <div className="text-center py-16 border border-dashed border-brand-border rounded-xl">
-          <ClipboardList size={28} className="mx-auto mb-3 text-brand-muted/50" />
-          <p className="text-brand-muted text-sm">Sin formularios todavía. Crea uno para empezar a capturar leads desde tu web.</p>
+        <div className="text-center py-16 border border-dashed border-brand-border rounded-2xl">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-brand-violet/15 flex items-center justify-center"><ClipboardList size={22} className="text-brand-ice" /></div>
+          <p className="text-brand-white font-medium">Sin formularios todavía</p>
+          <p className="text-brand-muted text-sm mt-1">Crea uno para empezar a capturar leads desde tu web.</p>
+          <button onClick={() => setShowForm(true)} className="mt-4 px-4 py-2 rounded-xl border border-brand-border text-sm hover:border-brand-violet transition">Crear el primero</button>
         </div>
       )}
 
       <div className="space-y-3">
-        {forms?.map((f) => {
+        {forms?.map((f, idx) => {
           const publicUrl = `${PUBLIC_APP_URL}/public/lead-forms/${f.id}`;
           const formFields = (f.field_ids || []).map((id) => dealFields.find((df) => df.id === id)).filter(Boolean);
+          const ownerName = f.team_members?.full_name;
           return (
-            <div key={f.id} className="bg-brand-panel border border-brand-border rounded-xl panel-depth overflow-hidden">
-              <div className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="font-manrope font-medium flex items-center gap-2">
-                      {f.name}
-                      <span className={`text-[10px] font-tech uppercase px-1.5 py-0.5 rounded-full ${f.active ? 'bg-green-500/15 text-green-300' : 'bg-brand-muted/15 text-brand-muted'}`}>{f.active ? 'Activo' : 'Pausado'}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-brand-muted mt-1">
-                      <span className="flex items-center gap-1"><Target size={11} />{f.pipelines?.name} · {f.pipeline_stages?.name}</span>
-                      <span className="flex items-center gap-1"><Users2 size={11} />{f.team_members?.full_name || 'Sin dueño'}</span>
-                      <span>{f.submissions_count || 0} envío(s)</span>
+            <div key={f.id} className="relative bg-brand-panel border border-brand-border rounded-2xl panel-depth overflow-hidden stagger-item" style={{ animationDelay: `${Math.min(idx, 8) * 40}ms` }}>
+              <div className={`absolute left-0 top-0 bottom-0 w-1 ${f.active ? 'bg-green-500' : 'bg-brand-border'}`} />
+              <div className="p-5 pl-6">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="min-w-0">
+                    <h3 className="font-manrope font-semibold text-base truncate">{f.name}</h3>
+                    <div className="flex items-center gap-2 text-xs text-brand-muted mt-1.5 flex-wrap">
+                      <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-brand-bg border border-brand-border/70">
+                        <Target size={11} /> {f.pipelines?.name || 'Sin pipeline'} <ArrowRight size={10} className="opacity-60" /> {f.pipeline_stages?.name || 'Sin etapa'}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        {ownerName ? (
+                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-tech font-bold text-white" style={{ background: colorForName(ownerName) }}>{initials(ownerName)}</span>
+                        ) : <Users2 size={12} />}
+                        {ownerName || 'Sin dueño'}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <button onClick={() => toggleActive(f)} className="text-xs text-brand-ice hover:underline">{f.active ? 'Pausar' : 'Reactivar'}</button>
-                    <button onClick={() => remove(f)} className="text-brand-muted hover:text-red-400 transition"><Trash2 size={14} /></button>
+                  <div className="flex items-center gap-4 flex-shrink-0">
+                    <div className="text-right">
+                      <div className="font-headline text-xl font-semibold leading-none text-brand-ice">{(f.submissions_count || 0).toLocaleString('es')}</div>
+                      <div className="text-[10px] text-brand-muted mt-1">{f.submissions_count === 1 ? 'envío' : 'envíos'}</div>
+                    </div>
+                    <div className="flex items-center gap-2" title={f.active ? 'Recibiendo envíos' : 'Pausado: el link no recibe envíos'}>
+                      <Switch on={!!f.active} onChange={() => toggleActive(f)} label={f.active ? `Pausar ${f.name}` : `Reactivar ${f.name}`} />
+                      <span className={`text-[10px] font-tech uppercase w-12 ${f.active ? 'text-green-300' : 'text-brand-muted'}`}>{f.active ? 'Activo' : 'Pausado'}</span>
+                    </div>
+                    <button onClick={() => remove(f)} aria-label={`Borrar ${f.name}`} title="Borrar formulario" className="icon-btn p-2 rounded-lg text-brand-muted hover:text-red-400 hover:bg-red-500/10 transition"><Trash2 size={15} /></button>
                   </div>
                 </div>
 
-                <button onClick={() => setEditingFieldsId(editingFieldsId === f.id ? null : f.id)} className="flex items-center gap-1.5 text-xs text-brand-ice hover:underline mb-2">
-                  <Sparkles size={12} /> {formFields.length > 0 ? `${formFields.length} pregunta(s)` : 'Agregar preguntas'} {editingFieldsId === f.id ? '▴' : '▾'}
-                </button>
+                <div className="flex items-center gap-1.5 flex-wrap mb-3">
+                  <span className="text-[10px] font-tech uppercase tracking-wide text-brand-muted mr-1">Preguntas</span>
+                  {formFields.slice(0, 5).map((q) => {
+                    const QIcon = TYPE_META[q.field_type]?.icon || Type;
+                    return <span key={q.id} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-brand-violet/10 text-brand-ice text-[11px]"><QIcon size={10} /> {q.label}</span>;
+                  })}
+                  {formFields.length > 5 && <span className="text-[11px] text-brand-muted">+{formFields.length - 5} más</span>}
+                  {formFields.length === 0 && <span className="text-[11px] text-brand-muted">Solo los datos básicos (nombre, correo, teléfono, empresa, mensaje)</span>}
+                  <button onClick={() => setEditingFieldsId(editingFieldsId === f.id ? null : f.id)} className="flex items-center gap-1 text-xs text-brand-ice hover:underline ml-1">
+                    <Sparkles size={11} /> {editingFieldsId === f.id ? 'Cerrar editor' : formFields.length ? 'Editar preguntas' : 'Agregar preguntas'}
+                  </button>
+                </div>
 
                 {editingFieldsId === f.id && (
                   <div className="mb-3">
-                    <QuestionsEditor
-                      allFields={dealFields}
-                      selectedIds={f.field_ids || []}
-                      onChange={(ids) => saveFieldIds(f, ids)}
-                      onFieldCreated={onFieldCreated}
-                    />
+                    <QuestionsEditor allFields={dealFields} selectedIds={f.field_ids || []} onChange={(ids) => saveFieldIds(f, ids)} onFieldCreated={onFieldCreated} />
                   </div>
                 )}
 
-                <div className="flex items-center gap-2">
-                  <input readOnly value={publicUrl} className="flex-1 px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs font-tech text-brand-muted" />
-                  <button onClick={() => setPreviewFormId(f.id)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition flex-shrink-0">
-                    <Eye size={12} /> Vista previa
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex-1 min-w-[220px] flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border">
+                    <Link2 size={13} className="text-brand-muted flex-shrink-0" />
+                    <input readOnly aria-label="Link público" value={publicUrl} className="flex-1 min-w-0 bg-transparent text-xs font-tech text-brand-muted focus:outline-none focus-visible:outline-none focus:shadow-none" />
+                  </div>
+                  <button onClick={() => setPreviewFormId(f.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
+                    <Eye size={13} /> Vista previa
                   </button>
-                  <button onClick={() => copy(publicUrl, `link-${f.id}`)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition flex-shrink-0">
-                    {copiedId === `link-${f.id}` ? <Check size={12} /> : <Link2 size={12} />} Link
+                  <button onClick={() => copy(publicUrl, `link-${f.id}`)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
+                    {copiedId === `link-${f.id}` ? <Check size={13} className="text-green-300" /> : <Copy size={13} />} {copiedId === `link-${f.id}` ? 'Copiado' : 'Copiar link'}
                   </button>
-                  <button onClick={() => copy(embedSnippet(f.id, formFields), `embed-${f.id}`)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition flex-shrink-0">
-                    {copiedId === `embed-${f.id}` ? <Check size={12} /> : <Code2 size={12} />} Código para tu web
+                  <button onClick={() => copy(embedSnippet(f.id, formFields), `embed-${f.id}`)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
+                    {copiedId === `embed-${f.id}` ? <Check size={13} className="text-green-300" /> : <Code2 size={13} />} {copiedId === `embed-${f.id}` ? 'Copiado' : 'Código para tu web'}
                   </button>
                 </div>
               </div>
@@ -482,6 +509,60 @@ export default function LeadForms() {
           );
         })}
       </div>
+
+      {showForm && (
+        <Drawer
+          title="Nuevo formulario"
+          subtitle="Elige a dónde llegan los envíos y qué preguntas hace"
+          icon={ClipboardList}
+          width="max-w-lg"
+          onClose={() => setShowForm(false)}
+          footer={(
+            <>
+              <button type="button" onClick={create} disabled={!canCreate || creating} className={primaryBtn}>{creating ? 'Creando...' : 'Crear formulario'}</button>
+              <button type="button" onClick={() => setShowForm(false)} className={ghostBtn}>Cancelar</button>
+              <button type="button" onClick={() => setPreviewFormId('__new__')} className="ml-auto flex items-center gap-1 px-3 py-2 text-brand-ice text-sm hover:underline"><Eye size={13} /> Vista previa</button>
+            </>
+          )}
+        >
+          <form onSubmit={create} className="space-y-6">
+            {error && <div className="px-3.5 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+            <Field label="Nombre del formulario">
+              <input autoFocus required placeholder="Ej. Web — Contacto" value={newForm.name} onChange={(e) => setNewForm({ ...newForm, name: e.target.value })} className={inputCls} />
+            </Field>
+
+            <div>
+              <div className="text-[11px] font-tech uppercase tracking-wide text-brand-muted mb-2.5">¿A dónde llegan los envíos?</div>
+              <div className="space-y-3 rounded-2xl border border-brand-border bg-brand-bg/40 p-3.5">
+                <Field label="1 · Pipeline">
+                  <select required value={newForm.pipeline_id} onChange={(e) => setNewForm({ ...newForm, pipeline_id: e.target.value, stage_id: '' })} className={selectCls} style={{ colorScheme: 'dark' }}>
+                    <option value="">Elige un pipeline...</option>
+                    {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </Field>
+                <Field label="2 · Etapa inicial">
+                  <select required disabled={!selectedPipeline} value={newForm.stage_id} onChange={(e) => setNewForm({ ...newForm, stage_id: e.target.value })} className={`${selectCls} disabled:opacity-50`} style={{ colorScheme: 'dark' }}>
+                    <option value="">{selectedPipeline ? 'Elige una etapa...' : 'Primero elige el pipeline'}</option>
+                    {stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </Field>
+                <Field label="3 · Dueño del trato">
+                  <select value={newForm.owner_id} onChange={(e) => setNewForm({ ...newForm, owner_id: e.target.value })} className={selectCls} style={{ colorScheme: 'dark' }}>
+                    <option value="">Sin dueño</option>
+                    {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                  </select>
+                </Field>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1.5 text-[11px] font-tech uppercase tracking-wide text-brand-muted mb-2.5"><Sparkles size={12} /> Preguntas de este formulario</div>
+              <QuestionsEditor allFields={dealFields} selectedIds={newForm.field_ids} onChange={(ids) => setNewForm({ ...newForm, field_ids: ids })} onFieldCreated={onFieldCreated} />
+            </div>
+            <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
+          </form>
+        </Drawer>
+      )}
 
       {(() => {
         if (!previewFormId) return null;

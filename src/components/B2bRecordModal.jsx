@@ -52,7 +52,9 @@ const GENERIC_HARDWARE_OPTIONS = ['Pantalla / TV', 'Parlante', 'Reproductor Andr
 // nombre del pipeline no dice de qué línea de producto es el trato — a diferencia de
 // "Bit WiFi"/"Bit Music"/"Neomedia Digital", donde ya lo dice. En esos casos se pide
 // explícito con el campo "Producto", y el tipo de hardware sale de ahí en vez del pipeline.
-export const PRODUCT_LINE_OPTIONS = ['Bit Music', 'Bit Signage / Neomedia', 'Bit WiFi'];
+// Bit Signage y Neomedia son líneas distintas (antes venían juntas en una sola opción). Esta lista es
+// solo el respaldo: en los tratos el desplegable sale del catálogo de Productos (lib/productCatalog).
+export const PRODUCT_LINE_OPTIONS = ['Bit Music', 'Bit Signage', 'Neomedia', 'Bit WiFi', 'Email Marketing', 'WhatsApp Marketing', 'Loyalty', 'SMS'];
 export function isGenericPipeline(pipelineName) {
   return !HARDWARE_BY_PIPELINE.some((h) => h.match.test(pipelineName || ''));
 }
@@ -61,6 +63,8 @@ export function hardwareOptionsForPipeline(pipelineName) {
   const found = HARDWARE_BY_PIPELINE.find((h) => h.match.test(pipelineName || ''));
   return found ? found.options : GENERIC_HARDWARE_OPTIONS;
 }
+// Con un producto del catálogo elegido, usar hardwareOptionsFor (lib/productCatalog): devuelve [] para
+// los productos que son software/servicio y no llevan hardware.
 
 export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
   const confirm = useConfirm();

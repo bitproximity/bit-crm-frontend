@@ -3,7 +3,8 @@ import { useOutsideClick } from '../hooks/useOutsideClick';
 import { api } from '../lib/api';
 import DateTimePicker from './DateTimePicker';
 import { User, Building2, X, Plus } from 'lucide-react';
-import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS, FACTURACION_OPTIONS, hardwareOptionsForPipeline, isGenericPipeline, PRODUCT_LINE_OPTIONS } from './B2bRecordModal';
+import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS, FACTURACION_OPTIONS, isGenericPipeline } from './B2bRecordModal';
+import { hardwareOptionsFor, productOptions } from '../lib/productCatalog';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
@@ -92,8 +93,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
     }
     // Si el tipo de hardware elegido ya no aplica al pipeline nuevo (ej. tenía "Router" y
     // cambió a Bit Music), se limpia en vez de dejar guardado algo que no corresponde.
-    const effectivePipelineName = productLine || pipeline?.name;
-    if (hardwareType && !hardwareOptionsForPipeline(effectivePipelineName).includes(hardwareType)) {
+    if (hardwareType && !hardwareOptionsFor({ productLine, pipelineName: pipeline?.name }).includes(hardwareType)) {
       setHardwareType('');
     }
     if (productLine && !isGenericPipeline(pipeline?.name)) setProductLine('');
@@ -127,6 +127,16 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
   // IMPORTANTE: este hook tiene que ir ANTES del "if (!open) return null" de abajo —
   // un hook después de un return condicional rompe las reglas de hooks de React
   // (React error #310) en cuanto el modal pasa de cerrado a abierto.
+  // Un solo lugar para elegir producto: si se añaden productos del catálogo y «Producto» sigue vacío
+  // (embudos por país), se toma el primero para que las métricas por producto lo cuenten sin pedirlo dos veces.
+  useEffect(() => {
+    if (!productLine && lineItems.length > 0 && isGenericPipeline(pipeline?.name)) {
+      const first = lineItems.find((i) => i.product_id && i.name);
+      if (first) setProductLine(first.name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineItems]);
+
   useEffect(() => {
     if (lineItems.length === 0) return;
     const total = lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0), 0);
@@ -488,20 +498,34 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
               {isGenericPipeline(pipeline?.name) && (
                 <div>
                   <label className={labelClass}>Producto</label>
-                  <select value={productLine} onChange={(e) => { setProductLine(e.target.value); setHardwareType(''); }} className={plainInputClass}>
+                  <select
+                    value={productLine}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      setProductLine(name);
+                      setHardwareType('');
+                      // Deja el producto listo en «Añadir productos» para sumar precio/cantidad sin buscarlo otra vez
+                      const p = products.find((pr) => pr.name === name);
+                      setProductForm((f) => ({ ...f, product_id: p ? p.id : '', unit_price: p ? (p.price || '') : f.unit_price }));
+                    }}
+                    className={plainInputClass}
+                  >
                     <option value="">Sin especificar</option>
-                    {PRODUCT_LINE_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                    {productOptions(products, productLine).map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
+                  <p className="text-[11px] text-brand-muted mt-1">Sale del catálogo de Productos: lo que crees allá aparece aquí y cuenta en las métricas.</p>
                 </div>
               )}
 
-              <div>
-                <label className={labelClass}>Tipo de hardware</label>
-                <select value={hardwareType} onChange={(e) => setHardwareType(e.target.value)} className={plainInputClass}>
-                  <option value="">Sin especificar</option>
-                  {hardwareOptionsForPipeline(productLine || pipeline?.name).map((h) => <option key={h} value={h}>{h}</option>)}
-                </select>
-              </div>
+              {hardwareOptionsFor({ productLine, pipelineName: pipeline?.name }).length > 0 && (
+                <div>
+                  <label className={labelClass}>Tipo de hardware</label>
+                  <select value={hardwareType} onChange={(e) => setHardwareType(e.target.value)} className={plainInputClass}>
+                    <option value="">Sin especificar</option>
+                    {hardwareOptionsFor({ productLine, pipelineName: pipeline?.name }).map((h) => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className={labelClass}>Etapa del pipeline</label>

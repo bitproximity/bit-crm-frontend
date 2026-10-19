@@ -5,6 +5,8 @@ import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
 import DateTimePicker from '../components/DateTimePicker';
 import { LayoutGrid, List, Plus, Flag, Calendar, ChevronRight, ChevronDown, X, Send, Trash2, FolderKanban, CheckCircle2, Circle } from 'lucide-react';
+import { Video, CalendarCheck, MessageSquare, User, ListChecks, ChevronDown as Chevron } from 'lucide-react';
+import MeetingLinkField from '../components/MeetingLinkField';
 
 export const STATUSES = [
   { key: 'pendiente', label: 'Pendiente', color: '#6B7280', dot: 'bg-gray-400' },
@@ -448,12 +450,14 @@ export default function Tasks() {
   );
 }
 
-export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
+export function TaskDetailModal({ taskId, team = [], onClose, onChanged }) {
   const confirm = useConfirm();
   const [task, setTask] = useState(null);
   const [comment, setComment] = useState('');
   const [calSyncResult, setCalSyncResult] = useState(null);
   const [calSyncing, setCalSyncing] = useState(false);
+  const [error, setError] = useState('');
+  const [mentionQuery, setMentionQuery] = useState(null); // null = cerrado, '' o texto = filtro activo
 
   const syncCalendar = async () => {
     setCalSyncing(true);
@@ -467,15 +471,22 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
     setCalSyncing(false);
   };
 
-  const [error, setError] = useState('');
-  const [mentionQuery, setMentionQuery] = useState(null); // null = cerrado, '' o texto = filtro activo
-
   const load = () => api.get(`/api/tasks/${taskId}`).then(setTask).catch((err) => setError(err.message));
 
   useEffect(() => { load(); }, [taskId]);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const update = async (fields) => {
-    await api.patch(`/api/tasks/${taskId}`, fields);
+    setError('');
+    try {
+      await api.patch(`/api/tasks/${taskId}`, fields);
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar el cambio.');
+    }
     load();
     onChanged?.();
   };
@@ -490,7 +501,6 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
   };
 
   const insertMention = (member) => {
-    const cursor = comment.length; // aproximación simple: siempre al final del texto escrito hasta ahora
     const beforeMention = comment.replace(/@([a-zA-ZÀ-ÿ]*)$/, '');
     setComment(`${beforeMention}@${member.full_name} `);
     setMentionQuery(null);
@@ -520,64 +530,106 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
 
   if (!task) return null;
 
-  const selectClass = 'px-2.5 py-1.5 rounded-lg bg-brand-bg border border-brand-border text-xs focus:outline-none';
+  const status = STATUSES.find((s) => s.key === task.status) || STATUSES[0];
+  const priority = task.priority || 'media';
+  const selectCls = 'w-full pl-9 pr-3 py-2.5 rounded-xl bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet cursor-pointer appearance-none';
+  const sectionTitle = 'flex items-center gap-1.5 text-[11px] font-tech uppercase tracking-wide text-brand-muted mb-2.5';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-lg max-h-[85vh] bg-brand-panel border border-brand-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Detalle de la tarea">
+      <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px] overlay-in" onClick={onClose} />
+      <div className="relative w-full max-w-2xl max-h-[90vh] bg-brand-panel border border-brand-border rounded-2xl shadow-2xl flex flex-col overflow-hidden modal-in">
+        {/* Cabecera: estado + título editable */}
+        <div className="px-6 pt-5 pb-4 border-b border-brand-border">
+          <div className="flex items-center justify-between mb-3">
+            <label className="relative inline-flex items-center">
+              <span className="absolute left-3 w-2 h-2 rounded-full pointer-events-none" style={{ background: status.color }} />
+              <select
+                aria-label="Estado"
+                value={task.status}
+                onChange={(e) => update({ status: e.target.value })}
+                className="pl-7 pr-3 py-1.5 rounded-full bg-brand-bg border border-brand-border text-xs font-tech uppercase tracking-wide focus:outline-none focus:border-brand-violet cursor-pointer appearance-none"
+                style={{ colorScheme: 'dark' }}
+              >
+                {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+              </select>
+            </label>
+            <div className="flex items-center gap-1">
+              <button onClick={deleteTask} aria-label="Eliminar tarea" title="Eliminar tarea" className="icon-btn p-2 rounded-lg text-brand-muted hover:text-red-400 hover:bg-red-500/10 transition"><Trash2 size={16} /></button>
+              <button onClick={onClose} aria-label="Cerrar" className="icon-btn p-2 rounded-lg text-brand-muted hover:text-brand-white hover:bg-brand-bg transition"><X size={18} /></button>
+            </div>
+          </div>
           <input
             defaultValue={task.title}
-            onBlur={(e) => e.target.value !== task.title && update({ title: e.target.value })}
-            className="font-headline text-lg font-semibold bg-transparent focus:outline-none flex-1"
+            key={task.id}
+            aria-label="Título de la tarea"
+            onBlur={(e) => e.target.value.trim() && e.target.value !== task.title && update({ title: e.target.value })}
+            className="w-full font-headline text-xl font-semibold bg-transparent focus:outline-none placeholder:text-brand-muted"
+            placeholder="Título de la tarea"
           />
-          <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-            <button onClick={deleteTask} className="text-brand-muted hover:text-red-400"><Trash2 size={16} /></button>
-            <button onClick={onClose} className="text-brand-muted hover:text-brand-white"><X size={20} /></button>
-          </div>
+          {task.projects?.name && (
+            <div className="flex items-center gap-1.5 text-xs text-brand-muted mt-1.5"><FolderKanban size={12} /> {task.projects.name}</div>
+          )}
         </div>
 
-        <div className="p-6 space-y-4 overflow-y-auto">
-          {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+        <div className="px-6 py-5 space-y-6 overflow-y-auto">
+          {error && <div className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
 
-          <div className="flex flex-wrap gap-2">
-            <select value={task.status} onChange={(e) => update({ status: e.target.value })} className={selectClass}>
-              {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-            </select>
-            <select value={task.priority || 'media'} onChange={(e) => update({ priority: e.target.value })} className={selectClass}>
-              <option value="baja">Prioridad baja</option>
-              <option value="media">Prioridad media</option>
-              <option value="alta">Prioridad alta</option>
-              <option value="urgente">Prioridad urgente</option>
-            </select>
-            <select value={task.assignee_id || ''} onChange={(e) => update({ assignee_id: e.target.value || null })} className={selectClass}>
-              <option value="">Sin asignar</option>
-              {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-            </select>
-            <DateTimePicker
-              value={task.due_date || ''}
-              onChange={(v) => update({ due_date: v || null })}
-            />
+          {/* Propiedades */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <div className={sectionTitle}>Responsable</div>
+              <div className="relative">
+                <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted pointer-events-none" />
+                <select aria-label="Responsable" value={task.assignee_id || ''} onChange={(e) => update({ assignee_id: e.target.value || null })} className={selectCls} style={{ colorScheme: 'dark' }}>
+                  <option value="">Sin asignar</option>
+                  {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                </select>
+                <Chevron size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted pointer-events-none" />
+              </div>
+            </div>
+            <div>
+              <div className={sectionTitle}>Prioridad</div>
+              <div className="relative">
+                <Flag size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${PRIORITY_COLORS[priority]}`} />
+                <select aria-label="Prioridad" value={priority} onChange={(e) => update({ priority: e.target.value })} className={selectCls} style={{ colorScheme: 'dark' }}>
+                  <option value="baja">Baja</option>
+                  <option value="media">Media</option>
+                  <option value="alta">Alta</option>
+                  <option value="urgente">Urgente</option>
+                </select>
+                <Chevron size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-muted pointer-events-none" />
+              </div>
+            </div>
+            <div className="sm:col-span-2">
+              <div className={sectionTitle}><Calendar size={12} /> Fecha y hora límite</div>
+              <DateTimePicker value={task.due_date || ''} onChange={(v) => update({ due_date: v || null })} className="w-full" />
+            </div>
           </div>
 
-          <div>
-            <button
-              onClick={syncCalendar}
-              disabled={calSyncing}
-              className="text-xs text-brand-ice hover:underline disabled:opacity-50"
-            >
-              {calSyncing ? 'Sincronizando...' : '📅 Sincronizar con Google Calendar ahora'}
-            </button>
+          {/* Reunión + calendario — va ANTES de los comentarios */}
+          <div className="rounded-2xl border border-brand-border bg-brand-bg/50 p-4">
+            <div className={sectionTitle}><Video size={13} /> Reunión</div>
+            <MeetingLinkField value={task.meeting_url || ''} onSave={(v) => update({ meeting_url: v || null })} />
+            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-brand-border/70 flex-wrap">
+              <span className={`flex items-center gap-1.5 text-xs ${task.google_event_id ? 'text-green-300' : 'text-brand-muted'}`}>
+                <CalendarCheck size={13} /> {task.google_event_id ? 'Está en tu Google Calendar' : 'Aún no está en Google Calendar'}
+              </span>
+              <button
+                onClick={syncCalendar}
+                disabled={calSyncing}
+                className="ml-auto text-xs px-3 py-1.5 rounded-lg border border-brand-border hover:border-brand-violet text-brand-ice transition disabled:opacity-50"
+              >
+                {calSyncing ? 'Sincronizando...' : 'Sincronizar ahora'}
+              </button>
+            </div>
             {calSyncResult && (
-              <div className={`mt-1.5 px-3 py-2 rounded-lg text-xs ${calSyncResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-300' : 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-300'}`}>
+              <div className={`mt-2.5 px-3 py-2 rounded-lg text-xs ${calSyncResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-300' : 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-300'}`}>
                 {calSyncResult.ok ? (
                   <>
                     Sincronizada con <span className="font-tech">{calSyncResult.connectedEmail}</span>, con recordatorio.{' '}
                     {calSyncResult.eventLink && (
-                      <a href={calSyncResult.eventLink} target="_blank" rel="noreferrer" className="underline">
-                        Ver el evento directo en Google Calendar →
-                      </a>
+                      <a href={calSyncResult.eventLink} target="_blank" rel="noreferrer" className="underline">Ver el evento directo en Google Calendar →</a>
                     )}
                   </>
                 ) : calSyncResult.reason}
@@ -585,17 +637,13 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
             )}
           </div>
 
-          {task.projects?.name && (
-            <div className="text-xs text-brand-muted">Proyecto: <span className="text-brand-white">{task.projects.name}</span></div>
-          )}
-
           {task.subtasks?.length > 0 && (
             <div>
-              <div className="text-xs text-brand-muted uppercase mb-2">Subtareas</div>
+              <div className={sectionTitle}><ListChecks size={13} /> Subtareas</div>
               <div className="space-y-1">
                 {task.subtasks.map((s) => (
-                  <div key={s.id} className="flex items-center gap-2 text-sm bg-brand-bg rounded-lg px-3 py-1.5">
-                    <input type="checkbox" checked={s.status === 'completada'} readOnly className="accent-brand-violet" />
+                  <div key={s.id} className="flex items-center gap-2.5 text-sm bg-brand-bg rounded-xl px-3 py-2">
+                    {s.status === 'completada' ? <CheckCircle2 size={15} className="text-green-400" /> : <Circle size={15} className="text-brand-muted" />}
                     <span className={s.status === 'completada' ? 'line-through text-brand-muted' : ''}>{s.title}</span>
                   </div>
                 ))}
@@ -603,30 +651,26 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
             </div>
           )}
 
+          {/* Comentarios */}
           <div>
-            <div className="text-xs text-brand-muted uppercase mb-2">Comentarios</div>
-            <div className="space-y-2 mb-3">
+            <div className={sectionTitle}><MessageSquare size={13} /> Comentarios <span className="font-tech normal-case text-brand-muted/70">{(task.comments || []).length}</span></div>
+            <div className="space-y-3 mb-3">
               {(task.comments || []).map((c) => (
-                <div key={c.id} className="flex gap-2 text-sm">
-                  <Avatar name={c.team_members?.full_name} size="w-6 h-6 text-[10px]" />
-                  <div className="flex-1 bg-brand-bg rounded-lg px-3 py-2">
-                    <div className="text-xs text-brand-muted mb-0.5">{c.team_members?.full_name} · {new Date(c.created_at).toLocaleString()}</div>
-                    <div>{c.body}</div>
+                <div key={c.id} className="flex gap-2.5 text-sm">
+                  <Avatar name={c.team_members?.full_name} size="w-7 h-7 text-[10px]" />
+                  <div className="flex-1 bg-brand-bg rounded-2xl rounded-tl-md px-3.5 py-2.5">
+                    <div className="text-xs mb-0.5"><span className="font-medium text-brand-white">{c.team_members?.full_name}</span> <span className="text-brand-muted">· {new Date(c.created_at).toLocaleString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></div>
+                    <div className="text-brand-white/90 whitespace-pre-wrap">{c.body}</div>
                   </div>
                 </div>
               ))}
-              {(task.comments || []).length === 0 && <div className="text-brand-muted text-xs">Sin comentarios todavía.</div>}
+              {(task.comments || []).length === 0 && <div className="text-brand-muted text-xs py-1">Sin comentarios todavía.</div>}
             </div>
             <form onSubmit={addComment} className="relative flex gap-2" ref={mentionBoxRef}>
               {mentionResults.length > 0 && (
-                <div className="absolute bottom-full mb-1 left-0 w-56 bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden z-10">
+                <div className="absolute bottom-full mb-1 left-0 w-56 bg-brand-bg border border-brand-border rounded-xl shadow-xl overflow-hidden z-10">
                   {mentionResults.map((m) => (
-                    <button
-                      type="button"
-                      key={m.id}
-                      onClick={() => insertMention(m)}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center gap-2"
-                    >
+                    <button type="button" key={m.id} onClick={() => insertMention(m)} className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition flex items-center gap-2">
                       <Avatar name={m.full_name} />
                       {m.full_name}
                     </button>
@@ -636,9 +680,9 @@ export function TaskDetailModal({ taskId, team, onClose, onChanged }) {
               <input
                 value={comment} onChange={onCommentChange}
                 placeholder="Escribe un comentario... usa @ para mencionar"
-                className="flex-1 px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet"
+                className="flex-1 px-3.5 py-2.5 rounded-xl bg-brand-bg border border-brand-border text-sm placeholder:text-brand-muted/60 focus:outline-none focus:border-brand-violet focus:ring-2 focus:ring-brand-violet/20 transition"
               />
-              <button className="px-3 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg"><Send size={14} /></button>
+              <button aria-label="Enviar comentario" className="px-3.5 py-2.5 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-xl hover:opacity-90 transition"><Send size={15} /></button>
             </form>
           </div>
         </div>

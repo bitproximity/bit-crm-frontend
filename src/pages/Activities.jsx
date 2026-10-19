@@ -6,7 +6,9 @@ import DateTimePicker from '../components/DateTimePicker';
 import { useOutsideClick } from '../hooks/useOutsideClick';
 import { csvToActivities } from '../lib/csv';
 import { useConfirm } from '../components/ConfirmModal';
-import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check, Upload, X, Trash2, LayoutGrid, List, RefreshCcw } from 'lucide-react';
+import { Phone, Mail, Users, MessageCircle, StickyNote, CheckSquare, Plus, Check, Upload, X, Trash2, LayoutGrid, List, RefreshCcw, Video } from 'lucide-react';
+import NewActivityModal from '../components/NewActivityModal';
+import MeetingLinkField from '../components/MeetingLinkField';
 
 const TYPE_ICONS = {
   email: Mail, followup: RefreshCcw, llamada: Phone, nota: StickyNote, reunion: Users, tarea: CheckSquare, whatsapp: MessageCircle,
@@ -38,13 +40,12 @@ export default function Activities() {
   const [activities, setActivities] = useState([]);
   const [tab, setTab] = useState('pendiente'); // solo para la vista Lista
   const [showForm, setShowForm] = useState(false);
-  const [formError, setFormError] = useState('');
-  const [form, setForm] = useState({ title: '', type: 'llamada', due_date: '', summary: '' });
+  const [createdNotice, setCreatedNotice] = useState('');
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef(null);
   const [editingActivity, setEditingActivity] = useState(null);
-  const [editForm, setEditForm] = useState({ title: '', type: 'llamada', due_date: '', done: false });
+  const [editForm, setEditForm] = useState({ title: '', type: 'llamada', due_date: '', done: false, meeting_url: '' });
   const [saving, setSaving] = useState(false);
   const [dealQuery, setDealQuery] = useState('');
   const [dealResults, setDealResults] = useState([]);
@@ -86,26 +87,6 @@ export default function Activities() {
     load();
   }, [tab, view, onlyMine]);
 
-  const create = async (e) => {
-    e.preventDefault();
-    setFormError('');
-    try {
-      await api.post('/api/activities', {
-        title: form.title,
-        type: form.type,
-        due_date: form.due_date ? new Date(form.due_date).toISOString() : null,
-        summary: form.summary || form.title,
-        occurred_at: form.due_date ? new Date(form.due_date).toISOString() : new Date().toISOString(),
-      });
-    } catch (err) {
-      setFormError(err.message || 'No se pudo crear la actividad.');
-      return;
-    }
-    setForm({ title: '', type: 'llamada', due_date: '', summary: '' });
-    setShowForm(false);
-    load();
-  };
-
   const markDone = async (id) => {
     await api.patch(`/api/activities/${id}`, { done: true });
     load();
@@ -137,7 +118,7 @@ export default function Activities() {
 
   const openEdit = (a) => {
     setEditingActivity(a);
-    setEditForm({ title: a.title || a.summary || '', type: a.type, due_date: a.due_date || '', done: !!a.done });
+    setEditForm({ title: a.title || a.summary || '', type: a.type, due_date: a.due_date || '', done: !!a.done, meeting_url: a.meeting_url || '' });
     setSelectedDeal(a.entity_type === 'deal' ? { id: a.entity_id, title: a.entity_label } : null);
     setDealQuery(a.entity_type === 'deal' ? (a.entity_label || '') : '');
     setDealResults([]);
@@ -162,6 +143,7 @@ export default function Activities() {
         type: editForm.type,
         due_date: editForm.due_date || null,
         done: editForm.done,
+        meeting_url: editForm.meeting_url || null,
       };
       if (selectedDeal && selectedDeal.id !== editingActivity.entity_id) {
         payload.entity_type = 'deal';
@@ -210,7 +192,7 @@ export default function Activities() {
             <Upload size={14} /> {importing ? 'Importando...' : 'Importar CSV'}
           </button>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => setShowForm(true)}
             className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium flex items-center gap-1.5"
           >
             <Plus size={14} /> Nueva actividad
@@ -261,30 +243,22 @@ export default function Activities() {
         )}
       </div>
 
+      {createdNotice && (
+        <div className="mb-4 px-4 py-3 rounded-xl text-sm bg-green-500/10 border border-green-500/30 text-green-300 flex items-center justify-between">
+          {createdNotice}
+          <button onClick={() => setCreatedNotice('')} className="text-xs underline ml-3">Cerrar</button>
+        </div>
+      )}
+
       {showForm && (
-        <form onSubmit={create} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-4 flex flex-wrap gap-3">
-          <input
-            placeholder="Asunto (ej. Follow up: Juan Pérez)"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            required
-            className="flex-1 min-w-[220px] px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm"
-          />
-          <select
-            value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value })}
-            className="px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm font-tech"
-          >
-            {Object.entries(TYPE_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
-          <DateTimePicker value={form.due_date} onChange={(v) => setForm({ ...form, due_date: v })} />
-          <button className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium">
-            Crear
-          </button>
-          {formError && (
-            <div className="w-full px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">{formError}</div>
-          )}
-        </form>
+        <NewActivityModal
+          onClose={() => setShowForm(false)}
+          onCreated={(created) => {
+            setShowForm(false);
+            setCreatedNotice(created?.calendar_sync?.ok ? 'Actividad creada y agregada a tu Google Calendar.' : 'Actividad creada.');
+            load();
+          }}
+        />
       )}
 
       {view === 'tablero' ? (
@@ -334,6 +308,9 @@ export default function Activities() {
                               {a.entity_label}
                             </span>
                           ) : <span />}
+                          {a.meeting_url && (
+                            <a href={a.meeting_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-[11px] text-brand-ice hover:underline flex-shrink-0"><Video size={11} /> Unirse</a>
+                          )}
                           {a.due_date && (
                             <span className={`text-[11px] font-tech flex-shrink-0 ${col.key === 'vencida' ? 'text-red-400' : 'text-brand-muted'}`}>
                               {new Date(a.due_date).toLocaleDateString()}
@@ -439,6 +416,12 @@ export default function Activities() {
                 <label className="block text-xs text-brand-muted mb-1.5">Fecha</label>
                 <DateTimePicker value={editForm.due_date} onChange={(v) => setEditForm({ ...editForm, due_date: v })} className="w-full" />
               </div>
+              {['reunion', 'llamada', 'followup'].includes(editForm.type) && (
+                <div>
+                  <label className="block text-xs text-brand-muted mb-1.5">Link de la reunión</label>
+                  <MeetingLinkField value={editForm.meeting_url} onDraft={(v) => setEditForm((f) => ({ ...f, meeting_url: v }))} onSave={(v) => setEditForm((f) => ({ ...f, meeting_url: v }))} />
+                </div>
+              )}
               <label className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-brand-bg border border-brand-border cursor-pointer">
                 <span className="text-sm">
                   {editForm.done ? 'Completada' : (editForm.due_date && new Date(editForm.due_date) < new Date() ? 'Vencida' : 'Pendiente')}

@@ -16,6 +16,7 @@ const REMEMBER = [
   [/^\/api\/settings\/[^/?]+$/, 60000],
   [/^\/api\/team\/me$/, 60000],
   [/^\/api\/tags\/with-contact-counts$/, 30000],
+  [/^\/api\/products\?active=true$/, 60000],
 ];
 const READ_ONLY_POSTS = new Set(['/api/prospecting/search', '/api/prospeccion-tool/search']);
 const remembered = new Map(); // path -> { value, expiresAt }

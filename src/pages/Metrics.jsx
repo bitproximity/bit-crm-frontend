@@ -419,6 +419,55 @@ export default function Metrics() {
       </div>
       )}
 
+      {/* Producto — ganado y pipeline abierto por producto. Sale del producto que se eligió en el
+          trato (catálogo de Productos) o, si el trato no lo tiene, del embudo cuando este ya dice la
+          línea (Bit WiFi, Bit Music, Neomedia). Así los embudos por país (Ecuador, Panamá, México, Perú,
+          RD…) también cuentan por producto: Email Marketing, WhatsApp Marketing, Loyalty, SMS, etc. */}
+      {dashboard && (dashboard.product_insights || []).length > 0 && (() => {
+        const rows = dashboard.product_insights;
+        const maxWon = Math.max(1, ...rows.map((r) => r.won_value_usd));
+        return (
+          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth mb-6">
+            <div className="flex items-center gap-1.5 text-sm font-manrope font-medium mb-1">
+              <Package2 size={15} className="text-brand-muted" /> Ventas por producto
+            </div>
+            <p className="text-xs text-brand-muted mb-4">
+              Ganado y pipeline abierto por producto. Cuenta el producto elegido en cada trato; si no tiene, el que indica su embudo (Bit WiFi, Bit Music, Neomedia).
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-brand-muted text-xs">
+                    <th className="py-2 pr-4 font-normal">Producto</th>
+                    <th className="py-2 pr-4 font-normal w-1/3">Participación (ganado)</th>
+                    <th className="py-2 pr-4 font-normal text-right">Ganado</th>
+                    <th className="py-2 pr-4 font-normal text-right"># Ganados</th>
+                    <th className="py-2 pr-4 font-normal text-right">Pipeline abierto</th>
+                    <th className="py-2 font-normal text-right"># Abiertos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => (
+                    <tr key={r.name} className="border-t border-brand-border">
+                      <td className="py-2 pr-4">{i === 0 && r.won_value_usd > 0 ? '🏆 ' : ''}{r.name}</td>
+                      <td className="py-2 pr-4">
+                        <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
+                          <div className="h-full rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta" style={{ width: `${Math.round((r.won_value_usd / maxWon) * 100)}%` }} />
+                        </div>
+                      </td>
+                      <td className="py-2 pr-4 text-right text-brand-ice font-tech">${r.won_value_usd.toLocaleString()}</td>
+                      <td className="py-2 pr-4 text-right text-brand-muted font-tech">{r.won_count}</td>
+                      <td className="py-2 pr-4 text-right text-brand-muted font-tech">${r.pipeline_value_usd.toLocaleString()}</td>
+                      <td className="py-2 text-right text-brand-muted font-tech">{r.pipeline_count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Hardware — ganado y pipeline abierto por tipo/marca. Con un pipeline puntual
           elegido arriba (ej. Bit WiFi) da el ranking real de qué se vende más; con
           "Todos los pipelines" mezcla hardware de líneas de negocio distintas. */}

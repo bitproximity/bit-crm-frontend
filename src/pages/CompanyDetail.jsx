@@ -2,13 +2,68 @@ import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { ChevronLeft, Building2, MapPin, Users, DollarSign, Phone, Linkedin, FileText, Trash2, Plus } from 'lucide-react';
+import {
+  ChevronLeft, MapPin, Users, DollarSign, Phone, Linkedin, FileText, Trash2, Plus, Pencil,
+  Briefcase, TrendingUp, Trophy, CalendarDays, Globe2, Factory, Building2,
+} from 'lucide-react';
 import EnrichButtons from '../components/EnrichButtons';
 import { useConfirm } from '../components/ConfirmModal';
 import { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from '../components/B2bRecordModal';
 import ContactDetailPanel from '../components/ContactDetailPanel';
 import AddContactModal from '../components/AddContactModal';
 import AddDealModal from '../components/AddDealModal';
+import { Drawer, Field, inputCls, selectCls, primaryBtn, ghostBtn } from '../components/Modal';
+import { CompanyAvatar } from './Companies';
+import { colorForName } from '../lib/avatar';
+
+const STATUS_STYLE = {
+  abierto: 'bg-brand-violet/15 text-brand-ice',
+  ganado: 'bg-green-500/15 text-green-300',
+  perdido: 'bg-red-500/15 text-red-300',
+};
+const money = (n) => `$${Math.round(n).toLocaleString()}`;
+
+function Kpi({ icon: Icon, label, value, sub, tone = 'text-brand-ice' }) {
+  return (
+    <div className="bg-brand-panel border border-brand-border rounded-2xl p-4 panel-depth">
+      <div className="flex items-center gap-2 text-brand-muted text-xs mb-2"><Icon size={14} />{label}</div>
+      <div className={`font-headline text-2xl font-semibold ${tone}`}>{value}</div>
+      {sub && <div className="text-[11px] text-brand-muted mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+function Card({ icon: Icon, title, count, action, children, className = '' }) {
+  return (
+    <section className={`bg-brand-panel border border-brand-border rounded-2xl p-5 panel-depth ${className}`}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Icon size={15} className="text-brand-muted" />
+          <h2 className="font-manrope font-semibold text-sm">{title}</h2>
+          {count != null && <span className="font-tech text-[11px] text-brand-muted bg-brand-bg px-2 py-0.5 rounded-full">{count}</span>}
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+const Empty = ({ children }) => (
+  <div className="text-brand-muted text-xs text-center py-7 border border-dashed border-brand-border rounded-xl">{children}</div>
+);
+
+function InfoRow({ icon: Icon, label, children }) {
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-brand-border/60 last:border-0">
+      <Icon size={14} className="text-brand-muted mt-0.5 flex-shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] font-tech uppercase tracking-wide text-brand-muted">{label}</div>
+        <div className="text-sm mt-0.5 break-words">{children}</div>
+      </div>
+    </div>
+  );
+}
 
 export default function CompanyDetail() {
   const { id } = useParams();
@@ -23,6 +78,7 @@ export default function CompanyDetail() {
   const [exchangeRates, setExchangeRates] = useState({});
   const [form, setForm] = useState({ name: '', industry: '', country: '', company_type: 'otro' });
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -55,12 +111,18 @@ export default function CompanyDetail() {
   }, []);
 
   const save = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setSaving(true);
-    await api.patch(`/api/companies/${id}`, form);
-    setSaving(false);
-    setEditing(false);
-    load();
+    setSaveError('');
+    try {
+      await api.patch(`/api/companies/${id}`, form);
+      setEditing(false);
+      load();
+    } catch (err) {
+      setSaveError(err.message || 'No se pudo guardar.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const deleteCompany = async () => {
@@ -98,190 +160,188 @@ export default function CompanyDetail() {
   if (loading || !company) return <SkeletonPage />;
 
   const toUsd = (value, currency) => Number(value || 0) * (exchangeRates[currency] ?? (currency === 'USD' || !currency ? 1 : 0));
-  const openDealsValue = Math.round(
-    (company.deals || []).filter((d) => !d.status || d.status === 'abierto').reduce((sum, d) => sum + toUsd(d.value, d.currency), 0)
-  );
-
-  const inputClass = 'w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet';
-  const labelClass = 'block text-xs text-brand-muted mb-1.5';
+  const deals = company.deals || [];
+  const contacts = company.contacts || [];
+  const openDeals = deals.filter((d) => !d.status || d.status === 'abierto');
+  const wonDeals = deals.filter((d) => d.status === 'ganado');
+  const openValue = openDeals.reduce((s, d) => s + toUsd(d.value, d.currency), 0);
+  const wonValue = wonDeals.reduce((s, d) => s + toUsd(d.value, d.currency), 0);
+  const accent = colorForName(company.name);
+  const created = company.created_at ? new Date(company.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+  const hasEnrichment = company.phone || company.linkedin_url || company.description || company.employee_count;
 
   return (
     <div>
-      <Link to="/companies" className="inline-flex items-center gap-1 text-xs text-brand-muted hover:text-brand-ice mb-3">
+      <Link to="/companies" className="inline-flex items-center gap-1 text-xs text-brand-muted hover:text-brand-ice mb-3 transition">
         <ChevronLeft size={14} /> Empresas
       </Link>
 
-      <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center flex-shrink-0">
-            <Building2 size={22} />
-          </div>
-          <div>
-            <h1 className="font-headline text-xl font-semibold">{company.name}</h1>
-            <div className="flex items-center gap-2 text-xs text-brand-muted mt-1 flex-wrap">
-              <span className="px-2 py-0.5 rounded-full bg-brand-violet/15 text-brand-ice font-tech">
-                {company.industry || 'Sin especificar'}
-              </span>
-              {company.country && <span className="flex items-center gap-1"><MapPin size={11} /> {company.country}</span>}
-              {openDealsValue > 0 && (
-                <span className="flex items-center gap-1 text-green-300">
-                  <DollarSign size={11} /> ${openDealsValue.toLocaleString()} en tratos abiertos
-                </span>
-              )}
+      {/* Cabecera */}
+      <div className="relative bg-brand-panel border border-brand-border rounded-2xl overflow-hidden panel-depth mb-4">
+        <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${accent}, #E000FF)` }} />
+        <div className="p-5 flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4 min-w-0">
+            <CompanyAvatar name={company.name} size="w-16 h-16 text-xl" />
+            <div className="min-w-0">
+              <h1 className="font-headline text-2xl font-semibold truncate">{company.name}</h1>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap text-xs">
+                <span className="px-2.5 py-1 rounded-full bg-brand-violet/15 text-brand-ice font-tech">{company.industry || 'Sin industria'}</span>
+                {company.country && <span className="flex items-center gap-1 text-brand-muted"><MapPin size={12} />{company.country}</span>}
+                {openValue > 0 && <span className="flex items-center gap-1 text-green-300"><DollarSign size={12} />{money(openValue)} en tratos abiertos</span>}
+              </div>
             </div>
           </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <EnrichButtons entityType="companies" entityId={company.id} onEnriched={(updated) => setCompany((c) => ({ ...c, ...updated }))} />
+            <button onClick={() => { setSaveError(''); setEditing(true); }} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-bg border border-brand-border text-sm hover:border-brand-violet transition">
+              <Pencil size={14} /> Editar
+            </button>
+            <button onClick={deleteCompany} className="icon-btn p-2.5 rounded-xl bg-brand-bg border border-brand-border text-brand-muted hover:text-red-300 hover:border-red-500/40 transition" title="Eliminar empresa" aria-label="Eliminar empresa">
+              <Trash2 size={15} />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <EnrichButtons entityType="companies" entityId={company.id} onEnriched={(updated) => setCompany((c) => ({ ...c, ...updated }))} />
-          <button
-            onClick={() => setEditing(!editing)}
-            className="px-4 py-2 rounded-lg bg-brand-panel border border-brand-border text-sm hover:border-brand-violet transition"
+      </div>
+
+      {/* Indicadores */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <Kpi icon={Briefcase} label="Tratos abiertos" value={openDeals.length} sub={openValue > 0 ? `${money(openValue)} en juego` : 'Sin valor cargado'} />
+        <Kpi icon={Trophy} label="Ganado" value={money(wonValue)} sub={`${wonDeals.length} ${wonDeals.length === 1 ? 'trato ganado' : 'tratos ganados'}`} tone="text-green-300" />
+        <Kpi icon={Users} label="Contactos" value={contacts.length} sub={contacts.length ? 'personas vinculadas' : 'Aún sin contactos'} />
+        <Kpi icon={FileText} label="Documentos" value={docs.length} sub="de la empresa, sus tratos y proyectos" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Columna principal */}
+        <div className="lg:col-span-2 space-y-4">
+          <Card
+            icon={DollarSign}
+            title="Tratos"
+            count={deals.length}
+            action={<button onClick={() => setShowAddDeal(true)} className="icon-btn p-1.5 rounded-lg text-brand-muted hover:text-brand-ice hover:bg-brand-bg transition" title="Nuevo trato" aria-label="Nuevo trato"><Plus size={16} /></button>}
           >
-            {editing ? 'Cancelar' : 'Editar'}
-          </button>
-          <button
-            onClick={deleteCompany}
-            className="icon-btn p-2 rounded-lg bg-brand-panel border border-brand-border text-brand-muted hover:text-red-300 hover:border-red-500/40 transition"
-            title="Eliminar empresa"
+            <div className="space-y-2">
+              {deals.map((d, i) => (
+                <div
+                  key={d.id}
+                  onClick={() => navigate(`/deals/${d.id}`)}
+                  className="group flex items-center gap-3 bg-brand-bg rounded-xl px-3.5 py-3 cursor-pointer row-hover stagger-item"
+                  style={{ animationDelay: `${Math.min(i, 15) * 25}ms` }}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate">{d.title}</div>
+                    <div className="flex items-center gap-2 mt-1 text-[11px] text-brand-muted flex-wrap">
+                      {d.pipeline_stages?.name && <span>{d.pipeline_stages.name}</span>}
+                      {d.product_line && <span className="px-1.5 py-0.5 rounded bg-brand-violet/10 text-brand-ice">{d.product_line}</span>}
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-tech uppercase px-2 py-0.5 rounded-full ${STATUS_STYLE[d.status || 'abierto'] || STATUS_STYLE.abierto}`}>{d.status || 'abierto'}</span>
+                  <span className="text-brand-ice font-tech text-sm flex-shrink-0 text-right min-w-[84px]">{d.currency} {Number(d.value || 0).toLocaleString()}</span>
+                </div>
+              ))}
+              {deals.length === 0 && <Empty>Sin tratos todavía. Crea el primero con el botón +.</Empty>}
+            </div>
+          </Card>
+
+          <Card
+            icon={Users}
+            title="Contactos"
+            count={contacts.length}
+            action={<button onClick={() => setShowAddContact(true)} className="icon-btn p-1.5 rounded-lg text-brand-muted hover:text-brand-ice hover:bg-brand-bg transition" title="Nuevo contacto" aria-label="Nuevo contacto"><Plus size={16} /></button>}
           >
-            <Trash2 size={16} />
-          </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {contacts.map((c, i) => {
+                const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim();
+                const ini = fullName.split(' ').filter(Boolean).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => setSelectedContactId(c.id)}
+                    className="group flex items-center gap-3 bg-brand-bg rounded-xl px-3.5 py-3 cursor-pointer row-hover stagger-item"
+                    style={{ animationDelay: `${Math.min(i, 15) * 25}ms` }}
+                  >
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center text-[11px] font-tech font-semibold flex-shrink-0">{ini || '?'}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{fullName || 'Sin nombre'}</div>
+                      {(c.position || c.email) && <div className="text-xs text-brand-muted truncate">{c.position || c.email}</div>}
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteContactFromList(c); }}
+                      className="icon-btn p-1.5 rounded-lg text-brand-muted opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/10 transition flex-shrink-0"
+                      title="Eliminar contacto" aria-label="Eliminar contacto"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            {contacts.length === 0 && <Empty>Sin contactos todavía.</Empty>}
+          </Card>
+        </div>
+
+        {/* Columna lateral */}
+        <div className="space-y-4">
+          <Card icon={Building2} title="Información" action={<button onClick={() => { setSaveError(''); setEditing(true); }} className="text-xs text-brand-ice hover:underline">Editar</button>}>
+            <InfoRow icon={Factory} label="Industria">{company.industry || <span className="text-brand-muted">Sin especificar</span>}</InfoRow>
+            <InfoRow icon={Globe2} label="País">{company.country || <span className="text-brand-muted">Sin especificar</span>}</InfoRow>
+            {created && <InfoRow icon={CalendarDays} label="Creada">{created}</InfoRow>}
+            {company.phone && <InfoRow icon={Phone} label="Teléfono">{company.phone}</InfoRow>}
+            {company.employee_count && <InfoRow icon={Users} label="Empleados">{company.employee_count}</InfoRow>}
+            {company.linkedin_url && (
+              <InfoRow icon={Linkedin} label="LinkedIn">
+                <a href={company.linkedin_url} target="_blank" rel="noreferrer" className="text-brand-ice hover:underline break-all">{company.linkedin_url.replace(/^https?:\/\/(www\.)?/, '')}</a>
+              </InfoRow>
+            )}
+            {company.description && <p className="text-brand-muted text-xs mt-3 leading-relaxed">{company.description}</p>}
+            {company.enriched_at && (
+              <p className="text-[11px] text-brand-muted font-tech mt-3 flex items-center gap-1.5">
+                <TrendingUp size={11} /> Enriquecida vía {company.enrichment_source === 'lusha' ? 'Lusha' : 'Apollo'} · {new Date(company.enriched_at).toLocaleDateString('es-CO')}
+              </p>
+            )}
+            {!hasEnrichment && !company.enriched_at && (
+              <p className="text-[11px] text-brand-muted mt-3">Usa Lusha o Apollo arriba para completar teléfono, empleados y LinkedIn.</p>
+            )}
+          </Card>
+
+          <CompanyDocuments docs={docs} onCreate={createDoc} />
         </div>
       </div>
 
       {editing && (
-        <form onSubmit={save} className="mb-6 bg-brand-panel border border-brand-border rounded-xl p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>Nombre</label>
-            <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>País</label>
-            <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className={inputClass}>
-              <option value="">Sin especificar</option>
-              {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={labelClass}>Industria</label>
-            <select value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className={inputClass}>
-              <option value="">Sin especificar</option>
-              {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <button disabled={saving} className="px-5 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50">
-              {saving ? 'Guardando...' : 'Guardar cambios'}
-            </button>
-          </div>
-        </form>
+        <Drawer
+          title="Editar empresa"
+          subtitle={company.name}
+          icon={Pencil}
+          onClose={() => setEditing(false)}
+          footer={(
+            <>
+              <button type="button" onClick={save} disabled={saving || !form.name.trim()} className={primaryBtn}>{saving ? 'Guardando...' : 'Guardar cambios'}</button>
+              <button type="button" onClick={() => setEditing(false)} className={ghostBtn}>Cancelar</button>
+              {saveError && <span className="text-xs text-red-300 ml-2">{saveError}</span>}
+            </>
+          )}
+        >
+          <form onSubmit={save} className="space-y-5">
+            <Field label="Nombre">
+              <input required autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} />
+            </Field>
+            <Field label="País">
+              <select value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} className={selectCls} style={{ colorScheme: 'dark' }}>
+                <option value="">Sin especificar</option>
+                {COUNTRY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </Field>
+            <Field label="Industria">
+              <select value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className={selectCls} style={{ colorScheme: 'dark' }}>
+                <option value="">Sin especificar</option>
+                {INDUSTRY_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
+              </select>
+            </Field>
+            <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
+          </form>
+        </Drawer>
       )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {(company.phone || company.linkedin_url || company.description || company.employee_count || company.enriched_at) && (
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 md:col-span-2">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <FileText size={15} className="text-brand-muted" />
-                <span className="font-manrope font-medium text-sm">Datos enriquecidos</span>
-              </div>
-              {company.enriched_at && (
-                <span className="text-xs text-brand-muted font-tech">
-                  vía {company.enrichment_source === 'lusha' ? 'Lusha' : 'Apollo'} · {new Date(company.enriched_at).toLocaleDateString('es-CO')}
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-4 text-sm">
-              {company.phone && <span className="flex items-center gap-1.5 text-brand-muted"><Phone size={13} /> {company.phone}</span>}
-              {company.employee_count && <span className="flex items-center gap-1.5 text-brand-muted"><Users size={13} /> {company.employee_count} empleados</span>}
-              {company.linkedin_url && (
-                <a href={company.linkedin_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-brand-ice hover:underline">
-                  <Linkedin size={13} /> LinkedIn
-                </a>
-              )}
-            </div>
-            {company.description && <p className="text-brand-muted text-xs mt-3">{company.description}</p>}
-          </div>
-        )}
-
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Users size={15} className="text-brand-muted" />
-              <span className="font-manrope font-medium text-sm">Contactos ({(company.contacts || []).length})</span>
-            </div>
-            <button onClick={() => setShowAddContact(true)} className="icon-btn p-1 rounded text-brand-muted hover:text-brand-ice transition" title="Nuevo contacto">
-              <Plus size={15} />
-            </button>
-          </div>
-          <div className="space-y-2">
-            {(company.contacts || []).map((c, i) => {
-              const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim();
-              const initials = fullName.split(' ').filter(Boolean).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
-              return (
-                <div
-                  key={c.id}
-                  onClick={() => setSelectedContactId(c.id)}
-                  className="group flex items-center gap-2.5 text-sm bg-brand-bg rounded-lg px-3 py-2.5 cursor-pointer row-hover stagger-item"
-                  style={{ animationDelay: `${Math.min(i, 15) * 25}ms` }}
-                >
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center text-[10px] font-tech font-semibold flex-shrink-0">
-                    {initials || '?'}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate">{fullName || 'Sin nombre'}</div>
-                    {c.email && <div className="text-xs text-brand-muted truncate">{c.email}</div>}
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); deleteContactFromList(c); }}
-                    className="icon-btn p-1.5 rounded-lg text-brand-muted opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/10 transition flex-shrink-0"
-                    title="Eliminar contacto"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              );
-            })}
-            {(company.contacts || []).length === 0 && (
-              <div className="text-brand-muted text-xs text-center py-6 border border-dashed border-brand-border rounded-lg">
-                Sin contactos todavía.
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <DollarSign size={15} className="text-brand-muted" />
-              <span className="font-manrope font-medium text-sm">Tratos ({(company.deals || []).length})</span>
-            </div>
-            <button onClick={() => setShowAddDeal(true)} className="icon-btn p-1 rounded text-brand-muted hover:text-brand-ice transition" title="Nuevo trato">
-              <Plus size={15} />
-            </button>
-          </div>
-          <div className="space-y-2">
-            {(company.deals || []).map((d, i) => (
-              <div
-                key={d.id}
-                onClick={() => navigate(`/deals/${d.id}`)}
-                className="text-sm bg-brand-bg rounded-lg px-3 py-2.5 cursor-pointer row-hover flex items-center justify-between stagger-item"
-                style={{ animationDelay: `${Math.min(i, 15) * 25}ms` }}
-              >
-                <span className="truncate">{d.title}</span>
-                <span className="text-brand-ice font-tech text-xs flex-shrink-0 ml-2">{d.currency} {Number(d.value || 0).toLocaleString()}</span>
-              </div>
-            ))}
-            {(company.deals || []).length === 0 && (
-              <div className="text-brand-muted text-xs text-center py-6 border border-dashed border-brand-border rounded-lg">
-                Sin tratos todavía.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <CompanyDocuments docs={docs} onCreate={createDoc} />
 
       {selectedContactId && (
         <ContactDetailPanel
@@ -331,28 +391,22 @@ function CompanyDocuments({ docs, onCreate }) {
   Object.entries(byDeal).forEach(([k, g]) => groups.push({ key: `d-${k}`, label: `Trato · ${g.label}`, docs: g.docs }));
 
   return (
-    <div className="mt-4 bg-brand-panel border border-brand-border rounded-xl p-5 panel-depth">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <FileText size={15} className="text-brand-muted" />
-          <span className="font-manrope font-medium text-sm">Documentos ({docs.length})</span>
-        </div>
-        <button onClick={onCreate} className="icon-btn p-1 rounded text-brand-muted hover:text-brand-ice transition" title="Nuevo documento">
-          <Plus size={15} />
-        </button>
-      </div>
+    <Card
+      icon={FileText}
+      title="Documentos"
+      count={docs.length}
+      action={<button onClick={onCreate} className="icon-btn p-1.5 rounded-lg text-brand-muted hover:text-brand-ice hover:bg-brand-bg transition" title="Nuevo documento" aria-label="Nuevo documento"><Plus size={16} /></button>}
+    >
       {groups.length === 0 ? (
-        <div className="text-brand-muted text-xs text-center py-6 border border-dashed border-brand-border rounded-lg">
-          Sin documentos todavía. Los documentos de sus proyectos y tratos también aparecen aquí.
-        </div>
+        <Empty>Sin documentos todavía. Los documentos de sus proyectos y tratos también aparecen aquí.</Empty>
       ) : (
         <div className="space-y-4">
           {groups.map((g) => (
             <div key={g.key}>
               <div className="text-[10px] font-tech uppercase tracking-wide text-brand-muted mb-1.5">{g.label}</div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="space-y-1.5">
                 {g.docs.map((d) => (
-                  <Link key={d.id} to={`/documents?open=${d.id}`} className="flex items-center gap-2 bg-brand-bg border border-brand-border rounded-lg px-3 py-2.5 text-sm hover:border-brand-violet/40 transition min-w-0">
+                  <Link key={d.id} to={`/documents?open=${d.id}`} className="flex items-center gap-2 bg-brand-bg border border-brand-border rounded-xl px-3 py-2.5 text-sm hover:border-brand-violet/40 transition min-w-0">
                     <FileText size={14} className="text-brand-muted flex-shrink-0" />
                     <span className="truncate flex-1">{d.title || 'Sin título'}</span>
                     {childCount(d.id) > 0 && <span className="text-[10px] font-tech text-brand-muted">+{childCount(d.id)}</span>}
@@ -363,6 +417,6 @@ function CompanyDocuments({ docs, onCreate }) {
           ))}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

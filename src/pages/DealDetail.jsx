@@ -6,7 +6,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
 import { useOutsideClick } from '../hooks/useOutsideClick';
-import { FACTURACION_OPTIONS, hardwareOptionsForPipeline, isGenericPipeline, PRODUCT_LINE_OPTIONS } from '../components/B2bRecordModal';
+import { FACTURACION_OPTIONS, isGenericPipeline } from '../components/B2bRecordModal';
+import { hardwareOptionsFor, productOptions, useProductCatalog } from '../lib/productCatalog';
 import { InvoiceDetailModal } from './Invoicing';
 import DateTimePicker from '../components/DateTimePicker';
 import ProductsModal from '../components/ProductsModal';
@@ -77,6 +78,7 @@ export default function DealDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const confirm = useConfirm();
+  const { products: catalog } = useProductCatalog(); // «Producto» sale del catálogo, no de una lista fija
 
   const [deal, setDeal] = useState(null);
   const [pipelines, setPipelines] = useState([]);
@@ -500,7 +502,7 @@ export default function DealDetail() {
   const saveProductLine = async (value) => {
     // Al cambiar de producto, el hardware guardado puede ya no aplicar (ej. tenía un router
     // de WiFi y pasó a Bit Music) — se limpia para no dejar algo que no corresponde.
-    const stillValid = hardwareOptionsForPipeline(value).includes(deal.hardware_type);
+    const stillValid = hardwareOptionsFor({ productLine: value, pipelineName: pipeline?.name }).includes(deal.hardware_type);
     await api.patch(`/api/deals/${id}`, { product_line: value || null, ...(stillValid ? {} : { hardware_type: null }) });
     setProductLineEditing(false);
     refreshDeal();
@@ -988,37 +990,39 @@ export default function DealDetail() {
                     autoFocus
                   >
                     <option value="">Sin especificar</option>
-                    {PRODUCT_LINE_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+                    {productOptions(catalog, deal.product_line).map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
                 ) : (
                   <button
                     onClick={() => { setProductLineValue(deal.product_line || ''); setProductLineEditing(true); }}
                     className="text-xs text-brand-ice hover:underline block mt-1"
-                    title="Este pipeline no indica por sí solo la línea de producto — de esto depende qué opciones de hardware salen abajo"
+                    title="Sale del catálogo de Productos. De esto depende qué opciones de hardware salen abajo (los servicios de software no llevan hardware)"
                   >
                     Producto: {deal.product_line || 'Sin especificar'}
                   </button>
                 )
               )}
 
-              {hardwareEditing ? (
-                <select
-                  value={hardwareValue}
-                  onChange={(e) => { setHardwareValue(e.target.value); saveHardware(e.target.value); }}
-                  onBlur={() => setHardwareEditing(false)}
-                  className={`${inputClass} mt-1`}
-                  autoFocus
-                >
-                  <option value="">Sin especificar</option>
-                  {hardwareOptionsForPipeline(deal.product_line || pipeline?.name).map((h) => <option key={h} value={h}>{h}</option>)}
-                </select>
-              ) : (
-                <button
-                  onClick={() => { setHardwareValue(deal.hardware_type || ''); setHardwareEditing(true); }}
-                  className="text-xs text-brand-ice hover:underline block mt-1"
-                >
-                  Hardware: {deal.hardware_type || 'Sin especificar'}
-                </button>
+              {hardwareOptionsFor({ productLine: deal.product_line, pipelineName: pipeline?.name }).length > 0 && (
+                hardwareEditing ? (
+                  <select
+                    value={hardwareValue}
+                    onChange={(e) => { setHardwareValue(e.target.value); saveHardware(e.target.value); }}
+                    onBlur={() => setHardwareEditing(false)}
+                    className={`${inputClass} mt-1`}
+                    autoFocus
+                  >
+                    <option value="">Sin especificar</option>
+                    {hardwareOptionsFor({ productLine: deal.product_line, pipelineName: pipeline?.name }).map((h) => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                ) : (
+                  <button
+                    onClick={() => { setHardwareValue(deal.hardware_type || ''); setHardwareEditing(true); }}
+                    className="text-xs text-brand-ice hover:underline block mt-1"
+                  >
+                    Hardware: {deal.hardware_type || 'Sin especificar'}
+                  </button>
+                )
               )}
 
               <div className="relative" ref={companyBoxRef}>
