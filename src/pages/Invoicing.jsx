@@ -2,10 +2,11 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
 import DateTimePicker from '../components/DateTimePicker';
 import { useOutsideClick } from '../hooks/useOutsideClick';
-import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check, Search } from 'lucide-react';
+import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check, Search, FileUp, RefreshCw, ChevronDown } from 'lucide-react';
+import NewInvoiceModal from '../components/NewInvoiceModal';
+import InvoiceImportModal from '../components/InvoiceImportModal';
+import { SOURCE_ACCOUNTS, CURRENCIES } from '../lib/invoiceMeta';
 
-const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
-const SOURCE_ACCOUNTS = ['Bit Colombia SAS', 'Bit México', 'Bit Paraguay EAS', 'Bithub SRL', 'BitProximity LLC', 'Diana Sánchez', 'Mario Colombia', 'Mario Ramos'];
 const STATUS_LABELS = { pendiente: 'Pendiente', parcial: 'Parcial', pagada: 'Pagada', cancelada: 'Cancelada' };
 const STATUS_COLORS = {
   pendiente: 'bg-yellow-500/15 text-yellow-300',
@@ -29,6 +30,10 @@ export default function Invoicing() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [showSyncMenu, setShowSyncMenu] = useState(false);
+  const syncMenuRef = useRef(null);
+  useOutsideClick(syncMenuRef, () => setShowSyncMenu(false), showSyncMenu);
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -124,30 +129,24 @@ export default function Invoicing() {
       <div className="flex items-center justify-between mb-1">
         <h1 className="font-headline text-xl font-semibold">Facturación</h1>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => runSync('stripe')}
-            disabled={!!syncing}
-            className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition disabled:opacity-50"
-          >
-            {syncing === 'stripe' ? 'Sincronizando...' : 'Sincronizar Stripe'}
+          <button onClick={() => setShowImport(true)} className="px-3.5 py-2 rounded-xl bg-brand-panel border border-brand-border text-sm hover:border-brand-violet transition flex items-center gap-1.5">
+            <FileUp size={14} /> Importar facturas
           </button>
-          <button
-            onClick={() => runSync('alegra')}
-            disabled={!!syncing}
-            className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition disabled:opacity-50"
-          >
-            {syncing === 'alegra' ? 'Sincronizando...' : 'Sincronizar Alegra'}
-          </button>
-          <button
-            onClick={() => runSync('facturero-movil')}
-            disabled={!!syncing}
-            className="px-3 py-2 rounded-lg bg-brand-panel border border-brand-border text-xs hover:border-brand-violet transition disabled:opacity-50"
-          >
-            {syncing === 'facturero-movil' ? 'Sincronizando...' : 'Sincronizar Facturero Móvil'}
-          </button>
+          <div className="relative" ref={syncMenuRef}>
+            <button onClick={() => setShowSyncMenu((v) => !v)} disabled={!!syncing} aria-haspopup="menu" aria-expanded={showSyncMenu} className="px-3.5 py-2 rounded-xl bg-brand-panel border border-brand-border text-sm hover:border-brand-violet transition flex items-center gap-1.5 disabled:opacity-50">
+              <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} /> {syncing ? 'Sincronizando…' : 'Sincronizar'} <ChevronDown size={13} />
+            </button>
+            {showSyncMenu && (
+              <div role="menu" className="absolute right-0 mt-1.5 w-52 bg-brand-bg border border-brand-border rounded-xl shadow-xl overflow-hidden z-20 dropdown-in">
+                {[['stripe', 'Stripe'], ['alegra', 'Alegra'], ['facturero-movil', 'Facturero Móvil']].map(([k, label]) => (
+                  <button key={k} role="menuitem" onClick={() => { setShowSyncMenu(false); runSync(k); }} className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-brand-panel transition">Sincronizar {label}</button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 rounded-lg text-sm flex items-center gap-1.5"
+            className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 rounded-xl text-sm flex items-center gap-1.5"
           >
             <Plus size={14} /> Nueva factura
           </button>
@@ -444,173 +443,9 @@ export default function Invoicing() {
         )}
       </div>
 
-      {showCreate && <CreateInvoiceModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); load(); }} />}
+      {showCreate && <NewInvoiceModal defaultSource={accountFilter || ''} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setSyncMsg('Factura creada.'); load(); }} />}
+      {showImport && <InvoiceImportModal onClose={() => { setShowImport(false); load(); }} onImported={() => load()} />}
       {selected && <InvoiceDetailModal invoiceId={selected} onClose={() => setSelected(null)} onChanged={load} />}
-    </div>
-  );
-}
-
-function CreateInvoiceModal({ onClose, onCreated }) {
-  const [deals, setDeals] = useState([]);
-  const [dealQuery, setDealQuery] = useState('');
-  const [selectedDeal, setSelectedDeal] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [form, setForm] = useState({ invoice_number: '', currency: 'USD', due_date: '', tax: 0, notes: '' });
-  const [lineItems, setLineItems] = useState([{ product_id: '', description: '', quantity: 1, unit_price: '' }]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    api.get('/api/products?active=true').then(setProducts).catch(() => setProducts([]));
-  }, []);
-
-  useEffect(() => {
-    if (!dealQuery.trim()) { setDeals([]); return; }
-    const t = setTimeout(() => {
-      api.get(`/api/deals?status=abierto,ganado,perdido`).then((all) => {
-        setDeals(all.filter((d) => d.title.toLowerCase().includes(dealQuery.toLowerCase())).slice(0, 6));
-      }).catch(() => setDeals([]));
-    }, 250);
-    return () => clearTimeout(t);
-  }, [dealQuery]);
-
-  const pickDeal = (d) => {
-    setSelectedDeal(d);
-    setDealQuery(d.title);
-    setDeals([]);
-    setForm((f) => ({ ...f, currency: d.currency || 'USD' }));
-  };
-
-  const updateLine = (i, field, val) => {
-    setLineItems((prev) => prev.map((li, idx) => (idx === i ? { ...li, [field]: val } : li)));
-  };
-
-  const addLine = () => setLineItems((prev) => [...prev, { product_id: '', description: '', quantity: 1, unit_price: '' }]);
-  const removeLine = (i) => setLineItems((prev) => prev.filter((_, idx) => idx !== i));
-
-  const subtotal = lineItems.reduce((sum, li) => sum + (Number(li.quantity) || 0) * (Number(li.unit_price) || 0), 0);
-  const total = subtotal + (Number(form.tax) || 0);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setError('');
-    try {
-      const validLines = lineItems.filter((li) => li.description.trim() || li.product_id);
-      await api.post('/api/invoices', {
-        invoice_number: form.invoice_number || null,
-        deal_id: selectedDeal?.id || null,
-        company_id: selectedDeal?.company_id || null,
-        contact_id: selectedDeal?.contact_id || null,
-        currency: form.currency,
-        tax: Number(form.tax) || 0,
-        due_date: form.due_date || null,
-        notes: form.notes || null,
-        line_items: validLines,
-      });
-      onCreated();
-    } catch (err) {
-      setError(err.message || 'No se pudo crear la factura.');
-    }
-    setSaving(false);
-  };
-
-  const inputClass = 'w-full px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet';
-  const labelClass = 'block text-xs text-brand-muted mb-1.5';
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-2xl max-h-[90vh] bg-brand-panel border border-brand-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border flex-shrink-0">
-          <h2 className="font-headline text-lg font-semibold">Nueva factura</h2>
-          <button onClick={onClose} className="text-brand-muted hover:text-brand-white"><X size={20} /></button>
-        </div>
-
-        <form onSubmit={submit} className="flex-1 overflow-y-auto p-6 space-y-4">
-          {error && <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
-
-          <div className="relative">
-            <label className={labelClass}>Trato (opcional — autocompleta empresa y contacto)</label>
-            <input value={dealQuery} onChange={(e) => { setDealQuery(e.target.value); setSelectedDeal(null); }} placeholder="Buscar trato..." className={inputClass} />
-            {deals.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full bg-brand-bg border border-brand-border rounded-lg shadow-xl overflow-hidden">
-                {deals.map((d) => (
-                  <button type="button" key={d.id} onClick={() => pickDeal(d)} className="w-full text-left px-3 py-2 text-sm hover:bg-brand-panel transition">
-                    {d.title} {d.companies?.name && <span className="text-brand-muted">· {d.companies.name}</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className={labelClass}>N° de factura</label>
-              <input value={form.invoice_number} onChange={(e) => setForm({ ...form, invoice_number: e.target.value })} placeholder="Opcional" className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Moneda</label>
-              <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} className={`${inputClass} font-tech`} style={{ colorScheme: 'dark' }}>
-                {CURRENCIES.map((c) => <option key={c} value={c} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Fecha de vencimiento</label>
-              <DateTimePicker value={form.due_date ? new Date(form.due_date).toISOString() : ''} onChange={(v) => setForm({ ...form, due_date: v ? v.slice(0, 10) : '' })} className="w-full" />
-            </div>
-          </div>
-
-          <div>
-            <label className={labelClass}>Líneas</label>
-            <div className="space-y-2">
-              {lineItems.map((li, i) => (
-                <div key={i} className="flex gap-2 items-center">
-                  <select
-                    value={li.product_id}
-                    onChange={(e) => {
-                      const p = products.find((pr) => pr.id === e.target.value);
-                      updateLine(i, 'product_id', e.target.value);
-                      if (p) { updateLine(i, 'description', p.name); updateLine(i, 'unit_price', p.price); }
-                    }}
-                    className="w-32 px-2 py-2 rounded-lg bg-brand-bg border border-brand-border text-xs flex-shrink-0"
-                    style={{ colorScheme: 'dark' }}
-                  >
-                    <option value="" style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>Personalizado</option>
-                    {products.map((p) => <option key={p.id} value={p.id} style={{ backgroundColor: '#100E1C', color: '#FBFAFF' }}>{p.name}</option>)}
-                  </select>
-                  <input placeholder="Descripción" value={li.description} onChange={(e) => updateLine(i, 'description', e.target.value)} className="flex-1 min-w-[100px] px-2 py-2 rounded-lg bg-brand-bg border border-brand-border text-xs" />
-                  <input type="number" placeholder="Cant." value={li.quantity} onChange={(e) => updateLine(i, 'quantity', e.target.value)} className="w-16 px-2 py-2 rounded-lg bg-brand-bg border border-brand-border text-xs" />
-                  <input type="number" placeholder="Precio" value={li.unit_price} onChange={(e) => updateLine(i, 'unit_price', e.target.value)} className="w-20 px-2 py-2 rounded-lg bg-brand-bg border border-brand-border text-xs" />
-                  <button type="button" onClick={() => removeLine(i)} className="text-brand-muted hover:text-red-400 flex-shrink-0">×</button>
-                </div>
-              ))}
-            </div>
-            <button type="button" onClick={addLine} className="text-xs text-brand-ice hover:underline mt-2">+ Agregar línea</button>
-          </div>
-
-          <div className="flex justify-end gap-6 pt-2 border-t border-brand-border">
-            <div className="text-sm text-brand-muted">Subtotal: <span className="text-brand-white font-tech">{form.currency} {subtotal.toLocaleString()}</span></div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-brand-muted">Impuesto:</label>
-              <input type="number" value={form.tax} onChange={(e) => setForm({ ...form, tax: e.target.value })} className="w-20 px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs font-tech" />
-            </div>
-            <div className="text-sm font-medium">Total: <span className="text-brand-ice font-tech">{form.currency} {total.toLocaleString()}</span></div>
-          </div>
-
-          <div>
-            <label className={labelClass}>Notas</label>
-            <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className={inputClass} />
-          </div>
-        </form>
-
-        <div className="flex justify-end gap-2 px-6 py-4 border-t border-brand-border flex-shrink-0">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:text-brand-white transition">Cancelar</button>
-          <button onClick={submit} disabled={saving} className="px-5 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium disabled:opacity-50">
-            {saving ? 'Guardando...' : 'Crear factura'}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
