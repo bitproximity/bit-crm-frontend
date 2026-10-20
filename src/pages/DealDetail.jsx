@@ -16,7 +16,7 @@ import GmailMessageRow from '../components/GmailMessageRow';
 import {
   ChevronLeft, ChevronDown, MoreHorizontal, Tag as TagIcon, Calendar, Building2, User,
   Plus, X, Mail, Phone, Video, StickyNote, FileText as FileTextIcon, Paperclip,
-  Pencil, Trash2, RefreshCcw, HardDrive, Search,
+  Pencil, Trash2, RefreshCcw, HardDrive, Search, TrendingUp, Clock3, CalendarClock, Target,
 } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
@@ -72,6 +72,30 @@ function computeStageDays(deal) {
   return totals;
 }
 
+// Fila etiqueta / valor del panel «Resumen»: al pasar el mouse se ve el lápiz; al hacer clic se edita.
+function FieldRow({ label, value, onClick, title, empty = false, children }) {
+  return (
+    <button type="button" onClick={onClick} title={title} className="group w-full flex items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 -mx-2.5 text-left hover:bg-brand-bg/80 transition">
+      <span className="text-[11px] font-tech uppercase tracking-wide text-brand-muted flex-shrink-0">{label}</span>
+      <span className={`relative flex items-center justify-end gap-2 text-sm min-w-0 ${empty ? 'text-brand-muted' : 'text-brand-white'}`}>
+        <Pencil size={11} className="absolute -left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 transition" />
+        {children ? children : <span className="truncate">{value}</span>}
+      </span>
+    </button>
+  );
+}
+
+// Indicador de la franja superior del trato (solo lectura).
+function Kpi({ icon: Icon, label, value, sub, tone = 'text-brand-white' }) {
+  return (
+    <div className="rounded-xl border border-brand-border bg-brand-panel/50 px-3.5 py-2.5 min-w-0">
+      <div className="flex items-center gap-1.5 text-[10px] font-tech uppercase tracking-wide text-brand-muted mb-1"><Icon size={11} />{label}</div>
+      <div className={`font-headline text-lg font-semibold leading-tight truncate ${tone}`}>{value}</div>
+      {sub && <div className="text-[11px] text-brand-muted truncate mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
 export default function DealDetail() {
   const { profile } = useAuth();
   const canSeeInvoices = canAccessPath(profile?.role, '/invoicing', profile?.blocked_pages);
@@ -79,6 +103,12 @@ export default function DealDetail() {
   const navigate = useNavigate();
   const confirm = useConfirm();
   const { products: catalog } = useProductCatalog(); // «Producto» sale del catálogo, no de una lista fija
+  const [rates, setRates] = useState({});
+  useEffect(() => {
+    api.get('/api/exchange-rates')
+      .then((r) => setRates(Object.fromEntries((Array.isArray(r) ? r : []).map((x) => [x.currency, Number(x.rate_to_usd)]))))
+      .catch(() => setRates({}));
+  }, []);
 
   const [deal, setDeal] = useState(null);
   const [pipelines, setPipelines] = useState([]);
@@ -718,6 +748,19 @@ export default function DealDetail() {
 
   const inputClass = 'px-3 py-2 rounded-lg bg-brand-bg border border-brand-border text-sm focus:outline-none focus:border-brand-violet';
 
+  // Indicadores de la franja superior
+  const isOpen = deal.status === 'abierto';
+  const rateToUsd = deal.currency === 'USD' || !deal.currency ? 1 : rates[deal.currency];
+  const valueUsd = rateToUsd != null ? Number(deal.value || 0) * rateToUsd : null;
+  const weightedUsd = valueUsd != null ? valueUsd * (Number(deal.probability || 0) / 100) : null;
+  const daysOpen = deal.created_at ? Math.max(0, Math.round((Date.now() - new Date(deal.created_at).getTime()) / 86400000)) : null;
+  const closeInDays = deal.expected_close_date ? Math.round((new Date(deal.expected_close_date).getTime() - Date.now()) / 86400000) : null;
+  const nextActivity = activities
+    .filter((a) => !a.done && a.due_date && a.type !== 'nota' && !Number.isNaN(new Date(a.due_date).getTime()))
+    .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))[0];
+  const nextActivityLate = nextActivity && new Date(nextActivity.due_date).getTime() < Date.now();
+  const usdFmt = (n) => `USD ${Math.round(n).toLocaleString()}`;
+
   return (
     <div className="-m-6">
       {/* Header */}
@@ -726,8 +769,8 @@ export default function DealDetail() {
           <ChevronLeft size={14} /> Pipeline
         </Link>
 
-        <div className="flex items-start justify-between mb-4">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+          <div className="min-w-0 flex-1 basis-64">
             {titleEditing ? (
               <input
                 autoFocus
@@ -750,7 +793,7 @@ export default function DealDetail() {
               </h1>
             )}
             <div className="relative inline-block mt-1">
-              <button onClick={openPipelinePopover} className="flex items-center gap-1 text-xs text-brand-muted hover:text-brand-ice font-tech transition border border-brand-border hover:border-brand-violet rounded-full px-2.5 py-1">
+              <button onClick={openPipelinePopover} className="flex items-center gap-1 whitespace-nowrap text-xs text-brand-muted hover:text-brand-ice font-tech transition border border-brand-border hover:border-brand-violet rounded-full px-2.5 py-1">
                 {pipeline?.name} {deal.pipeline_stages?.name && <>→ {deal.pipeline_stages.name}</>}
                 <ChevronDown size={12} className="flex-shrink-0" />
               </button>
@@ -800,7 +843,7 @@ export default function DealDetail() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
               <button
                 onClick={() => setOwnerEditing((v) => !v)}
@@ -867,7 +910,7 @@ export default function DealDetail() {
         </div>
 
         {/* Barra de etapas */}
-        <div className="flex mb-0">
+        <div className="flex gap-1.5 pb-4 overflow-x-auto">
           {stages.map((s, i) => {
             const isPast = stages.findIndex((x) => x.id === deal.stage_id) > i || deal.status === 'ganado';
             const isCurrent = s.id === deal.stage_id && deal.status === 'abierto';
@@ -876,28 +919,54 @@ export default function DealDetail() {
                 key={s.id}
                 onClick={() => changeStage(s.id)}
                 disabled={deal.status !== 'abierto'}
-                className={`flex-1 py-2.5 text-xs font-medium text-center transition relative ${
-                  isPast || isCurrent
-                    ? 'bg-gradient-to-r from-brand-violet to-brand-magenta text-white'
-                    : 'bg-brand-bg text-brand-muted'
-                } ${i > 0 ? 'ml-0.5' : ''} disabled:cursor-default`}
+                aria-current={isCurrent ? 'step' : undefined}
+                title={deal.status === 'abierto' ? `Mover a «${s.name}»` : undefined}
+                className={`flex-1 min-w-[96px] py-2 px-2 text-xs font-medium text-center transition rounded-lg disabled:cursor-default ${
+                  isCurrent
+                    ? 'bg-gradient-to-r from-brand-violet to-brand-magenta text-white shadow-lg shadow-brand-violet/30'
+                    : isPast
+                      ? 'bg-brand-violet/25 text-brand-ice'
+                      : 'bg-brand-bg text-brand-muted hover:text-brand-white'
+                }`}
               >
-                {stageDays[s.id] || 0}d · {s.name}
+                <span className="opacity-70 font-tech mr-1">{stageDays[s.id] || 0}d</span>{s.name}
               </button>
             );
           })}
           {deal.status === 'ganado' && (
-            <div className="flex-1 py-2.5 text-xs font-medium text-center bg-brand-bg text-brand-muted ml-0.5">Ganado</div>
+            <div className="flex-1 min-w-[96px] py-2 px-2 text-xs font-medium text-center rounded-lg bg-green-500/20 text-green-300">Ganado</div>
           )}
         </div>
+      </div>
+
+      {/* Indicadores */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 px-6 py-4 border-b border-brand-border">
+        <Kpi icon={TrendingUp} label="Valor" value={`${deal.currency} ${Number(deal.value || 0).toLocaleString()}`}
+          sub={deal.currency !== 'USD' && valueUsd != null ? `≈ ${usdFmt(valueUsd)}` : `${lineItems.length} producto${lineItems.length !== 1 ? 's' : ''}`} tone="text-brand-ice" />
+        {isOpen ? (
+          <Kpi icon={Target} label="Valor ponderado" value={weightedUsd != null ? usdFmt(weightedUsd) : '—'} sub={`${deal.probability || 0}% de probabilidad`} />
+        ) : (
+          <Kpi icon={Target} label="Estado" value={deal.status === 'ganado' ? 'Ganado' : 'Perdido'} sub={deal.status === 'perdido' ? (deal.lost_reason || 'Sin motivo') : 'Cerrado'} tone={deal.status === 'ganado' ? 'text-green-300' : 'text-red-300'} />
+        )}
+        <Kpi icon={Clock3} label="Tiempo en el embudo" value={daysOpen != null ? `${daysOpen} día${daysOpen !== 1 ? 's' : ''}` : '—'} sub={isOpen ? `${stageDays[deal.stage_id] || 0} d en esta etapa` : 'desde que se creó'} />
+        <Kpi icon={CalendarClock} label="Cierre esperado"
+          value={deal.expected_close_date ? new Date(deal.expected_close_date).toLocaleDateString('es', { day: 'numeric', month: 'short' }) : 'Sin fecha'}
+          sub={closeInDays == null ? 'Defínela en el panel' : closeInDays < 0 ? `venció hace ${-closeInDays} d` : closeInDays === 0 ? 'es hoy' : `en ${closeInDays} d`}
+          tone={closeInDays != null && closeInDays < 0 && isOpen ? 'text-red-300' : 'text-brand-white'} />
+        {isOpen && (
+          <Kpi icon={Calendar} label="Próxima actividad"
+            value={nextActivity ? new Date(nextActivity.due_date).toLocaleDateString('es', { day: 'numeric', month: 'short' }) : 'Sin programar'}
+            sub={nextActivity ? (nextActivity.title || nextActivity.summary || 'Actividad') : 'Programa un seguimiento'}
+            tone={!nextActivity ? 'text-yellow-300' : nextActivityLate ? 'text-red-300' : 'text-brand-white'} />
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-0">
         {/* ── Sidebar izquierda ── */}
         <div className="border-r border-brand-border p-5 space-y-6">
-          <div>
+          <div className="rounded-2xl border border-brand-border bg-brand-panel/40 p-4">
             <div className="text-xs font-tech uppercase tracking-wide text-brand-muted mb-3">Resumen</div>
-            <div className="space-y-3 text-sm">
+            <div className="space-y-2 text-sm">
               <div className={valueEditing ? 'space-y-2' : 'flex items-center justify-between'}>
                 {valueEditing ? (
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -915,7 +984,7 @@ export default function DealDetail() {
                 ) : (
                   <button
                     onClick={() => { setValueEditing(true); setValueEdit(Number(deal.value) || 0); setCurrencyEdit(deal.currency); }}
-                    className="text-brand-ice font-tech font-medium text-base hover:underline"
+                    className="text-brand-ice font-tech font-semibold text-xl hover:underline"
                   >
                     {deal.currency} {Number(deal.value).toLocaleString()}
                   </button>
@@ -932,9 +1001,10 @@ export default function DealDetail() {
                   <button onClick={saveProbability} className="text-xs text-brand-ice hover:underline">Guardar</button>
                 </div>
               ) : (
-                <button onClick={() => setProbEditing(true)} className="text-xs text-brand-ice hover:underline block">
-                  Probabilidad: {deal.probability}%
-                </button>
+                <FieldRow label="Probabilidad" onClick={() => setProbEditing(true)}>
+                  <span className="font-tech">{deal.probability || 0}%</span>
+                  <span className="hidden xl:block w-14 h-1.5 rounded-full bg-brand-bg overflow-hidden"><span className="block h-full rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta" style={{ width: `${Math.min(100, Math.max(0, Number(deal.probability) || 0))}%` }} /></span>
+                </FieldRow>
               )}
 
               {facturacionEditing ? (
@@ -949,12 +1019,7 @@ export default function DealDetail() {
                   {FACTURACION_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
                 </select>
               ) : (
-                <button
-                  onClick={() => { setFacturacionValue(deal.facturacion || ''); setFacturacionEditing(true); }}
-                  className="text-xs text-brand-ice hover:underline block mt-1"
-                >
-                  Facturación: {deal.facturacion || 'Sin especificar'}
-                </button>
+                <FieldRow label="Facturación" value={deal.facturacion || 'Sin especificar'} empty={!deal.facturacion} onClick={() => { setFacturacionValue(deal.facturacion || ''); setFacturacionEditing(true); }} />
               )}
 
               {billingFrequencyEditing ? (
@@ -971,13 +1036,7 @@ export default function DealDetail() {
                   <option value="unico">Único</option>
                 </select>
               ) : (
-                <button
-                  onClick={() => { setBillingFrequencyValue(deal.billing_frequency || ''); setBillingFrequencyEditing(true); }}
-                  className="text-xs text-brand-ice hover:underline block mt-1"
-                  title="De esto depende MRR/ARR en Métricas"
-                >
-                  Frecuencia de facturación: {{ mensual: 'Mensual', anual: 'Anual', unico: 'Único' }[deal.billing_frequency] || 'Sin especificar'}
-                </button>
+                <FieldRow label="Frecuencia" title="De esto depende MRR/ARR en Métricas" value={{ mensual: 'Mensual', anual: 'Anual', unico: 'Único' }[deal.billing_frequency] || 'Sin especificar'} empty={!deal.billing_frequency} onClick={() => { setBillingFrequencyValue(deal.billing_frequency || ''); setBillingFrequencyEditing(true); }} />
               )}
 
               {isGenericPipeline(pipeline?.name) && (
@@ -993,13 +1052,7 @@ export default function DealDetail() {
                     {productOptions(catalog, deal.product_line).map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
                 ) : (
-                  <button
-                    onClick={() => { setProductLineValue(deal.product_line || ''); setProductLineEditing(true); }}
-                    className="text-xs text-brand-ice hover:underline block mt-1"
-                    title="Sale del catálogo de Productos. De esto depende qué opciones de hardware salen abajo (los servicios de software no llevan hardware)"
-                  >
-                    Producto: {deal.product_line || 'Sin especificar'}
-                  </button>
+                  <FieldRow label="Producto" title="Sale del catálogo de Productos. De esto depende qué opciones de hardware salen abajo (los servicios de software no llevan hardware)" value={deal.product_line || 'Sin especificar'} empty={!deal.product_line} onClick={() => { setProductLineValue(deal.product_line || ''); setProductLineEditing(true); }} />
                 )
               )}
 
@@ -1016,12 +1069,7 @@ export default function DealDetail() {
                     {hardwareOptionsFor({ productLine: deal.product_line, pipelineName: pipeline?.name }).map((h) => <option key={h} value={h}>{h}</option>)}
                   </select>
                 ) : (
-                  <button
-                    onClick={() => { setHardwareValue(deal.hardware_type || ''); setHardwareEditing(true); }}
-                    className="text-xs text-brand-ice hover:underline block mt-1"
-                  >
-                    Hardware: {deal.hardware_type || 'Sin especificar'}
-                  </button>
+                  <FieldRow label="Hardware" value={deal.hardware_type || 'Sin especificar'} empty={!deal.hardware_type} onClick={() => { setHardwareValue(deal.hardware_type || ''); setHardwareEditing(true); }} />
                 )
               )}
 
@@ -1235,10 +1283,10 @@ export default function DealDetail() {
           {/* Tabs */}
           <div className="flex flex-wrap gap-1 mb-4 border-b border-brand-border pb-0">
             {[
-              { key: 'notas', label: 'Notas' },
-              { key: 'actividad', label: 'Actividad' },
+              { key: 'notas', label: 'Notas', count: activities.filter((a) => a.type === 'nota').length },
+              { key: 'actividad', label: 'Actividad', count: activities.filter((a) => a.type !== 'nota').length },
               { key: 'reuniones', label: 'Planificador de reuniones' },
-              { key: 'correo', label: 'Correo electrónico' },
+              { key: 'correo', label: 'Correo electrónico', count: gmailMessages.length },
               { key: 'archivos', label: 'Archivos' },
               { key: 'documentos', label: 'Documentos' },
               { key: 'factura', label: 'Factura' },
@@ -1248,7 +1296,7 @@ export default function DealDetail() {
                 onClick={() => setTab(t.key)}
                 className={`px-3 py-2 text-sm border-b-2 transition ${tab === t.key ? 'border-brand-violet text-brand-white' : 'border-transparent text-brand-muted hover:text-brand-white'}`}
               >
-                {t.label}
+                {t.label}{t.count > 0 && <span className="ml-1.5 text-[10px] font-tech px-1.5 py-0.5 rounded-full bg-brand-bg text-brand-muted">{t.count}</span>}
               </button>
             ))}
           </div>
