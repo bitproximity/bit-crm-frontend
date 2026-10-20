@@ -439,26 +439,26 @@ export default function Metrics() {
                 <thead>
                   <tr className="text-left text-brand-muted text-xs">
                     <th className="py-2 pr-4 font-normal">Producto</th>
-                    <th className="py-2 pr-4 font-normal w-1/3">Participación (ganado)</th>
+                    <th className="py-2 pr-4 font-normal w-1/3 hidden sm:table-cell">Participación (ganado)</th>
                     <th className="py-2 pr-4 font-normal text-right">Ganado</th>
-                    <th className="py-2 pr-4 font-normal text-right"># Ganados</th>
+                    <th className="py-2 pr-4 font-normal text-right hidden sm:table-cell"># Ganados</th>
                     <th className="py-2 pr-4 font-normal text-right">Pipeline abierto</th>
-                    <th className="py-2 font-normal text-right"># Abiertos</th>
+                    <th className="py-2 font-normal text-right hidden sm:table-cell"># Abiertos</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r, i) => (
                     <tr key={r.name} className="border-t border-brand-border">
                       <td className="py-2 pr-4">{i === 0 && r.won_value_usd > 0 ? '🏆 ' : ''}{r.name}</td>
-                      <td className="py-2 pr-4">
+                      <td className="py-2 pr-4 hidden sm:table-cell">
                         <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
                           <div className="h-full rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta" style={{ width: `${Math.round((r.won_value_usd / maxWon) * 100)}%` }} />
                         </div>
                       </td>
-                      <td className="py-2 pr-4 text-right text-brand-ice font-tech">${r.won_value_usd.toLocaleString()}</td>
-                      <td className="py-2 pr-4 text-right text-brand-muted font-tech">{r.won_count}</td>
-                      <td className="py-2 pr-4 text-right text-brand-muted font-tech">${r.pipeline_value_usd.toLocaleString()}</td>
-                      <td className="py-2 text-right text-brand-muted font-tech">{r.pipeline_count}</td>
+                      <td className="py-2 pr-4 text-right text-brand-ice font-tech">${r.won_value_usd.toLocaleString()}<span className="sm:hidden block text-[11px] text-brand-muted">{r.won_count} ganados</span></td>
+                      <td className="py-2 pr-4 text-right text-brand-muted font-tech hidden sm:table-cell">{r.won_count}</td>
+                      <td className="py-2 pr-4 text-right text-brand-muted font-tech">${r.pipeline_value_usd.toLocaleString()}<span className="sm:hidden block text-[11px]">{r.pipeline_count} abiertos</span></td>
+                      <td className="py-2 text-right text-brand-muted font-tech hidden sm:table-cell">{r.pipeline_count}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -477,7 +477,7 @@ export default function Metrics() {
           <Package2 size={15} className="text-brand-muted" /> Hardware
         </div>
         <p className="text-xs text-brand-muted mb-4">
-          Ganado y pipeline abierto por tipo de hardware del trato. Elegí un pipeline arriba (ej. Bit WiFi) para ver el ranking de marcas real, en vez de mezclar líneas de negocio distintas.
+          Ganado y pipeline abierto por tipo de hardware del trato. Elige un pipeline arriba (ej. Bit WiFi) para ver el ranking de marcas real, en vez de mezclar líneas de negocio distintas.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -485,9 +485,9 @@ export default function Metrics() {
               <tr className="text-left text-brand-muted text-xs">
                 <th className="py-2 pr-4 font-normal">Hardware</th>
                 <th className="py-2 pr-4 font-normal text-right">Ganado</th>
-                <th className="py-2 pr-4 font-normal text-right"># Ganados</th>
+                <th className="py-2 pr-4 font-normal text-right hidden sm:table-cell"># Ganados</th>
                 <th className="py-2 pr-4 font-normal text-right">Pipeline abierto</th>
-                <th className="py-2 font-normal text-right"># Abiertos</th>
+                <th className="py-2 font-normal text-right hidden sm:table-cell"># Abiertos</th>
               </tr>
             </thead>
             <tbody>
@@ -500,10 +500,10 @@ export default function Metrics() {
                   <td className="py-2 pr-4">
                     {i === 0 && h.won_value_usd > 0 ? '🏆 ' : ''}{h.name}
                   </td>
-                  <td className="py-2 pr-4 text-right text-brand-ice font-tech">${h.won_value_usd.toLocaleString()}</td>
-                  <td className="py-2 pr-4 text-right text-brand-muted font-tech">{h.won_count}</td>
-                  <td className="py-2 pr-4 text-right text-brand-muted font-tech">${h.pipeline_value_usd.toLocaleString()}</td>
-                  <td className="py-2 text-right text-brand-muted font-tech">{h.pipeline_count}</td>
+                  <td className="py-2 pr-4 text-right text-brand-ice font-tech">${h.won_value_usd.toLocaleString()}<span className="sm:hidden block text-[11px] text-brand-muted">{h.won_count} ganados</span></td>
+                  <td className="py-2 pr-4 text-right text-brand-muted font-tech hidden sm:table-cell">{h.won_count}</td>
+                  <td className="py-2 pr-4 text-right text-brand-muted font-tech">${h.pipeline_value_usd.toLocaleString()}<span className="sm:hidden block text-[11px]">{h.pipeline_count} abiertos</span></td>
+                  <td className="py-2 text-right text-brand-muted font-tech hidden sm:table-cell">{h.pipeline_count}</td>
                 </tr>
               ))}
             </tbody>

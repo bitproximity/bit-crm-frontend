@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
 import {
   FileText, Plus, Bold, Italic, Underline, Building2, FolderKanban, CircleDollarSign,
-  List, ListOrdered, Link as LinkIcon, Paperclip, X, MapPin, ChevronRight, Inbox,
+  List, ListOrdered, Link as LinkIcon, Paperclip, X, MapPin, ChevronRight, Inbox, ChevronLeft,
 } from 'lucide-react';
 import DocumentsSidebar, { AssignPopover, groupDocuments } from '../components/DocumentsSidebar';
 
@@ -218,13 +218,22 @@ export default function Documents() {
       />
 
       {/* Editor */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={`flex-1 min-w-0 overflow-y-auto ${activeId || doc ? '' : 'hidden md:block'}`}>
+        {activeId || doc ? (
+          <button
+            type="button"
+            onClick={() => { setActiveId(null); setDoc(null); }}
+            className="md:hidden flex items-center gap-1.5 px-4 py-3 text-sm text-brand-ice border-b border-brand-border w-full text-left"
+          >
+            <ChevronLeft size={16} /> Documentos
+          </button>
+        ) : null}
         {!doc ? (
           <DocumentsOverview grouped={grouped} recent={recent} total={tree.length} onOpen={(id) => openDoc(id)} onCreate={() => createIn(null)} />
         ) : (
           <div>
             {/* Barra de formato */}
-            <div className="sticky top-0 z-10 flex items-center gap-1 px-6 py-2.5 border-b border-brand-border bg-brand-panel/95 backdrop-blur">
+            <div className="sticky top-0 z-10 flex items-center gap-1 px-3 sm:px-6 py-2.5 border-b border-brand-border bg-brand-panel/95 backdrop-blur overflow-x-auto">
               <button onClick={() => exec('bold')} className={toolBtn} title="Negrita"><Bold size={15} /></button>
               <button onClick={() => exec('italic')} className={toolBtn} title="Cursiva"><Italic size={15} /></button>
               <button onClick={() => exec('underline')} className={toolBtn} title="Subrayado"><Underline size={15} /></button>
@@ -275,7 +284,7 @@ export default function Documents() {
               </div>
             </div>
 
-            <div className="max-w-3xl mx-auto px-10 py-8">
+            <div className="max-w-3xl mx-auto px-4 sm:px-10 py-6 sm:py-8">
               <div className="relative flex items-center gap-1.5 mb-3 text-xs text-brand-muted min-h-[28px]">
                 {doc.companies ? (
                   <Link to={`/companies/${doc.companies.id}`} className="flex items-center gap-1 hover:text-brand-ice"><Building2 size={12} /> {doc.companies.name}</Link>
@@ -307,7 +316,7 @@ export default function Documents() {
                 value={title}
                 onChange={(e) => onTitleChange(e.target.value)}
                 placeholder="Sin título"
-                className="w-full bg-transparent font-headline text-3xl font-semibold focus:outline-none mb-4 placeholder:text-brand-muted/50"
+                className="w-full bg-transparent font-headline text-2xl sm:text-3xl font-semibold focus:outline-none mb-4 placeholder:text-brand-muted/50"
               />
 
               <div
@@ -368,7 +377,7 @@ export default function Documents() {
 function DocumentsOverview({ grouped, recent, total, onOpen, onCreate }) {
   const unassignedCount = grouped.countDeep(grouped.unassigned);
   return (
-    <div className="max-w-4xl mx-auto px-10 py-10">
+    <div className="max-w-4xl mx-auto px-4 sm:px-10 py-6 sm:py-10">
       <div className="flex items-end justify-between mb-6">
         <div>
           <h2 className="font-headline text-2xl font-semibold">Documentos</h2>

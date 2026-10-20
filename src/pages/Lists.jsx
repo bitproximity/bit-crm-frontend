@@ -173,7 +173,7 @@ export default function Lists() {
     <div>
       <div className="flex items-center justify-between mb-1">
         <h1 className="font-headline text-xl font-semibold">Listas</h1>
-        <button onClick={openCreateModal} className="flex items-center gap-1.5 text-sm text-brand-ice hover:underline">
+        <button onClick={openCreateModal} className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 transition rounded-lg text-sm font-medium flex items-center gap-1.5 whitespace-nowrap">
           <Plus size={14} /> Nueva lista
         </button>
       </div>

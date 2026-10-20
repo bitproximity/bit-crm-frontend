@@ -151,9 +151,9 @@ export default function Contacts() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <h1 className="font-headline text-xl font-semibold">Contactos</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 [&_button]:whitespace-nowrap">
           <input
             ref={fileInputRef}
             type="file"
@@ -269,18 +269,18 @@ export default function Contacts() {
         )}
       </div>
 
-      <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
+      <div className="bg-brand-panel border border-brand-border rounded-xl overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-brand-panel/80 text-brand-muted text-left">
             <tr>
-              <th className="px-4 py-3 font-manrope font-normal">Contacto</th>
-              <th className="px-4 py-3 font-manrope font-normal">Empresa / Cargo</th>
-              <th className="px-4 py-3 font-manrope font-normal">País</th>
-              <th className="px-4 py-3 font-manrope font-normal">Teléfono</th>
-              <th className="px-4 py-3 font-manrope font-normal">Estado</th>
-              <th className="px-4 py-3 font-manrope font-normal">Dueño</th>
-              <th className="px-4 py-3 font-manrope font-normal">Registro</th>
-              <th className="px-4 py-3 font-manrope font-normal text-right">Acciones</th>
+              <th className="px-3 sm:px-4 py-3 font-manrope font-normal">Contacto</th>
+              <th className="px-3 sm:px-4 py-3 font-manrope font-normal">Empresa / Cargo</th>
+              <th className="px-4 py-3 font-manrope font-normal hidden lg:table-cell">País</th>
+              <th className="px-4 py-3 font-manrope font-normal hidden lg:table-cell">Teléfono</th>
+              <th className="px-4 py-3 font-manrope font-normal hidden md:table-cell">Estado</th>
+              <th className="px-4 py-3 font-manrope font-normal hidden lg:table-cell">Dueño</th>
+              <th className="px-4 py-3 font-manrope font-normal hidden xl:table-cell">Registro</th>
+              <th className="px-4 py-3 font-manrope font-normal text-right hidden sm:table-cell">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -293,7 +293,7 @@ export default function Contacts() {
                   className="border-t border-brand-border row-hover cursor-pointer stagger-item"
                   style={{ animationDelay: `${Math.min(i, 25) * 15}ms` }}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-3 sm:px-4 py-3 max-w-[11rem] sm:max-w-none">
                     <div className="flex items-center gap-2.5">
                       <div
                         className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-tech font-bold flex-shrink-0 text-white"
@@ -307,38 +307,38 @@ export default function Contacts() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-brand-muted">
+                  <td className="px-3 sm:px-4 py-3 text-brand-muted max-w-[7rem] sm:max-w-none">
                     <div className="truncate">{c.companies?.name || '—'}</div>
                     {c.position && <div className="text-xs text-brand-muted/70 truncate">{c.position}</div>}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 hidden lg:table-cell">
                     {c.country ? (
                       <span className="inline-flex items-center gap-1 text-xs text-brand-muted">
                         <MapPin size={11} /> {c.country}
                       </span>
                     ) : <span className="text-brand-muted">—</span>}
                   </td>
-                  <td className="px-4 py-3 text-brand-muted text-xs">
+                  <td className="px-4 py-3 text-brand-muted text-xs hidden lg:table-cell">
                     {c.phone ? (
                       <span className="inline-flex items-center gap-1">
                         <Phone size={11} /> {c.phone}
                       </span>
                     ) : '—'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 hidden md:table-cell">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${STATUS_COLORS[c.status] || 'bg-neutral-600/30 text-brand-muted'}`}>
                       {c.status || 'sin estado'}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 hidden lg:table-cell">
                     {c.team_members?.full_name
                       ? <span className="text-brand-muted">{c.team_members.full_name}</span>
                       : <span className="text-brand-muted/50 italic">Sin asignar</span>}
                   </td>
-                  <td className="px-4 py-3 text-brand-muted text-xs">
+                  <td className="px-4 py-3 text-brand-muted text-xs hidden xl:table-cell">
                     {c.created_at ? new Date(c.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 hidden sm:table-cell">
                     <RowActionButtons
                       onEdit={() => setEditContactId(c.id)}
                       onCopy={() => c.email}

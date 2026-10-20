@@ -218,7 +218,7 @@ export default function DocumentsSidebar({ tree, activeId, onSelect, onAddChild,
   };
 
   return (
-    <div className="w-80 border-r border-brand-border flex-shrink-0 bg-brand-panel/40 flex flex-col">
+    <div className={`${activeId ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r border-brand-border flex-shrink-0 bg-brand-panel/40 flex-col`}>
       <div className="p-4 pb-3 border-b border-brand-border/60">
         <div className="flex items-center justify-between mb-3">
           <h1 className="font-headline text-lg font-semibold flex items-center gap-2">

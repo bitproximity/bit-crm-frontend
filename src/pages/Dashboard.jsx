@@ -9,16 +9,16 @@ function Card({ icon: Icon, label, value, accent, iconColor, barColor, onClick, 
     <div
       onClick={onClick}
       style={{ animationDelay: `${index * 60}ms` }}
-      className={`relative card-elevated rounded-xl overflow-hidden group stagger-item ${onClick ? 'cursor-pointer' : ''} ${big ? 'sm:col-span-2 p-6' : 'p-5'}`}
+      className={`relative card-elevated rounded-xl overflow-hidden group stagger-item ${onClick ? 'cursor-pointer' : ''} ${big ? 'col-span-2 p-5 sm:p-6' : 'p-4 sm:p-5'}`}
     >
       <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${barColor || '#8500FF'}, ${barColor || '#8500FF'}22)` }} />
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-brand-muted text-sm font-manrope truncate pr-2">{label}</div>
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3 ${iconColor || 'bg-brand-violet/10'}`}>
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="text-brand-muted text-sm font-manrope leading-snug pr-2 min-w-0">{label}</div>
+        <div className={`w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3 ${iconColor || 'bg-brand-violet/10'}`}>
           <Icon size={16} className="text-brand-ice" />
         </div>
       </div>
-      <div className={`${big ? 'text-4xl' : 'text-2xl'} font-headline font-semibold truncate ${accent ? 'bg-gradient-to-r from-brand-violet to-brand-magenta bg-clip-text text-transparent' : 'text-brand-white'}`}>
+      <div className={`${big ? 'text-3xl sm:text-4xl' : 'text-xl sm:text-2xl'} font-headline font-semibold truncate ${accent ? 'bg-gradient-to-r from-brand-violet to-brand-magenta bg-clip-text text-transparent' : 'text-brand-white'}`}>
         {value}
       </div>
     </div>

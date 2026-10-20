@@ -94,10 +94,10 @@ export default function Automations() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <h1 className="font-headline text-xl font-semibold flex items-center gap-2"><Zap size={20} /> Automatizaciones</h1>
         {canManage && (
-          <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium flex items-center gap-1.5">
+          <button onClick={() => setShowForm(!showForm)} className="whitespace-nowrap px-4 py-2 bg-gradient-to-r from-brand-violet to-brand-magenta rounded-lg text-sm font-medium flex items-center gap-1.5">
             <Plus size={14} /> Nueva regla
           </button>
         )}
