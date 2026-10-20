@@ -318,7 +318,7 @@ export default function ContactDetailPanel({ contactId, onClose, onDeleted, onSa
             <div className="md:col-span-2 pt-2 border-t border-brand-border">
               <div className="flex items-center justify-between mb-3 mt-3">
                 <label className={`${labelClass} mb-0`}>Campos personalizados</label>
-                <a href="/settings" className="text-xs text-brand-muted hover:text-brand-ice transition">+ Campo</a>
+                <a href="/settings?seccion=campos" className="text-xs text-brand-muted hover:text-brand-ice transition">+ Campo</a>
               </div>
               {customFields.length === 0 ? (
                 <p className="text-xs text-brand-muted">Sin campos personalizados para Contactos todavía.</p>

@@ -1,21 +1,57 @@
 import { SkeletonLine } from '../components/Skeleton';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import { ChevronDown as ChevronDownIcon, Pencil as PencilIcon, Trash2 as Trash2Icon, GripVertical as GripVerticalIcon, X as XIcon } from 'lucide-react';
+import { ChevronDown as ChevronDownIcon, Pencil as PencilIcon, Trash2 as Trash2Icon, GripVertical as GripVerticalIcon, X as XIcon, Users, KanbanSquare, SlidersHorizontal, CircleDollarSign, ShieldCheck, Bot, Settings as SettingsIcon } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useConfirm } from '../components/ConfirmModal';
 
 const MCP_URL = `${import.meta.env.VITE_API_URL || 'https://bit-crm-backend-production.up.railway.app'}/mcp`;
 
+// Secciones de Configuración. Se muestra UNA a la vez (antes eran seis paneles apilados en una página muy larga y
+// los seis pedían sus datos aunque solo usaras uno). La sección va en la dirección (?seccion=embudos) para poder
+// enlazarla desde otras pantallas y para que al recargar no pierdas dónde estabas.
+export const SETTINGS_SECTIONS = [
+  { key: 'equipo', label: 'Equipo y permisos', hint: 'Personas, roles e invitaciones', icon: Users, Panel: () => <TeamAdmin /> },
+  { key: 'embudos', label: 'Pipelines', hint: 'Embudos y etapas', icon: KanbanSquare, Panel: () => <PipelinesAdmin /> },
+  { key: 'campos', label: 'Campos personalizados', hint: 'Campos extra por registro', icon: SlidersHorizontal, Panel: () => <CustomFieldsAdmin /> },
+  { key: 'tasas', label: 'Tipos de cambio', hint: 'Monedas a USD', icon: CircleDollarSign, Panel: () => <ExchangeRatesAdmin /> },
+  { key: 'permisos', label: 'Permisos por rol', hint: 'Quién ve cada sección', icon: ShieldCheck, Panel: () => <RolePermissionsAdmin /> },
+  { key: 'mcp', label: 'Claude / MCP', hint: 'Claves de API', icon: Bot, Panel: () => <McpKeysAdmin /> },
+];
+
 export default function Settings() {
+  const [params, setParams] = useSearchParams();
+  const active = SETTINGS_SECTIONS.find((s) => s.key === params.get('seccion')) || SETTINGS_SECTIONS[0];
+  const Panel = active.Panel;
   return (
     <div>
-      <h1 className="font-headline text-xl font-semibold mb-6">Configuración</h1>
-      <TeamAdmin />
-      <CustomFieldsAdmin />
-      <PipelinesAdmin />
-      <ExchangeRatesAdmin />
-      <RolePermissionsAdmin />
-      <McpKeysAdmin />
+      <h1 className="font-headline text-2xl font-semibold mb-5 flex items-center gap-2.5">
+        <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center"><SettingsIcon size={18} /></span>
+        Configuración
+      </h1>
+      <div className="grid grid-cols-1 md:grid-cols-[230px_1fr] gap-5 items-start">
+        <nav aria-label="Secciones de configuración" className="flex md:flex-col gap-1.5 overflow-x-auto md:overflow-visible pb-1 md:pb-0 md:sticky md:top-4">
+          {SETTINGS_SECTIONS.map(({ key, label, hint, icon: Icon }) => {
+            const on = key === active.key;
+            return (
+              <button
+                key={key}
+                type="button"
+                aria-current={on ? 'page' : undefined}
+                onClick={() => setParams(key === SETTINGS_SECTIONS[0].key ? {} : { seccion: key }, { replace: true })}
+                className={`flex items-center gap-3 text-left rounded-xl px-3.5 py-2.5 border transition flex-shrink-0 md:flex-shrink ${on ? 'bg-brand-violet/15 border-brand-violet/50 text-brand-white' : 'border-transparent text-brand-muted hover:text-brand-white hover:bg-brand-panel'}`}
+              >
+                <Icon size={16} className={on ? 'text-brand-ice' : ''} />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium whitespace-nowrap md:whitespace-normal">{label}</span>
+                  <span className="hidden md:block text-[11px] text-brand-muted truncate">{hint}</span>
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+        <div className="min-w-0 [&>div]:mt-0 [&>div]:mb-0"><Panel key={active.key} /></div>
+      </div>
     </div>
   );
 }
@@ -864,7 +900,7 @@ function TeamAdmin() {
       <div className="space-y-1.5">
         {members.map((m) => (
           <div key={m.id} className={`px-3 py-2 rounded-lg ${m.active ? 'bg-brand-bg' : 'bg-brand-bg/40'}`}>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-violet to-brand-magenta flex items-center justify-center text-[10px] font-tech font-bold flex-shrink-0">
                 {(m.full_name || '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
@@ -874,7 +910,7 @@ function TeamAdmin() {
                 <div className="text-xs text-brand-muted truncate">{m.email}</div>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pl-10 sm:pl-0">
               <select
                 value={m.role || ''}
                 onChange={(e) => changeRole(m.id, e.target.value)}
@@ -909,7 +945,7 @@ function TeamAdmin() {
             </div>
           </div>
           {m.active && (
-            <div className="flex flex-wrap items-center gap-1.5 mt-2 pl-10">
+            <div className="flex flex-wrap items-center gap-1.5 mt-2 sm:pl-10">
               <span className="text-[10px] font-tech uppercase text-brand-muted mr-1">Bloquear:</span>
               {BLOCKABLE.filter((b) => m.role === 'admin' || b.roles.includes(m.role)).map((b) => {
                 const on = (m.blocked_pages || []).includes(b.key);

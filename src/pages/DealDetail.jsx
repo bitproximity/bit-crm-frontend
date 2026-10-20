@@ -827,7 +827,7 @@ export default function DealDetail() {
                         </button>
                       ))}
                   </div>
-                  <Link to="/settings" className="text-xs text-brand-ice hover:underline block mb-4">
+                  <Link to="/settings?seccion=embudos" className="text-xs text-brand-ice hover:underline block mb-4">
                     Editar embudos y etapas en Configuración
                   </Link>
 
@@ -1414,7 +1414,7 @@ export default function DealDetail() {
               </a>
               {!calcomStatus?.connected ? (
                 <div className="text-sm text-brand-muted">
-                  Conecta tu cuenta de Cal.com en <Link to="/settings" className="text-brand-ice hover:underline">Configuración</Link> para ver aquí las reuniones ya agendadas con este contacto.
+                  Conecta tu cuenta de Cal.com en <Link to="/profile" className="text-brand-ice hover:underline">Mi Perfil</Link> para ver aquí las reuniones ya agendadas con este contacto.
                 </div>
               ) : (
                 <div className="space-y-2">

@@ -259,7 +259,7 @@ export default function Deals() {
             pipelineId={pipelineId}
             onSelect={(id) => setPipelineId(id)}
             onPipelinesChanged={(updated) => setPipelines(updated)}
-            onCreateClick={() => navigate('/settings')}
+            onCreateClick={() => navigate('/settings?seccion=embudos')}
           />
         </div>
       </div>
