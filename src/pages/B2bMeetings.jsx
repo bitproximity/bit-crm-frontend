@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useOutsideClick } from '../hooks/useOutsideClick';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import MeetingGoalsPanel from '../components/MeetingGoalsPanel';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, CalendarClock, History,
   Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2, ChevronDown, MoreHorizontal, Download, RefreshCcw, Target,
@@ -108,19 +109,6 @@ export default function B2bMeetings() {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const currentMonth = new Date().toISOString().slice(0, 7);
-  const [quotas, setQuotas] = useState(null);
-  const [editingQuotaId, setEditingQuotaId] = useState(null);
-  const [quotaInput, setQuotaInput] = useState('');
-
-  const loadQuotas = () => api.get(`/api/quotas?month=${currentMonth}`).then((d) => setQuotas(d.rows)).catch(() => setQuotas([]));
-
-  const saveQuota = async (teamMemberId, value) => {
-    const target = Number(value);
-    if (!target || target < 1) { setEditingQuotaId(null); return; }
-    await api.post('/api/quotas', { team_member_id: teamMemberId, month: currentMonth, target_meetings: target }).catch(() => {});
-    setEditingQuotaId(null);
-    loadQuotas();
-  };
   const [expandedPerson, setExpandedPerson] = useState(null);
   const [reordering, setReordering] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -151,7 +139,6 @@ export default function B2bMeetings() {
   useEffect(() => {
     if (tab !== 'team') return;
     api.get('/api/b2b/leaderboard').then(setLeaderboard).catch((err) => setError(err.message));
-    loadQuotas();
   }, [tab]);
 
   const loadClientData = () => {
@@ -347,7 +334,7 @@ export default function B2bMeetings() {
           onClick={() => setTab('team')}
           className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${tab === 'team' ? 'bg-brand-violet text-white' : 'text-brand-muted hover:text-brand-white'}`}
         >
-          Equipo (todos los clientes)
+          Equipo y metas
         </button>
       </div>
 
@@ -356,7 +343,7 @@ export default function B2bMeetings() {
       {tab === 'team' && (
         <>
           <p className="text-brand-muted text-xs mb-4">
-            Cruza todo lo que cada persona ha cargado en cualquier marca — cada base o reunión que importás o agregás
+            Cruza todo lo que cada persona ha cargado en cualquier marca — cada base o reunión que importas o agregas
             queda atribuida automáticamente a tu usuario logueado.
           </p>
           {!leaderboard ? (
@@ -382,54 +369,7 @@ export default function B2bMeetings() {
                 </div>
               </div>
 
-              <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden mb-6">
-                <div className="px-5 py-4 border-b border-brand-border flex items-center gap-2">
-                  <Target size={15} className="text-brand-ice" />
-                  <div className="text-sm font-manrope font-medium">Meta de reuniones — {currentMonth}</div>
-                </div>
-                <div className="divide-y divide-brand-border">
-                  {quotas === null && <div className="px-5 py-4 text-brand-muted text-sm">Cargando...</div>}
-                  {quotas?.map((q) => {
-                    const pct = q.target ? Math.min(100, Math.round((q.actual / q.target) * 100)) : null;
-                    return (
-                      <div key={q.team_member_id} className="px-5 py-3 flex items-center gap-4">
-                        <div className="w-32 flex-shrink-0 text-sm truncate">{q.full_name}</div>
-                        {q.target ? (
-                          <>
-                            <div className="flex-1 h-2 rounded-full bg-brand-bg overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${pct >= 100 ? 'bg-green-400' : 'bg-gradient-to-r from-brand-violet to-brand-magenta'}`}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
-                            <div className="w-20 flex-shrink-0 text-xs font-tech text-right">
-                              <span className={pct >= 100 ? 'text-green-300' : 'text-brand-ice'}>{q.actual}</span>
-                              <span className="text-brand-muted"> / {q.target}</span>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex-1 text-xs text-brand-muted">Sin meta puesta — {q.actual} reunión(es) este mes</div>
-                        )}
-                        {isAdmin && (
-                          editingQuotaId === q.team_member_id ? (
-                            <input
-                              autoFocus type="number" min="1" defaultValue={q.target || ''}
-                              onBlur={(e) => saveQuota(q.team_member_id, e.target.value)}
-                              onKeyDown={(e) => e.key === 'Enter' && saveQuota(q.team_member_id, e.target.value)}
-                              className="w-16 flex-shrink-0 px-2 py-1 rounded bg-brand-bg border border-brand-border text-xs text-right"
-                            />
-                          ) : (
-                            <button onClick={() => { setEditingQuotaId(q.team_member_id); setQuotaInput(q.target || ''); }} className="flex-shrink-0 text-xs text-brand-ice hover:underline">
-                              {q.target ? 'editar' : '+ meta'}
-                            </button>
-                          )
-                        )}
-                      </div>
-                    );
-                  })}
-                  {quotas?.length === 0 && <div className="px-5 py-4 text-brand-muted text-sm">Sin vendedores activos todavía.</div>}
-                </div>
-              </div>
+              <MeetingGoalsPanel isAdmin={isAdmin} />
 
               <div className="bg-brand-panel border border-brand-border rounded-xl overflow-hidden">
                 <div className="px-5 py-4 border-b border-brand-border flex items-center gap-2">
