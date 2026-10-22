@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { formatDay, parseDay } from '../lib/dateOnly';
 import { FolderKanban, Calendar, Plus, X, Building2, DollarSign, LayoutGrid, List, Search } from 'lucide-react';
 import { colorForName, initials } from '../lib/avatar';
 import RowActionButtons from '../components/RowActionButtons';
@@ -265,7 +266,7 @@ export default function Projects() {
                   </td>
                   <td className="px-4 py-3 text-brand-muted font-tech">{p.total_tasks}</td>
                   <td className="px-4 py-3 text-brand-muted">
-                    {p.due_date ? new Date(p.due_date).toLocaleDateString() : '—'}
+                    {formatDay(p.due_date)}
                   </td>
                   <td className="px-4 py-3">
                     <RowActionButtons
@@ -316,7 +317,7 @@ export default function Projects() {
 
             {p.due_date && (
               <div className="flex items-center gap-1.5 text-xs text-brand-muted mt-3">
-                <Calendar size={12} /> Vence: {new Date(p.due_date).toLocaleDateString()}
+                <Calendar size={12} /> Vence: {formatDay(p.due_date)}
               </div>
             )}
 

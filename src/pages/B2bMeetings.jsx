@@ -3,6 +3,7 @@ import { useOutsideClick } from '../hooks/useOutsideClick';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import MeetingGoalsPanel from '../components/MeetingGoalsPanel';
+import { formatDay, parseDay } from '../lib/dateOnly';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, CalendarClock, History,
   Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2, ChevronDown, MoreHorizontal, Download, RefreshCcw, Target,
@@ -986,7 +987,7 @@ export default function B2bMeetings() {
                     <td className="px-4 py-3 text-brand-muted">{r.industry || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.country || '—'}</td>
                     <td className="px-4 py-3 text-brand-muted">{r.city || '—'}</td>
-                    <td className="px-4 py-3 text-brand-muted font-tech text-xs">{r.meeting_date ? new Date(r.meeting_date).toLocaleDateString() : '—'}</td>
+                    <td className="px-4 py-3 text-brand-muted font-tech text-xs">{formatDay(r.meeting_date)}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${STATUS_STYLE[r.status] || 'bg-brand-bg text-brand-muted'}`}>
                         {STATUS_LABEL[r.status] || r.status}

@@ -4,6 +4,7 @@ import { canAccessPath } from '../lib/permissions';
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { formatDay, parseDay } from '../lib/dateOnly';
 import { useConfirm } from '../components/ConfirmModal';
 import { useOutsideClick } from '../hooks/useOutsideClick';
 import { FACTURACION_OPTIONS, isGenericPipeline } from '../components/B2bRecordModal';
@@ -754,7 +755,7 @@ export default function DealDetail() {
   const valueUsd = rateToUsd != null ? Number(deal.value || 0) * rateToUsd : null;
   const weightedUsd = valueUsd != null ? valueUsd * (Number(deal.probability || 0) / 100) : null;
   const daysOpen = deal.created_at ? Math.max(0, Math.round((Date.now() - new Date(deal.created_at).getTime()) / 86400000)) : null;
-  const closeInDays = deal.expected_close_date ? Math.round((new Date(deal.expected_close_date).getTime() - Date.now()) / 86400000) : null;
+  const closeInDays = parseDay(deal.expected_close_date) ? Math.round((parseDay(deal.expected_close_date).getTime() - Date.now()) / 86400000) : null;
   const nextActivity = activities
     .filter((a) => !a.done && a.due_date && a.type !== 'nota' && !Number.isNaN(new Date(a.due_date).getTime()))
     .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))[0];
@@ -950,7 +951,7 @@ export default function DealDetail() {
         )}
         <Kpi icon={Clock3} label="Tiempo en el embudo" value={daysOpen != null ? `${daysOpen} día${daysOpen !== 1 ? 's' : ''}` : '—'} sub={isOpen ? `${stageDays[deal.stage_id] || 0} d en esta etapa` : 'desde que se creó'} />
         <Kpi icon={CalendarClock} label="Cierre esperado"
-          value={deal.expected_close_date ? new Date(deal.expected_close_date).toLocaleDateString('es', { day: 'numeric', month: 'short' }) : 'Sin fecha'}
+          value={deal.expected_close_date ? formatDay(deal.expected_close_date, 'es', { day: 'numeric', month: 'short' }) : 'Sin fecha'}
           sub={closeInDays == null ? 'Defínela en el panel' : closeInDays < 0 ? `venció hace ${-closeInDays} d` : closeInDays === 0 ? 'es hoy' : `en ${closeInDays} d`}
           tone={closeInDays != null && closeInDays < 0 && isOpen ? 'text-red-300' : 'text-brand-white'} />
         {isOpen && (

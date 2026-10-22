@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import { formatDay, parseDay } from '../lib/dateOnly';
 import { Users, TrendingUp, Percent, CalendarCheck, Download } from 'lucide-react';
 import MeetingsByMonthChart from '../components/MeetingsByMonthChart';
 
@@ -192,7 +193,7 @@ export default function PublicB2bReport() {
                   <td className="px-4 py-3 text-brand-muted print-text-muted">{r.industry || '—'}</td>
                   <td className="px-4 py-3 text-brand-muted print-text-muted">{r.country || '—'}</td>
                   <td className="px-4 py-3 text-brand-muted print-text-muted">{r.city || '—'}</td>
-                  <td className="px-4 py-3 text-brand-muted font-tech text-xs print-text-muted">{r.meeting_date ? new Date(r.meeting_date).toLocaleDateString() : '—'}</td>
+                  <td className="px-4 py-3 text-brand-muted font-tech text-xs print-text-muted">{formatDay(r.meeting_date)}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${r.status === 'reunion_agendada' || r.status === 'reunion_realizada' ? 'bg-green-500/15 text-green-300' : 'bg-brand-bg text-brand-muted'}`}>
                       {r.status.replace('_', ' ')}

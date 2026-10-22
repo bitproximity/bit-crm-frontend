@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
+import { formatDay, parseDay } from '../lib/dateOnly';
 import DateTimePicker from '../components/DateTimePicker';
 import { useOutsideClick } from '../hooks/useOutsideClick';
 import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check, Search, FileUp, RefreshCw, ChevronDown } from 'lucide-react';
@@ -344,7 +345,7 @@ export default function Invoicing() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-brand-muted">{inv.deals?.title || '—'}</td>
-                <td className="px-4 py-3 text-brand-muted font-tech text-xs">{inv.issue_date ? new Date(inv.issue_date).getFullYear() : '—'}</td>
+                <td className="px-4 py-3 text-brand-muted font-tech text-xs">{parseDay(inv.issue_date)?.getFullYear() ?? '—'}</td>
                 <td className="px-4 py-3 text-brand-ice font-tech">
                   <div className="flex items-baseline justify-end gap-1.5">
                     <span className="w-8 flex-shrink-0 text-[10px] text-brand-muted text-left">{inv.currency}</span>
@@ -357,7 +358,7 @@ export default function Invoicing() {
                     <span className="text-right">{Number(inv.paid_amount).toLocaleString()}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-brand-muted font-tech text-xs">{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</td>
+                <td className="px-4 py-3 text-brand-muted font-tech text-xs">{formatDay(inv.due_date)}</td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1.5">
                     {inv.overdue && <AlertTriangle size={11} className="text-red-400 flex-shrink-0" />}
@@ -423,7 +424,7 @@ export default function Invoicing() {
               <span className="text-xs text-brand-muted">de {inv.currency} {Number(inv.paid_amount).toLocaleString()} cobrado</span>
             </div>
             <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
-              <span className="text-[11px] text-brand-muted">{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</span>
+              <span className="text-[11px] text-brand-muted">{formatDay(inv.due_date)}</span>
               <div className="flex items-center gap-1.5">
                 {inv.overdue && <AlertTriangle size={11} className="text-red-400" />}
                 <select
@@ -729,7 +730,7 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
                     {editing ? (
                       <input type="date" value={fieldsEdit.issue_date} onChange={(e) => setFieldsEdit({ ...fieldsEdit, issue_date: e.target.value })} className={plainInputClass} style={{ colorScheme: 'dark' }} />
                     ) : (
-                      <div className={roClass}>{invoice.issue_date ? new Date(invoice.issue_date).toLocaleDateString() : '—'}</div>
+                      <div className={roClass}>{formatDay(invoice.issue_date)}</div>
                     )}
                   </div>
                   <div>
@@ -737,7 +738,7 @@ export function InvoiceDetailModal({ invoiceId, onClose, onChanged }) {
                     {editing ? (
                       <input type="date" value={fieldsEdit.due_date} onChange={(e) => setFieldsEdit({ ...fieldsEdit, due_date: e.target.value })} className={plainInputClass} style={{ colorScheme: 'dark' }} />
                     ) : (
-                      <div className={roClass}>{invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : '—'}</div>
+                      <div className={roClass}>{formatDay(invoice.due_date)}</div>
                     )}
                   </div>
                 </div>
