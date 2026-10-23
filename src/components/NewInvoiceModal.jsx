@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Receipt, Search, X, Plus, Trash2, Building2, Handshake } from 'lucide-react';
 import { api } from '../lib/api';
+import { todayLocal } from '../lib/dateOnly';
 import { Modal, Field, inputCls, selectCls, primaryBtn, ghostBtn } from './Modal';
 import { useOutsideClick } from '../hooks/useOutsideClick';
 import { SOURCE_ACCOUNTS, CURRENCIES } from '../lib/invoiceMeta';
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayLocal();
 const asList = (r) => (Array.isArray(r) ? r : r?.data || []);
 const lineaVacia = () => ({ product_id: '', description: '', quantity: 1, unit_price: '' });
 

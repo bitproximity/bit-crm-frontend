@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { formatDay, parseDay } from '../lib/dateOnly';
+import { todayLocal } from '../lib/dateOnly';
 import { FolderKanban, Calendar, Plus, X, Building2, DollarSign, LayoutGrid, List, Search } from 'lucide-react';
 import { colorForName, initials } from '../lib/avatar';
 import RowActionButtons from '../components/RowActionButtons';
@@ -61,7 +62,7 @@ function NewProjectModal({ onClose, onCreated }) {
         company_id: selectedCompany?.id || null,
         deal_id: selectedDeal?.id || null,
         due_date: dueDate || null,
-        start_date: new Date().toISOString().slice(0, 10),
+        start_date: todayLocal(),
         status: 'activo',
       });
       onCreated(project);

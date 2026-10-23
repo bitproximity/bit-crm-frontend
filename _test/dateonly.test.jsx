@@ -1,6 +1,7 @@
 // Fechas de «solo día» (vencimiento de facturas, fecha de reunión…): no deben correrse un día en zonas al oeste de UTC.
-import { describe, it, expect, afterAll } from 'vitest';
-import { parseDay, formatDay } from '../src/lib/dateOnly.js';
+import { describe, it, expect, afterAll, afterEach, vi } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
+import { parseDay, formatDay, todayLocal, monthLocal, isPastDay } from '../src/lib/dateOnly.js';
 
 const ORIGINAL_TZ = process.env.TZ;
 afterAll(() => { if (ORIGINAL_TZ === undefined) delete process.env.TZ; else process.env.TZ = ORIGINAL_TZ; });
@@ -47,5 +48,44 @@ describe('casos límite', () => {
     const hoy = new Date(2026, 9, 22, 20, 0, 0);               // 22/10 a las 8 p. m.
     const dias = Math.round((parseDay('2026-10-23').getTime() - hoy.getTime()) / 86400000);
     expect(dias).toBe(0);                                      // mañana a medianoche local está a 4 h: «es hoy», no «en 1 d»
+  });
+});
+
+// ── «Hoy» según el reloj de quien usa el CRM (antes: UTC, que en Panamá ya es «mañana» desde las 7 p. m.) ──────
+describe('hoy, este mes y «ya pasó» en la tarde-noche de Panamá', () => {
+  afterEach(() => { vi.useRealTimers(); });
+  const a_las_830_pm_del_22 = () => { process.env.TZ = 'America/Panama'; vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-23T01:30:00Z')); }; // 20:30 del 22/10 en Panamá
+
+  it('todayLocal da el día de Panamá (22), no el de UTC (23)', () => {
+    a_las_830_pm_del_22();
+    expect(new Date().toISOString().slice(0, 10)).toBe('2026-10-23');   // el cálculo viejo
+    expect(todayLocal()).toBe('2026-10-22');
+    expect(monthLocal()).toBe('2026-10');
+  });
+  it('último día del mes por la noche: sigue siendo ese mes', () => {
+    process.env.TZ = 'America/Panama'; vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-01T03:00:00Z')); // 22:00 del 31/10
+    expect(new Date().toISOString().slice(0, 7)).toBe('2026-11');
+    expect(monthLocal()).toBe('2026-10');
+  });
+  it('isPastDay: una fecha de solo día vence cuando termina ese día', () => {
+    a_las_830_pm_del_22();
+    expect(isPastDay('2026-10-22')).toBe(false);   // hoy: no está vencido
+    expect(isPastDay('2026-10-23')).toBe(false);
+    expect(isPastDay('2026-10-21')).toBe(true);
+    expect(isPastDay(null)).toBe(false); expect(isPastDay('basura')).toBe(false);
+  });
+  it('isPastDay: con hora se compara con el instante actual, como siempre', () => {
+    a_las_830_pm_del_22();
+    expect(isPastDay('2026-10-22T20:00:00-05:00')).toBe(true);   // 8:00 p. m.: ya pasó
+    expect(isPastDay('2026-10-22T21:00:00-05:00')).toBe(false);  // 9:00 p. m.: todavía no
+  });
+  it('el formulario «Nueva factura» propone la fecha de HOY (22) a las 8:30 p. m., no la de mañana', async () => {
+    a_las_830_pm_del_22(); vi.useRealTimers();                    // el reloj queda congelado en la fecha, sin bloquear los temporizadores
+    vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-23T01:30:00Z'));
+    vi.doMock('../src/lib/api', () => ({ api: { get: async () => [], post: async () => ({}) } }));
+    const { default: NewInvoiceModal } = await import('../src/components/NewInvoiceModal.jsx');
+    render(<NewInvoiceModal onClose={() => {}} onCreated={() => {}} />);
+    expect(screen.getByLabelText('Fecha de emisión').value).toBe('2026-10-22');
+    cleanup();
   });
 });

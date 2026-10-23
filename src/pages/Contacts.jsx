@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
+import { todayLocal } from '../lib/dateOnly';
 import { csvToContacts } from '../lib/csv';
 import AddContactModal from '../components/AddContactModal';
 import { Upload, Plus, Search, Mail, ChevronLeft, ChevronRight, Download, MapPin, Phone } from 'lucide-react';
@@ -124,7 +125,7 @@ export default function Contacts() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `contactos_bitcrm_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `contactos_bitcrm_${todayLocal()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {

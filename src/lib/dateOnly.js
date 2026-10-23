@@ -15,3 +15,21 @@ export function formatDay(value, locale, options) {
   const d = parseDay(value);
   return d ? d.toLocaleDateString(locale, options) : '—';
 }
+
+// «Hoy» y «este mes» según el reloj de QUIEN USA el CRM (no UTC): `new Date().toISOString().slice(0, 10)` da la
+// fecha de mañana a partir de las 7 p. m. en Panamá, y eso se guardaba como fecha de inicio/emisión.
+const pad = (n) => String(n).padStart(2, '0');
+export function todayLocal(d = new Date()) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+export const monthLocal = (d = new Date()) => todayLocal(d).slice(0, 7);
+
+// ¿Ya pasó esa fecha? Un día completo vence al terminar ese día (un cierre «para el 23» no está vencido el 23);
+// un valor con hora se compara con el instante actual, como siempre.
+export function isPastDay(value, now = new Date()) {
+  if (!value) return false;
+  const text = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text < todayLocal(now);
+  const d = new Date(text);
+  return !Number.isNaN(d.getTime()) && d < now;
+}

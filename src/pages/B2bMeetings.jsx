@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import MeetingGoalsPanel from '../components/MeetingGoalsPanel';
 import { formatDay, parseDay } from '../lib/dateOnly';
+import { monthLocal } from '../lib/dateOnly';
 import {
   Users, Plus, Upload, Building2, TrendingUp, Percent, CalendarCheck, CalendarClock, History,
   Link2, Check, Pencil, Trash2, GripVertical, X, ListPlus, CheckCircle2, ChevronDown, MoreHorizontal, Download, RefreshCcw, Target,
@@ -109,7 +110,7 @@ export default function B2bMeetings() {
   const [leaderboard, setLeaderboard] = useState(null);
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = monthLocal();
   const [expandedPerson, setExpandedPerson] = useState(null);
   const [reordering, setReordering] = useState(false);
   const [exporting, setExporting] = useState(false);

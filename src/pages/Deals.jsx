@@ -10,9 +10,10 @@ import {
   LayoutGrid, List, DollarSign, Archive, Plus, Search,
   Info, ChevronDown, User, AlertTriangle, Upload, GripVertical, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import { isPastDay } from '../lib/dateOnly';
 
 function isOverdue(deal) {
-  return deal.expected_close_date && new Date(deal.expected_close_date) < new Date();
+  return isPastDay(deal.expected_close_date);
 }
 
 function initials(name) {

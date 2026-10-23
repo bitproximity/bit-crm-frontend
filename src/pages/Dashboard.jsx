@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { TrendingUp, DollarSign, Trophy, AlertCircle, ListTodo, Calendar, MapPin, Video, ExternalLink, PieChart, ListChecks, XCircle, PlusCircle, Crown, Package } from 'lucide-react';
 import { api } from '../lib/api';
+import { monthLocal } from '../lib/dateOnly';
 import { useAuth } from '../hooks/useAuth';
 
 function Card({ icon: Icon, label, value, accent, iconColor, barColor, onClick, index = 0, big }) {
@@ -143,7 +144,7 @@ export default function Dashboard() {
             value={data.new_deals_this_month}
             iconColor="bg-violet-500/10"
             barColor="#8500FF"
-            onClick={() => navigate(`/deals-list?status=abierto,ganado,perdido&created_month=${new Date().toISOString().slice(0, 7)}`)}
+            onClick={() => navigate(`/deals-list?status=abierto,ganado,perdido&created_month=${monthLocal()}`)}
             index={6}
           />
           <Card

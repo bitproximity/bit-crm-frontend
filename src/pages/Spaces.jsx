@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { todayLocal } from '../lib/dateOnly';
 import { useConfirm } from '../components/ConfirmModal';
 import RowActionButtons from '../components/RowActionButtons';
 import { Boxes, ChevronRight, ChevronDown, FolderKanban, Plus, Search } from 'lucide-react';
@@ -83,7 +84,7 @@ export default function Spaces() {
       name: projectForm.name,
       type: projectForm.type,
       space_id: spaceId,
-      start_date: new Date().toISOString().slice(0, 10),
+      start_date: todayLocal(),
     });
     setProjectForm({ name: '', type: 'onboarding_cliente' });
     setNewProjectFor(null);
