@@ -1,5 +1,8 @@
 import { SkeletonPage } from '../components/Skeleton';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
+import FinancePanel from '../components/FinancePanel';
+import LiveStatus from '../components/LiveStatus';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Percent, TrendingUp, Filter, Gauge, Package2, ListChecks, Activity, Users, Clock, PieChart, DollarSign, Trophy, Globe, Briefcase } from 'lucide-react';
@@ -56,6 +59,9 @@ export default function Metrics() {
   const [expandedProduct, setExpandedProduct] = useState(null);
 
   const [pipelinesLoaded, setPipelinesLoaded] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [financeSignal, setFinanceSignal] = useState(0);
 
   const setPipelineIdPersist = (id) => {
     setPipelineId(id);
@@ -104,6 +110,23 @@ export default function Metrics() {
     }
   }, [pipelineId, pipelinesLoaded]);
 
+  // En vivo: vuelve a pedir todo cada minuto (con la pestaña a la vista) y al volver a la ventana, sin recargar.
+  useEffect(() => { if (metrics && dashboard) setLastUpdated((v) => v ?? Date.now()); }, [metrics, dashboard]);
+  const reloadAll = useCallback(() => {
+    const qs = pipelineId ? `?pipeline_id=${pipelineId}` : '';
+    return Promise.all([
+      api.get('/api/metrics').then(setMetrics),
+      api.get('/api/forecast?months=3').then(setForecast),
+      api.get('/api/insights/feed?limit=30').then(setFeed),
+      api.get('/api/metrics/meetings?weeks=8').then(setMeetings),
+      api.get('/api/metrics/products').then(setProductMetrics),
+      api.get(`/api/insights/dashboard${qs}`).then(setDashboard),
+      ...(pipelineId ? [api.get(`/api/insights/funnel?pipeline_id=${pipelineId}`).then(setFunnel), api.get(`/api/insights/velocity?pipeline_id=${pipelineId}`).then(setVelocity)] : []),
+    ]).then(() => setLastUpdated(Date.now())).catch(console.error);
+  }, [pipelineId]);
+  const refreshMetrics = useAutoRefresh(reloadAll, { intervalMs: 60000, enabled: pipelinesLoaded });
+  const refreshMetricsNow = async () => { setRefreshing(true); setFinanceSignal((n) => n + 1); await refreshMetrics(); setRefreshing(false); };
+
   if (loadError) return <div className="text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-4">{loadError}</div>;
   if (!metrics || !forecast) return <SkeletonPage />;
 
@@ -121,15 +144,20 @@ export default function Metrics() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-headline text-xl font-semibold">Métricas</h1>
-        <select
-          value={pipelineId || ''}
-          onChange={(e) => setPipelineIdPersist(e.target.value || null)}
-          className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-sm font-tech"
-        >
-          <option value="">Todos los pipelines</option>
-          {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <LiveStatus lastUpdated={lastUpdated} onRefresh={refreshMetricsNow} refreshing={refreshing} />
+          <select
+            value={pipelineId || ''}
+            onChange={(e) => setPipelineIdPersist(e.target.value || null)}
+            className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-sm font-tech"
+          >
+            <option value="">Todos los pipelines</option>
+            {pipelines.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
       </div>
+
+      <FinancePanel refreshSignal={financeSignal} />
 
       {dashboard && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">

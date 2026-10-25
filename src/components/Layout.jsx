@@ -6,12 +6,13 @@ import NotificationBell from './NotificationBell';
 import {
   LayoutDashboard, GitBranch, CheckSquare, Users, Building2,
   FolderKanban, Package, BarChart3, Settings as SettingsIcon, LogOut, Clock3, UserCircle,
-  Boxes, FileText, Receipt, CircleDollarSign, Handshake, Menu, X, Search, List, Copy, ClipboardList, Zap,
+  Boxes, FileText, Receipt, CircleDollarSign, Handshake, Menu, X, Search, List, Copy, ClipboardList, Zap, PauseCircle,
 } from 'lucide-react';
 
 const nav = [
   { to: '/', label: 'Dashboard', end: true, icon: LayoutDashboard },
   { to: '/deals', label: 'Pipeline', icon: CircleDollarSign },
+  { to: '/stale-deals', label: 'Tratos estáticos', icon: PauseCircle },
   { to: '/activities', label: 'Actividades', icon: Clock3 },
   { to: '/tasks', label: 'Tareas', icon: CheckSquare },
   { to: '/contacts', label: 'Contactos', icon: Users },

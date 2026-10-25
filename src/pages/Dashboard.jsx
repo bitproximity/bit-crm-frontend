@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { FinanceStrip } from '../components/FinancePanel';
+import StaleDealsBanner from '../components/StaleDealsBanner';
+import LiveStatus from '../components/LiveStatus';
 import { useNavigate, Link } from 'react-router-dom';
 import { TrendingUp, DollarSign, Trophy, AlertCircle, ListTodo, Calendar, MapPin, Video, ExternalLink, PieChart, ListChecks, XCircle, PlusCircle, Crown, Package } from 'lucide-react';
 import { api } from '../lib/api';
@@ -58,6 +61,9 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [events, setEvents] = useState(null);
   const [eventsError, setEventsError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const reloadRef = useRef(() => {});
+  const [financeSignal, setFinanceSignal] = useState(0);
   const navigate = useNavigate();
   const { profile } = useAuth();
 
@@ -71,10 +77,11 @@ export default function Dashboard() {
       if (running || Date.now() - lastAt < 5000) return;
       running = true;
       api.get('/api/dashboard')
-        .then((d) => { lastAt = Date.now(); setData(d); })
+        .then((d) => { lastAt = Date.now(); setData(d); setLastUpdated(Date.now()); })
         .catch(console.error)
         .finally(() => { running = false; });
     };
+    reloadRef.current = () => { lastAt = 0; loadDashboard(); };
     loadDashboard();
     api.get('/api/gmail/calendar/events?days=7')
       .then(setEvents)
@@ -101,7 +108,13 @@ export default function Dashboard() {
       <h1 className="font-headline text-xl font-semibold mb-1">
         {greeting()}{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''} <span className="inline-block">👋</span>
       </h1>
-      <p className="text-brand-muted text-sm mb-6">Esto es lo que está pasando en Bit Proximity hoy.</p>
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <p className="text-brand-muted text-sm">Esto es lo que está pasando en Bit Proximity hoy.</p>
+        <LiveStatus lastUpdated={lastUpdated} onRefresh={() => { reloadRef.current(); setFinanceSignal((n) => n + 1); }} />
+      </div>
+
+      <FinanceStrip refreshSignal={financeSignal} />
+      <StaleDealsBanner />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 mb-6">
         {!data ? (

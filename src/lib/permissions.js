@@ -1,7 +1,7 @@
 // Permisos por rol. admin = acceso total (sin restricción).
 // Cualquier ruta que no empiece con uno de estos prefijos queda bloqueada para ese rol.
 export const ROLE_ALLOWED_PREFIXES = {
-  operaciones: ['/spaces', '/activities', '/projects', '/documents', '/tasks', '/deals', '/contacts', '/companies', '/products', '/duplicates', '/lead-forms'],
+  operaciones: ['/spaces', '/activities', '/projects', '/documents', '/tasks', '/deals', '/stale-deals', '/contacts', '/companies', '/products', '/duplicates', '/lead-forms'],
   outbound: ['/spaces', '/activities', '/projects', '/documents', '/tasks', '/b2b-meetings', '/contacts', '/companies', '/products', '/duplicates', '/lead-forms'],
   // Socio externo (ej. Bit WiFi) — el bloqueo real por PIPELINE (solo ve tratos de "Bit
   // WiFi") vive en el backend (deals.js), esto solo controla qué páginas ve.
@@ -21,7 +21,7 @@ const UNIVERSAL_PATHS = ['/profile'];
 export const BLOCKED_PAGE_PATHS = {
   facturacion: ['/invoicing'],
   metricas: ['/metrics'],
-  deals: ['/deals', '/deals-list'],
+  deals: ['/deals', '/deals-list', '/stale-deals'],
   b2b: ['/b2b-meetings'],
   productos: ['/products'],
   forecast: [],

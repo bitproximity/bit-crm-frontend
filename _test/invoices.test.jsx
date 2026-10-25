@@ -214,7 +214,7 @@ describe('Facturación: cabecera', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Sincronizar/ }));
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Sincronizar Alegra' }));
     await waitFor(() => expect(store.posts.some(([p]) => p === '/api/invoice-sync/alegra')).toBe(true));
-    expect(await screen.findByText(/Alegra: 3 facturas nuevas, 5 ya existían/)).toBeTruthy();
+    expect(await screen.findByText(/Alegra: 3 nuevas, 0 actualizadas, 5 sin cambios/)).toBeTruthy();
   });
   it('los botones abren las ventanas de importar y de nueva factura', async () => {
     abrirPagina();

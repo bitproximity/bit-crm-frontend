@@ -1,9 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '../lib/api';
-import { formatDay, parseDay } from '../lib/dateOnly';
+import { formatDay, parseDay, todayLocal } from '../lib/dateOnly';
+import { fmtUsd, fmtNative, agoFrom, pct } from '../lib/money';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
+import LiveStatus from '../components/LiveStatus';
+import ReconciliationPanel from '../components/ReconciliationPanel';
 import DateTimePicker from '../components/DateTimePicker';
 import { useOutsideClick } from '../hooks/useOutsideClick';
-import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check, Search, FileUp, RefreshCw, ChevronDown } from 'lucide-react';
+import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check, Search, FileUp, RefreshCw, ChevronDown, Link2, Percent } from 'lucide-react';
 import NewInvoiceModal from '../components/NewInvoiceModal';
 import InvoiceImportModal from '../components/InvoiceImportModal';
 import { SOURCE_ACCOUNTS, CURRENCIES } from '../lib/invoiceMeta';
@@ -15,6 +19,13 @@ const STATUS_COLORS = {
   pagada: 'bg-green-500/15 text-green-300',
   cancelada: 'bg-brand-border text-brand-muted',
 };
+
+const DIFF_TEXT = {
+  pagada_en_crm_abierta_en_origen: 'está pagada en el CRM pero abierta en el origen (no se registró el cobro allá)',
+  cobro_en_crm_no_registrado_en_origen: 'el CRM tiene más cobrado que el origen',
+  anulada_en_origen_con_cobros_en_crm: 'anulada en el origen pero con cobros en el CRM',
+};
+const clamp2 = { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' };
 
 function contactName(c) {
   if (!c) return null;
@@ -43,6 +54,11 @@ export default function Invoicing() {
 
   const [syncing, setSyncing] = useState('');
   const [markingPaid, setMarkingPaid] = useState(null);
+  const [tab, setTab] = useState('facturas'); // 'facturas' | 'conciliacion'
+  const [syncState, setSyncState] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showDiffs, setShowDiffs] = useState(false);
 
   const togglePaid = async (inv) => {
     setMarkingPaid(inv.id);
@@ -90,15 +106,23 @@ export default function Invoicing() {
     if (accountFilter) params.set('source_account', accountFilter);
     if (searchDebounced.trim()) params.set('q', searchDebounced.trim());
     const qs = params.toString() ? `?${params.toString()}` : '';
-    Promise.all([
+    return Promise.all([
       api.get(`/api/invoices${qs}`),
       api.get('/api/invoices/summary'),
-    ]).then(([inv, sum]) => {
+      api.get('/api/invoice-sync/status').catch(() => null),
+    ]).then(([inv, sum, st]) => {
       setInvoices(inv);
       setSummary(sum);
+      setSyncState(st);
+      setError('');
+      setLastUpdated(Date.now());
       setLoading(false);
     }).catch((err) => { setError(err.message || 'No se pudieron cargar las facturas.'); setLoading(false); });
   };
+
+  // En vivo: se vuelve a pedir solo cada 30 s (con la pestaña a la vista) y al volver a la ventana.
+  const refresh = useAutoRefresh(load, { intervalMs: 30000, enabled: tab === 'facturas' });
+  const refreshNow = async () => { setRefreshing(true); await refresh(); setRefreshing(false); };
 
   useEffect(() => {
     const t = setTimeout(() => setSearchDebounced(searchQuery), 300);
@@ -117,7 +141,7 @@ export default function Invoicing() {
     setSyncMsg('');
     try {
       const result = await api.post(`/api/invoice-sync/${source}`, {});
-      setSyncMsg(`${SOURCE_LABELS[source]}: ${result.created} facturas nuevas, ${result.skipped} ya existían.`);
+      setSyncMsg(`${SOURCE_LABELS[source]}: ${result.created} nuevas, ${result.updated || 0} actualizadas, ${result.skipped} sin cambios.`);
       load();
     } catch (err) {
       setSyncMsg(`${SOURCE_LABELS[source]}: ${err.message}`);
@@ -125,11 +149,41 @@ export default function Invoicing() {
     setSyncing('');
   };
 
+  // Sin tasa de cambio no hay USD que mostrar: se enseña el monto original (y se avisa), no un «USD 0» que engaña.
+  const usdOf = (inv) => (inv.rate_missing ? null : (inv.total_usd ?? (inv.currency === 'USD' ? Number(inv.total) : null)));
+  const paidUsdOf = (inv) => (inv.rate_missing ? null : (inv.paid_usd ?? (inv.currency === 'USD' ? Number(inv.paid_amount) : null)));
+  // «Vencida hace 38 d» / «Vence en 3 d»: lo que más importa de una fecha de vencimiento es cuánto falta o cuánto se pasó.
+  const dueInfo = (inv) => {
+    if (inv.status === 'pagada' || inv.status === 'cancelada' || !inv.due_date) return null;
+    if (inv.overdue) return { text: `Vencida hace ${inv.days_late} d`, cls: 'bg-red-500/15 text-red-300' };
+    const n = Math.round((parseDay(inv.due_date) - parseDay(todayLocal())) / 86400000);
+    if (n <= 7) return { text: n <= 0 ? 'Vence hoy' : `Vence en ${n} d`, cls: 'bg-yellow-500/15 text-yellow-300' };
+    return null;
+  };
+
+  const runSyncAll = async () => {
+    setSyncing('todo'); setSyncMsg('');
+    const parts = [];
+    for (const source of ['stripe', 'alegra', 'facturero-movil']) {
+      try {
+        const r = await api.post(`/api/invoice-sync/${source}`, {});
+        parts.push(`${SOURCE_LABELS[source]}: +${r.created} nuevas, ${r.updated || 0} actualizadas`);
+      } catch (err) { parts.push(`${SOURCE_LABELS[source]}: ${err.message}`); }
+    }
+    setSyncMsg(parts.join(' · '));
+    setSyncing('');
+    load();
+  };
+
+  // Diferencias con el origen: facturas que el CRM da por cobradas y el origen (Alegra, Stripe) sigue teniendo abiertas, etc.
+  const diffs = Object.values(syncState?.sources || {}).flatMap((src) => src.discrepancies || []);
+  const syncAges = Object.entries(syncState?.sources || {}).map(([name, v]) => ({ name, ok: v.ok, text: agoFrom(v.at) }));
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
         <h1 className="font-headline text-xl font-semibold">Facturación</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 [&_button]:whitespace-nowrap">
           <button onClick={() => setShowImport(true)} className="px-3.5 py-2 rounded-xl bg-brand-panel border border-brand-border text-sm hover:border-brand-violet transition flex items-center gap-1.5">
             <FileUp size={14} /> Importar facturas
           </button>
@@ -139,6 +193,7 @@ export default function Invoicing() {
             </button>
             {showSyncMenu && (
               <div role="menu" className="absolute right-0 mt-1.5 w-52 bg-brand-bg border border-brand-border rounded-xl shadow-xl overflow-hidden z-20 dropdown-in">
+                <button role="menuitem" onClick={() => { setShowSyncMenu(false); runSyncAll(); }} className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-brand-panel transition border-b border-brand-border font-medium">Todo (las 3 fuentes)</button>
                 {[['stripe', 'Stripe'], ['alegra', 'Alegra'], ['facturero-movil', 'Facturero Móvil']].map(([k, label]) => (
                   <button key={k} role="menuitem" onClick={() => { setShowSyncMenu(false); runSync(k); }} className="w-full text-left px-3.5 py-2.5 text-sm hover:bg-brand-panel transition">Sincronizar {label}</button>
                 ))}
@@ -153,35 +208,77 @@ export default function Invoicing() {
           </button>
         </div>
       </div>
-      <p className="text-brand-muted text-sm mb-1">Registro de facturas ligadas a tratos y empresas</p>
-      {syncMsg && <p className="text-xs text-brand-ice mb-4">{syncMsg}</p>}
-      {!syncMsg && <div className="mb-6" />}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-1">
+        <p className="text-brand-muted text-sm">Facturas ligadas a tratos y empresas · todo convertido a USD a la tasa del día</p>
+        <LiveStatus lastUpdated={lastUpdated} onRefresh={refreshNow} refreshing={refreshing} />
+      </div>
+      {syncAges.length > 0 && (
+        <p className="text-[11px] text-brand-muted mb-1">
+          Sincronización automática cada 15 min: {syncAges.map((a, i) => <span key={a.name}>{i > 0 && ' · '}<span className={a.ok ? '' : 'text-red-300'}>{a.name} {a.ok ? a.text : 'con error'}</span></span>)}
+        </p>
+      )}
+      {syncMsg && <p className="text-xs text-brand-ice mb-2">{syncMsg}</p>}
+      <div className="flex gap-1 border-b border-brand-border mb-5 mt-3" role="tablist">
+        {[['facturas', 'Facturas', Receipt], ['conciliacion', 'Conciliación con tratos', Link2]].map(([key, label, Icon]) => (
+          <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`px-4 py-2.5 text-sm flex items-center gap-1.5 border-b-2 -mb-px transition ${tab === key ? 'border-brand-violet text-brand-white' : 'border-transparent text-brand-muted hover:text-brand-white'}`}>
+            <Icon size={13} /> {label}
+          </button>
+        ))}
+      </div>
 
       {error && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>
       )}
 
-      {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
-            <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><Receipt size={12} /> Total facturado</div>
-            <div className="text-xl font-headline font-semibold">${summary.total_facturado.toLocaleString()}</div>
-          </div>
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
-            <div className="flex items-center gap-1.5 text-green-300 text-xs mb-1"><CheckCircle2 size={12} /> Cobrado</div>
-            <div className="text-xl font-headline font-semibold text-green-300">${summary.total_cobrado.toLocaleString()}</div>
-          </div>
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
-            <div className="flex items-center gap-1.5 text-yellow-300 text-xs mb-1"><Clock size={12} /> Pendiente</div>
-            <div className="text-xl font-headline font-semibold text-yellow-300">${summary.total_pendiente.toLocaleString()}</div>
-          </div>
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
-            <div className="flex items-center gap-1.5 text-red-300 text-xs mb-1"><AlertTriangle size={12} /> Vencido</div>
-            <div className="text-xl font-headline font-semibold text-red-300">${summary.total_vencido.toLocaleString()}</div>
-          </div>
+      {summary?.missing_rates?.length > 0 && (
+        <div role="alert" className="mb-4 px-4 py-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-200 text-xs flex items-center gap-2">
+          <AlertTriangle size={13} /> Falta la tasa de cambio de {summary.missing_rates.join(', ')}: las facturas en esa moneda no se suman al USD. Agrégala en Configuración → Tipos de cambio.
+        </div>
+      )}
+      {diffs.length > 0 && (
+        <div className="mb-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-100 text-xs">
+          <button type="button" onClick={() => setShowDiffs((v) => !v)} aria-expanded={showDiffs} className="w-full text-left px-4 py-2.5 flex items-center gap-2">
+            <AlertTriangle size={13} className="text-yellow-300 flex-shrink-0" />
+            <span className="flex-1">{diffs.length} factura{diffs.length === 1 ? '' : 's'} no cuadra{diffs.length === 1 ? '' : 'n'} con su origen (el CRM y Alegra/Stripe dicen cosas distintas). No se cambió nada: revísalas.</span>
+            <ChevronDown size={13} className={showDiffs ? 'rotate-180 transition' : 'transition'} />
+          </button>
+          {showDiffs && (
+            <ul className="px-4 pb-3 space-y-1">
+              {diffs.slice(0, 40).map((d) => <li key={`${d.source}-${d.external_id}`}><span className="font-tech">{d.invoice_number}</span> · {DIFF_TEXT[d.kind] || d.kind} <span className="text-yellow-200/60">({d.source})</span></li>)}
+            </ul>
+          )}
         </div>
       )}
 
+      {summary && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
+            <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+              <div className="flex items-center gap-1.5 text-brand-muted text-xs mb-1"><Receipt size={12} /> Facturado (USD)</div>
+              <div className="text-lg sm:text-xl font-headline font-semibold whitespace-nowrap">{fmtUsd(summary.total_facturado)}</div>
+              <div className="text-[11px] text-brand-muted mt-0.5">{summary.count} factura{summary.count === 1 ? '' : 's'}</div>
+            </div>
+            <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+              <div className="flex items-center gap-1.5 text-green-300 text-xs mb-1"><CheckCircle2 size={12} /> Cobrado</div>
+              <div className="text-lg sm:text-xl font-headline font-semibold whitespace-nowrap text-green-300">{fmtUsd(summary.total_cobrado)}</div>
+              <div className="text-[11px] text-brand-muted mt-0.5 flex items-center gap-1"><Percent size={10} /> {summary.collection_rate_pct ?? pct(summary.total_cobrado, summary.total_facturado)}% de lo facturado</div>
+            </div>
+            <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+              <div className="flex items-center gap-1.5 text-yellow-300 text-xs mb-1"><Clock size={12} /> Por cobrar</div>
+              <div className="text-lg sm:text-xl font-headline font-semibold whitespace-nowrap text-yellow-300">{fmtUsd(summary.total_pendiente)}</div>
+              <div className="text-[11px] text-brand-muted mt-0.5">pendiente de cobro</div>
+            </div>
+            <div className="bg-brand-panel border border-brand-border rounded-xl p-4 panel-depth">
+              <div className="flex items-center gap-1.5 text-red-300 text-xs mb-1"><AlertTriangle size={12} /> Vencido</div>
+              <div className="text-lg sm:text-xl font-headline font-semibold whitespace-nowrap text-red-300">{fmtUsd(summary.total_vencido)}</div>
+              <div className="text-[11px] text-brand-muted mt-0.5">{summary.count_overdue || 0} factura{summary.count_overdue === 1 ? '' : 's'} vencida{summary.count_overdue === 1 ? '' : 's'}</div>
+            </div>
+          </div>
+          <p className="text-[11px] text-brand-muted mb-5">Todo en USD. Tasas de cambio actualizadas {agoFrom(summary.rates_updated_at) || 'recientemente'}.</p>
+        </>
+      )}
+
+      {tab === 'facturas' && (<>
       <div className="relative mb-3 max-w-sm">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
         <input
@@ -257,7 +354,7 @@ export default function Invoicing() {
                     <button key={a.name} onClick={() => setAccountFilter(a.name)} className="w-full text-left group">
                       <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-brand-white group-hover:text-brand-ice transition truncate">{a.name}</span>
-                        <span className="font-tech text-brand-muted flex-shrink-0 ml-2">${a.facturado.toLocaleString()}</span>
+                        <span className="font-tech text-brand-muted flex-shrink-0 ml-2">{fmtUsd(a.facturado)}</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
                         <div className="h-full rounded-full bg-gradient-to-r from-brand-violet to-brand-magenta" style={{ width: `${Math.max((a.facturado / max) * 100, 3)}%` }} />
@@ -285,7 +382,7 @@ export default function Invoicing() {
                     <div key={b.key}>
                       <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-brand-muted flex items-center gap-1.5"><span className={`w-2 h-2 rounded-full ${b.color}`} /> {b.label}</span>
-                        <span className="font-tech text-brand-white">${val.toLocaleString()}</span>
+                        <span className="font-tech text-brand-white">{fmtUsd(val)}</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden">
                         <div className={`h-full rounded-full ${b.color}`} style={{ width: `${Math.max((val / total) * 100, val > 0 ? 3 : 0)}%` }} />
@@ -306,29 +403,28 @@ export default function Invoicing() {
           <thead className="bg-brand-panel/80 text-brand-muted text-left">
             <tr>
               <th className="px-4 py-3 font-manrope font-normal">Factura</th>
-              <th className="px-4 py-3 font-manrope font-normal w-44">Empresa (origen)</th>
-              <th className="px-4 py-3 font-manrope font-normal">Empresa / Contacto</th>
+              <th className="px-4 py-3 font-manrope font-normal">Cliente</th>
               <th className="px-4 py-3 font-manrope font-normal">Trato</th>
-              <th className="px-4 py-3 font-manrope font-normal">Año</th>
-              <th className="px-4 py-3 font-manrope font-normal text-right">Total</th>
-              <th className="px-4 py-3 font-manrope font-normal text-right">Cobrado</th>
-              <th className="px-4 py-3 font-manrope font-normal">Vencimiento</th>
+              <th className="px-4 py-3 font-manrope font-normal">Fechas</th>
+              <th className="px-4 py-3 font-manrope font-normal text-right">Total (USD)</th>
+              <th className="px-4 py-3 font-manrope font-normal">Cobrado</th>
               <th className="px-4 py-3 font-manrope font-normal">Estado</th>
               <th className="px-4 py-3 font-manrope font-normal text-center">Pagó</th>
             </tr>
           </thead>
           <tbody>
-            {invoices.map((inv) => (
-              <tr key={inv.id} onClick={() => setSelected(inv.id)} className="border-t border-brand-border row-hover cursor-pointer">
-                <td className="px-4 py-3">{inv.invoice_number || `#${inv.id.slice(0, 8)}`}</td>
-                <td className="px-4 py-3 w-44">
-                  {inv.source_account ? (
-                    <span className="inline-block px-2 py-0.5 rounded-md text-xs font-tech bg-brand-violet/10 text-brand-ice border border-brand-violet/20 whitespace-nowrap overflow-hidden text-ellipsis max-w-full align-middle" title={inv.source_account}>
-                      {inv.source_account}
-                    </span>
-                  ) : <span className="text-brand-muted text-xs">—</span>}
+            {invoices.map((inv) => {
+              const usd = usdOf(inv); const paidUsd = paidUsdOf(inv); const due = dueInfo(inv);
+              const paidPct = usd ? Math.min(100, pct(paidUsd ?? 0, usd)) : pct(Number(inv.paid_amount), Number(inv.total));
+              return (
+              <tr key={inv.id} onClick={() => setSelected(inv.id)} className="border-t border-brand-border row-hover cursor-pointer align-top">
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <div className="font-medium">{inv.invoice_number || `#${inv.id.slice(0, 8)}`}</div>
+                  {inv.source_account && (
+                    <span title={inv.source_account} className="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-tech bg-brand-violet/10 text-brand-ice border border-brand-violet/20 max-w-[9.5rem] truncate align-bottom">{inv.source_account}</span>
+                  )}
                 </td>
-                <td className="px-4 py-3 text-brand-muted" onClick={(e) => editingNameId !== inv.id && e.stopPropagation()}>
+                <td className="px-4 py-3 text-brand-muted min-w-[11rem]" onClick={(e) => editingNameId !== inv.id && e.stopPropagation()}>
                   {editingNameId === inv.id ? (
                     <input
                       autoFocus
@@ -344,21 +440,30 @@ export default function Invoicing() {
                     </button>
                   )}
                 </td>
-                <td className="px-4 py-3 text-brand-muted">{inv.deals?.title || '—'}</td>
-                <td className="px-4 py-3 text-brand-muted font-tech text-xs">{parseDay(inv.issue_date)?.getFullYear() ?? '—'}</td>
-                <td className="px-4 py-3 text-brand-ice font-tech">
-                  <div className="flex items-baseline justify-end gap-1.5">
-                    <span className="w-8 flex-shrink-0 text-[10px] text-brand-muted text-left">{inv.currency}</span>
-                    <span className="text-right">{Number(inv.total).toLocaleString()}</span>
-                  </div>
+                <td className="px-4 py-3 min-w-[14rem] max-w-[22rem]">
+                  {inv.deals?.title ? (
+                    <div title={inv.deals.title} style={clamp2}>{inv.deals.title}</div>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-yellow-500/10 text-yellow-300 border border-yellow-500/20"><Link2 size={10} /> Sin trato</span>
+                  )}
                 </td>
-                <td className="px-4 py-3 text-brand-muted font-tech">
-                  <div className="flex items-baseline justify-end gap-1.5">
-                    <span className="w-8 flex-shrink-0 text-[10px] text-brand-muted/70 text-left">{inv.currency}</span>
-                    <span className="text-right">{Number(inv.paid_amount).toLocaleString()}</span>
-                  </div>
+                <td className="px-4 py-3 whitespace-nowrap text-xs font-tech">
+                  <div className="text-brand-muted">Emite {formatDay(inv.issue_date)}</div>
+                  <div className="mt-0.5">Vence {formatDay(inv.due_date)}</div>
+                  {due && <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] ${due.cls}`}>{due.text}</span>}
                 </td>
-                <td className="px-4 py-3 text-brand-muted font-tech text-xs">{formatDay(inv.due_date)}</td>
+                <td className="px-4 py-3 text-right whitespace-nowrap">
+                  <div className="font-tech text-brand-ice text-base">{usd != null ? fmtUsd(usd) : fmtNative(inv.total, inv.currency)}</div>
+                  {inv.currency !== 'USD' && (
+                    <div className="text-[10px] text-brand-muted font-tech">{usd != null && fmtNative(inv.total, inv.currency)}{inv.rate_missing && <span className="text-yellow-300">sin tasa de cambio</span>}</div>
+                  )}
+                </td>
+                <td className="px-4 py-3 min-w-[9rem]">
+                  <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden" role="progressbar" aria-valuenow={paidPct} aria-valuemin={0} aria-valuemax={100}>
+                    <div className={`h-full rounded-full ${paidPct >= 100 ? 'bg-green-400' : 'bg-gradient-to-r from-brand-violet to-brand-magenta'}`} style={{ width: `${paidPct}%` }} />
+                  </div>
+                  <div className="text-[11px] text-brand-muted font-tech mt-1">{paidUsd != null ? fmtUsd(paidUsd) : fmtNative(inv.paid_amount, inv.currency)} · {paidPct}%</div>
+                </td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1.5">
                     {inv.overdue && <AlertTriangle size={11} className="text-red-400 flex-shrink-0" />}
@@ -387,9 +492,10 @@ export default function Invoicing() {
                   </button>
                 </td>
               </tr>
-            ))}
+            );
+            })}
             {!loading && invoices.length === 0 && (
-              <tr><td colSpan={10} className="px-4 py-10 text-center text-brand-muted text-sm">Sin facturas todavía.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-brand-muted text-sm">Sin facturas todavía.</td></tr>
             )}
           </tbody>
         </table>
@@ -414,17 +520,18 @@ export default function Invoicing() {
                 <Check size={14} strokeWidth={3} />
               </button>
             </div>
+            {!inv.deals?.title && <span className="inline-flex items-center gap-1 mb-2 mr-1.5 px-2 py-0.5 rounded-md text-[10px] bg-yellow-500/10 text-yellow-300 border border-yellow-500/20"><Link2 size={9} /> Sin trato</span>}
             {inv.source_account && (
               <span className="inline-block mb-2 px-2 py-0.5 rounded-md text-[10px] font-tech bg-brand-violet/10 text-brand-ice border border-brand-violet/20">
                 {inv.source_account}
               </span>
             )}
             <div className="flex items-center justify-between text-sm mb-2">
-              <span className="font-tech text-brand-ice">{inv.currency} {Number(inv.total).toLocaleString()}</span>
-              <span className="text-xs text-brand-muted">de {inv.currency} {Number(inv.paid_amount).toLocaleString()} cobrado</span>
+              <span className="font-tech text-brand-ice">{usdOf(inv) != null ? fmtUsd(usdOf(inv)) : fmtNative(inv.total, inv.currency)}{inv.currency !== 'USD' && <span className="block text-[10px] text-brand-muted">{fmtNative(inv.total, inv.currency)}</span>}</span>
+              <span className="text-xs text-brand-muted text-right">{paidUsdOf(inv) != null ? fmtUsd(paidUsdOf(inv)) : fmtNative(inv.paid_amount, inv.currency)} cobrado</span>
             </div>
             <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
-              <span className="text-[11px] text-brand-muted">{formatDay(inv.due_date)}</span>
+              <span className="text-[11px] text-brand-muted">{formatDay(inv.due_date)}{dueInfo(inv) && <span className={`ml-1.5 px-1.5 py-0.5 rounded ${dueInfo(inv).cls}`}>{dueInfo(inv).text}</span>}</span>
               <div className="flex items-center gap-1.5">
                 {inv.overdue && <AlertTriangle size={11} className="text-red-400" />}
                 <select
@@ -443,6 +550,10 @@ export default function Invoicing() {
           <div className="text-center text-brand-muted text-sm py-10">Sin facturas todavía.</div>
         )}
       </div>
+
+      </>)}
+
+      {tab === 'conciliacion' && <ReconciliationPanel isAdmin onChanged={load} />}
 
       {showCreate && <NewInvoiceModal defaultSource={accountFilter || ''} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); setSyncMsg('Factura creada.'); load(); }} />}
       {showImport && <InvoiceImportModal onClose={() => { setShowImport(false); load(); }} onImported={() => load()} />}

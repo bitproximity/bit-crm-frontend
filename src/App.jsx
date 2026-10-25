@@ -12,6 +12,7 @@ import { SkeletonPage } from './components/Skeleton';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Deals = lazy(() => import('./pages/Deals'));
+const StaleDeals = lazy(() => import('./pages/StaleDeals'));
 const Prospecting = lazy(() => import('./pages/Prospecting'));
 const Lists = lazy(() => import('./pages/Lists'));
 const DealsList = lazy(() => import('./pages/DealsList'));
@@ -117,6 +118,7 @@ export default function App() {
               <Route path="/" element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>} />
               <Route path="/deals" element={<Suspense fallback={<PageFallback />}><Deals /></Suspense>} />
               <Route path="/deals-list" element={<Suspense fallback={<PageFallback />}><DealsList /></Suspense>} />
+              <Route path="/stale-deals" element={<Suspense fallback={<PageFallback />}><StaleDeals /></Suspense>} />
               <Route path="/prospecting" element={<Suspense fallback={<PageFallback />}><Prospecting /></Suspense>} />
               <Route path="/lists" element={<Suspense fallback={<PageFallback />}><Lists /></Suspense>} />
               <Route path="/deals/:id" element={<Suspense fallback={<PageFallback />}><DealDetail /></Suspense>} />
