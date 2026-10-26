@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { safeUrl } from '../lib/safeUrl';
+import { sanitizeHtml } from '../lib/safeHtml';
 import { useConfirm } from '../components/ConfirmModal';
 import {
   FileText, Plus, Bold, Italic, Underline, Building2, FolderKanban, CircleDollarSign,
@@ -126,7 +128,7 @@ export default function Documents() {
     setSaveState('saving');
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      await api.patch(`/api/documents/${activeId}`, { title: newTitle, content: newContentHtml });
+      await api.patch(`/api/documents/${activeId}`, { title: newTitle, content: sanitizeHtml(newContentHtml) });
       setSaveState('saved');
       loadTree();
     }, 700);
@@ -199,7 +201,8 @@ export default function Documents() {
   useEffect(() => {
     if (!doc || !editorRef.current) return;
     const raw = doc.content || '';
-    editorRef.current.innerHTML = /^\s*</.test(raw) ? raw : markdownToHtml(raw);
+    // El contenido viene de la base de datos y lo pudo escribir cualquiera con acceso a Documentos: se limpia antes de mostrarlo.
+    editorRef.current.innerHTML = sanitizeHtml(/^\s*</.test(raw) ? raw : markdownToHtml(raw));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc?.id]);
 
@@ -338,7 +341,7 @@ export default function Documents() {
                   <div className="space-y-1.5">
                     {files.map((f, i) => (
                       <div key={f.id} className="flex items-center justify-between bg-brand-bg border border-brand-border rounded-lg px-3 py-2.5 text-sm stagger-item hover:border-brand-violet/40 transition" style={{ animationDelay: `${Math.min(i, 10) * 25}ms` }}>
-                        <a href={f.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-brand-ice hover:underline truncate min-w-0">
+                        <a href={safeUrl(f.url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-brand-ice hover:underline truncate min-w-0">
                           <span className="w-7 h-7 rounded-lg bg-brand-violet/15 flex items-center justify-center flex-shrink-0">
                             <Paperclip size={12} className="text-brand-ice" />
                           </span>

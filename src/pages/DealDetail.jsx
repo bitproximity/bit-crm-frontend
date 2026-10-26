@@ -4,6 +4,7 @@ import { canAccessPath } from '../lib/permissions';
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { safeUrl } from '../lib/safeUrl';
 import Money from '../components/Money';
 import { LOST_REASONS } from '../lib/lostReasons';
 import { formatDay, parseDay } from '../lib/dateOnly';
@@ -1482,7 +1483,7 @@ export default function DealDetail() {
               <div className="space-y-2">
                 {dealFiles.map((f) => (
                   <div key={f.id} className="flex items-center justify-between bg-brand-panel border border-brand-border rounded-lg p-3 text-sm panel-depth">
-                    <a href={f.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-brand-ice hover:underline truncate">
+                    <a href={safeUrl(f.url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-brand-ice hover:underline truncate">
                       <Paperclip size={13} className="flex-shrink-0" /> {f.file_name}
                     </a>
                     <div className="flex items-center gap-3 flex-shrink-0">
@@ -1529,7 +1530,7 @@ export default function DealDetail() {
                 <div className="space-y-2">
                   {driveFiles.map((f) => (
                     <div key={f.id} className="flex items-center justify-between bg-brand-panel border border-brand-border rounded-lg p-3 text-sm panel-depth">
-                      <a href={f.web_view_link} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-brand-ice hover:underline truncate">
+                      <a href={safeUrl(f.web_view_link)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-brand-ice hover:underline truncate">
                         {f.icon_link ? <img src={f.icon_link} alt="" className="w-4 h-4 flex-shrink-0" /> : <HardDrive size={13} className="flex-shrink-0" />}
                         {f.name}
                       </a>

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { isPageBlocked } from '../lib/permissions';
 import { api } from '../lib/api';
+import { safeUrl } from '../lib/safeUrl';
 import DateTimePicker from '../components/DateTimePicker';
 import { useOutsideClick } from '../hooks/useOutsideClick';
 import { csvToActivities } from '../lib/csv';
@@ -309,7 +310,7 @@ export default function Activities() {
                             </span>
                           ) : <span />}
                           {a.meeting_url && (
-                            <a href={a.meeting_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-[11px] text-brand-ice hover:underline flex-shrink-0"><Video size={11} /> Unirse</a>
+                            <a href={safeUrl(a.meeting_url)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-1 text-[11px] text-brand-ice hover:underline flex-shrink-0"><Video size={11} /> Unirse</a>
                           )}
                           {a.due_date && (
                             <span className={`text-[11px] font-tech flex-shrink-0 ${col.key === 'vencida' ? 'text-red-400' : 'text-brand-muted'}`}>

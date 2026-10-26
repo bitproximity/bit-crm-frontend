@@ -32,7 +32,7 @@ function slugify(label) {
 // El código que se pega en el sitio externo — las preguntas personalizadas se mandan
 // aparte como custom_answers: { field_id: valor }, porque así sabe el backend a qué
 // campo personalizado corresponde cada respuesta.
-function embedSnippet(formId, fields) {
+export function embedSnippet(formId, fields) {
   const customInputs = (fields || []).map((f) => {
     if (f.field_type === 'select') {
       const opts = (f.options || []).map((o) => `    <option value="${o}">${o}</option>`).join('\n');
@@ -50,6 +50,7 @@ function embedSnippet(formId, fields) {
   <input name="email" type="email" placeholder="Correo" />
   <input name="phone" placeholder="Teléfono" />
   <input name="company" placeholder="Empresa" />
+  <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px" />
 ${customInputs ? customInputs + '\n' : ''}  <textarea name="message" placeholder="Mensaje"></textarea>
   <button type="submit">Enviar</button>
 </form>

@@ -2,6 +2,7 @@ import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { safeUrl } from '../lib/safeUrl';
 import Money from '../components/Money';
 import {
   ChevronLeft, MapPin, Users, DollarSign, Phone, Linkedin, FileText, Trash2, Plus, Pencil,
@@ -291,7 +292,7 @@ export default function CompanyDetail() {
             {company.employee_count && <InfoRow icon={Users} label="Empleados">{company.employee_count}</InfoRow>}
             {company.linkedin_url && (
               <InfoRow icon={Linkedin} label="LinkedIn">
-                <a href={company.linkedin_url} target="_blank" rel="noreferrer" className="text-brand-ice hover:underline break-all">{company.linkedin_url.replace(/^https?:\/\/(www\.)?/, '')}</a>
+                <a href={safeUrl(company.linkedin_url)} target="_blank" rel="noreferrer" className="text-brand-ice hover:underline break-all">{company.linkedin_url.replace(/^https?:\/\/(www\.)?/, '')}</a>
               </InfoRow>
             )}
             {company.description && <p className="text-brand-muted text-xs mt-3 leading-relaxed">{company.description}</p>}

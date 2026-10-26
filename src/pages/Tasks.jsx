@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useOutsideClick } from '../hooks/useOutsideClick';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { safeUrl } from '../lib/safeUrl';
 import { useConfirm } from '../components/ConfirmModal';
 import DateTimePicker from '../components/DateTimePicker';
 import { LayoutGrid, List, Plus, Flag, Calendar, ChevronRight, ChevronDown, X, Send, Trash2, FolderKanban, CheckCircle2, Circle } from 'lucide-react';
@@ -559,7 +560,7 @@ export function TaskDetailModal({ taskId, team = [], onClose, onChanged }) {
                   <>
                     Sincronizada con <span className="font-tech">{calSyncResult.connectedEmail}</span>, con recordatorio.{' '}
                     {calSyncResult.eventLink && (
-                      <a href={calSyncResult.eventLink} target="_blank" rel="noreferrer" className="underline">Ver el evento directo en Google Calendar →</a>
+                      <a href={safeUrl(calSyncResult.eventLink)} target="_blank" rel="noreferrer" className="underline">Ver el evento directo en Google Calendar →</a>
                     )}
                   </>
                 ) : calSyncResult.reason}

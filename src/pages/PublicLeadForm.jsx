@@ -11,7 +11,7 @@ export default function PublicLeadForm() {
   const { id } = useParams();
   const [form, setForm] = useState(null);
   const [notFound, setNotFound] = useState(false);
-  const [values, setValues] = useState({ name: '', email: '', phone: '', company: '', message: '' });
+  const [values, setValues] = useState({ name: '', email: '', phone: '', company: '', message: '', website: '' });
   const [customAnswers, setCustomAnswers] = useState({});
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -80,6 +80,11 @@ export default function PublicLeadForm() {
         <h1 className="text-xl font-semibold text-white mb-5" style={{ fontFamily: 'Sora, sans-serif' }}>{form.name}</h1>
 
         {error && <div className="mb-4 px-3.5 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+
+        {/* Campo trampa: las personas no lo ven; los robots lo llenan y el servidor descarta el envío sin crear nada. */}
+        <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
+          <input name="website" tabIndex={-1} autoComplete="off" value={values.website} onChange={(e) => setValues({ ...values, website: e.target.value })} />
+        </div>
 
         <div className="space-y-3.5">
           <div>

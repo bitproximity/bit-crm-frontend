@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Video, ExternalLink, Copy, Check, Link2 } from 'lucide-react';
 import { cleanMeetingUrl, meetingProvider } from '../lib/meetingLink';
+import { safeUrl } from '../lib/safeUrl';
 
 export default function MeetingLinkField({ value, onSave, onDraft, hint = true }) {
   const [text, setText] = useState(value || '');
@@ -43,7 +44,7 @@ export default function MeetingLinkField({ value, onSave, onDraft, hint = true }
             <button type="button" onClick={copy} title="Copiar link" className="icon-btn p-1.5 rounded-lg text-brand-muted hover:text-brand-white">
               {copied ? <Check size={14} className="text-green-300" /> : <Copy size={14} />}
             </button>
-            <a href={clean} target="_blank" rel="noreferrer" title="Abrir reunión" className="icon-btn p-1.5 rounded-lg text-brand-muted hover:text-brand-ice">
+            <a href={safeUrl(clean)} target="_blank" rel="noreferrer" title="Abrir reunión" className="icon-btn p-1.5 rounded-lg text-brand-muted hover:text-brand-ice">
               <ExternalLink size={14} />
             </a>
           </div>

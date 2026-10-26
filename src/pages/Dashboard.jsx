@@ -5,6 +5,7 @@ import LiveStatus from '../components/LiveStatus';
 import { useNavigate, Link } from 'react-router-dom';
 import { TrendingUp, DollarSign, Trophy, AlertCircle, ListTodo, Calendar, MapPin, Video, ExternalLink, PieChart, ListChecks, XCircle, PlusCircle, Crown, Package } from 'lucide-react';
 import { api } from '../lib/api';
+import { safeUrl } from '../lib/safeUrl';
 import { monthLocal } from '../lib/dateOnly';
 import { useAuth } from '../hooks/useAuth';
 
@@ -218,7 +219,7 @@ export default function Dashboard() {
                       <span className="flex items-center gap-1 text-[11px] text-brand-muted truncate"><MapPin size={10} /> {e.location}</span>
                     )}
                     {e.meetLink && (
-                      <a href={e.meetLink} target="_blank" rel="noreferrer" onClick={(ev) => ev.stopPropagation()} className="flex items-center gap-1 text-[11px] text-brand-ice hover:underline flex-shrink-0">
+                      <a href={safeUrl(e.meetLink)} target="_blank" rel="noreferrer" onClick={(ev) => ev.stopPropagation()} className="flex items-center gap-1 text-[11px] text-brand-ice hover:underline flex-shrink-0">
                         <Video size={10} /> Meet
                       </a>
                     )}
