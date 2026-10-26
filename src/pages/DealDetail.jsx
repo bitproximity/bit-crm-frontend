@@ -4,6 +4,8 @@ import { canAccessPath } from '../lib/permissions';
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import Money from '../components/Money';
+import { LOST_REASONS } from '../lib/lostReasons';
 import { formatDay, parseDay } from '../lib/dateOnly';
 import { useConfirm } from '../components/ConfirmModal';
 import { useOutsideClick } from '../hooks/useOutsideClick';
@@ -21,20 +23,6 @@ import {
 } from 'lucide-react';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
-// Motivos estándar (unificados 11/10/2026). Mantener alineado con
-// migrations/051_unify_lost_reasons.sql del backend.
-const LOST_REASONS = [
-  'No tiene presupuesto',
-  'No avanzamos con el demo',
-  'Se mantiene con el proveedor actual',
-  'Perdió el interés',
-  'Dejó de responder',
-  'El proyecto no existe',
-  'Precio muy alto',
-  'No es perfil de cliente',
-  'Cambio de prioridades',
-  'La empresa cerró o cambió',
-];
 
 const ACTIVITY_TYPES = [
   { key: 'email', label: 'Email', icon: Mail },
@@ -1470,7 +1458,7 @@ export default function DealDetail() {
                   <div key={inv.id} onClick={() => setSelectedInvoiceId(inv.id)} className="flex items-center justify-between bg-brand-panel border border-brand-border rounded-lg p-3 text-sm cursor-pointer row-hover">
                     <span>{inv.invoice_number || `#${inv.id.slice(0, 8)}`}</span>
                     <div className="flex items-center gap-3">
-                      <span className="text-brand-ice font-tech">{inv.currency} {Number(inv.total).toLocaleString()}</span>
+                      <span className="text-brand-ice font-tech"><Money value={inv.total} currency={inv.currency} locale="en-US" /></span>
                       <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${inv.overdue ? 'bg-red-500/15 text-red-300' : inv.status === 'pagada' ? 'bg-green-500/15 text-green-300' : 'bg-yellow-500/15 text-yellow-300'}`}>
                         {inv.overdue ? 'Vencida' : inv.status}
                       </span>

@@ -60,6 +60,7 @@ export function FinanceStrip({ refreshSignal = 0 }) {
         {lead.product && <span className="flex items-center gap-1.5"><Package size={12} className="text-brand-ice" /> Producto líder: <b className="text-brand-white font-medium">{lead.product.name}</b> {fmtUsd(lead.product.won_usd)}</span>}
         {lead.country && <span className="flex items-center gap-1.5"><Globe2 size={12} className="text-brand-ice" /> País que más vende: <b className="text-brand-white font-medium">{lead.country.name}</b> {fmtUsd(lead.country.won_usd)}</span>}
         {f.data_gaps?.country_unassigned_usd > 0 && <span className="flex items-center gap-1.5 text-yellow-300"><AlertTriangle size={12} /> {fmtUsd(f.data_gaps.country_unassigned_usd)} ganados sin país asignado</span>}
+        {f.data_gaps?.won_without_close_date > 0 && <span className="flex items-center gap-1.5 text-yellow-300"><AlertTriangle size={12} /> {f.data_gaps.won_without_close_date} tratos ganados ({fmtUsd(f.data_gaps.won_without_close_date_usd)}) sin fecha de cierre: no cuentan en el ganado del mes ni del año</span>}
         {slow && <span className="flex items-center gap-1.5"><Gauge size={12} className="text-yellow-300" /> Paga más lento: <b className="text-brand-white font-medium">{slow.client}</b> ({slow.avg_days_to_pay} días)</span>}
         {rec && rec.won_without_invoice > 0 && <Link to="/invoicing" className="flex items-center gap-1.5 text-yellow-300 hover:underline"><Link2 size={12} /> {rec.won_without_invoice} tratos ganados sin factura ({fmtUsd(rec.won_without_invoice_usd)})</Link>}
       </div>

@@ -5,6 +5,7 @@ import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 const calls = { get: [], post: [], patch: [] };
 let responses = {};
 let failFor = null; // regex de rutas que fallan
+let authRole = 'admin';
 vi.mock('../src/lib/api', () => ({
   api: {
     get: vi.fn(async (p) => {
@@ -19,10 +20,11 @@ vi.mock('../src/lib/api', () => ({
     patch: vi.fn(async (p, b) => { calls.patch.push([p, b]); return {}; }), put: vi.fn(async () => ({})), delete: vi.fn(async () => ({})),
   },
 }));
-vi.mock('../src/hooks/useAuth', () => ({ useAuth: () => ({ profile: { full_name: 'Mario Ramos', role: 'admin', blocked_pages: [] } }) }));
+vi.mock('../src/hooks/useAuth', () => ({ useAuth: () => ({ profile: { full_name: 'Mario Ramos', role: authRole, blocked_pages: [] } }) }));
 
 import { fmtUsd, fmtNative, ago, agoFrom, pct } from '../src/lib/money.js';
 import { useAutoRefresh } from '../src/hooks/useAutoRefresh.js';
+import Money, { resetRatesCache } from '../src/components/Money.jsx';
 import LiveStatus from '../src/components/LiveStatus.jsx';
 import ReconciliationPanel from '../src/components/ReconciliationPanel.jsx';
 import FinancePanel, { FinanceStrip } from '../src/components/FinancePanel.jsx';
@@ -34,7 +36,7 @@ import { canAccessPath } from '../src/lib/permissions.js';
 import { todayLocal } from '../src/lib/dateOnly.js';
 
 const wrap = (el, path = '/') => render(<ConfirmProvider><MemoryRouter initialEntries={[path]}><Routes><Route path="*" element={el} /></Routes></MemoryRouter></ConfirmProvider>);
-beforeEach(() => { calls.get = []; calls.post = []; calls.patch = []; responses = {}; failFor = null; });
+beforeEach(() => { calls.get = []; calls.post = []; calls.patch = []; responses = {}; failFor = null; authRole = 'admin'; resetRatesCache(); });
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 const FIN = {
@@ -408,5 +410,133 @@ describe('Permisos de la nueva pantalla', () => {
     expect(canAccessPath('outbound', '/stale-deals', [])).toBe(false);
     expect(canAccessPath('wifi_partner', '/stale-deals', [])).toBe(false);
     expect(canAccessPath('admin', '/stale-deals', ['deals'])).toBe(false);
+  });
+});
+
+
+describe('Money: monto original + equivalente en USD', () => {
+  beforeEach(() => { responses['/api/exchange-rates'] = [{ currency: 'USD', rate_to_usd: 1 }, { currency: 'COP', rate_to_usd: 0.00025 }]; });
+  it('en USD solo muestra el monto; en otra moneda agrega «≈ USD» a la tasa del día', async () => {
+    render(<><Money value={1000} currency="USD" locale="en-US" /><Money value={1071000} currency="COP" locale="en-US" stack /></>);
+    expect(screen.getByText('USD 1,000')).toBeTruthy();
+    expect(screen.getByText('COP 1,071,000')).toBeTruthy();
+    expect(await screen.findByText('≈ USD 268')).toBeTruthy();                       // 1.071.000 × 0,00025 = 267,75
+    expect(screen.getAllByText(/≈ USD/).length).toBe(1);                              // el monto en USD no repite su propio equivalente
+  });
+  it('una moneda sin tasa lo dice en vez de inventar el equivalente; un monto en cero no muestra equivalente', async () => {
+    render(<><Money value={5200000} currency="PYG" stack /><Money value={0} currency="COP" /></>);
+    expect(await screen.findByText('sin tasa')).toBeTruthy();
+    expect(screen.queryByText(/≈ USD/)).toBeNull();
+  });
+  it('pide las tasas una sola vez aunque haya muchos montos en pantalla', async () => {
+    render(<>{[1, 2, 3, 4, 5].map((i) => <Money key={i} value={i * 1000} currency="COP" />)}</>);
+    await waitFor(() => expect(screen.getAllByText(/≈ USD/).length).toBe(5));              // los cinco montos muestran su equivalente
+    expect(calls.get.filter((g) => g === '/api/exchange-rates').length).toBe(1);          // …con una sola petición de tasas
+  });
+  it('si el servidor falla, el monto original se sigue viendo y no se rompe nada', async () => {
+    failFor = Object.assign(/exchange-rates/, { message: 'caído' });
+    render(<Money value={18000} currency="COP" />);
+    expect(screen.getByText('COP 18.000')).toBeTruthy();
+    await waitFor(() => expect(calls.get).toContain('/api/exchange-rates'));
+    expect(screen.queryByText(/≈ USD/)).toBeNull();
+  });
+});
+
+describe('Actualización solo al volver a la ventana (Pipeline)', () => {
+  it('con intervalo 0 no crea ningún reloj, pero actualiza al volver a la ventana', async () => {
+    const spy = vi.spyOn(window, 'setInterval');
+    const fn = vi.fn(async () => {});
+    renderHook(() => useAutoRefresh(fn, { intervalMs: 0 }));
+    expect(spy.mock.calls.filter(([, ms]) => ms === 0 || ms === undefined).length).toBe(0);
+    await act(async () => { window.dispatchEvent(new Event('focus')); });
+    expect(fn).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+  });
+});
+
+describe('Depurar el pipeline en bloque', () => {
+  const mk = (n) => Array.from({ length: n }, (_, i) => ({ id: `b${i}`, title: `Trato ${i}`, company: 'Acme', owner: i % 2 ? null : 'Sofia', owner_id: i % 2 ? null : 'u1', stage: 'Demo', pipeline: 'Bit WiFi', value: 1000, currency: 'USD', value_usd: 1000, days_idle: 100, last_touch: '2026-07-01T10:00:00Z', last_touch_kind: 'creación', last_activity: null, open_tasks: 0, has_reminder: false, priority: 'media' }));
+  const setup = (n) => {
+    responses['/api/stale-deals'] = { days: 14, missing_rates: [], summary: { count: n, value_usd: n * 1000, without_next_step: n, with_reminder: 0, buckets: { '14_29': { count: 0, value_usd: 0 }, '30_59': { count: 0, value_usd: 0 }, '60_89': { count: 0, value_usd: 0 }, '90_mas': { count: n, value_usd: n * 1000 } }, by_owner: [] }, deals: mk(n) };
+    responses['/api/team'] = [{ id: 'u1', full_name: 'Sofia Florido', active: true }, { id: 'u2', full_name: 'Ana Espinel', active: true }, { id: 'u3', full_name: 'Persona Inactiva', active: false }];
+    responses['POST /api/stale-deals/assign'] = { updated: 150, skipped: 0, owner: 'Ana Espinel' };
+    responses['POST /api/stale-deals/close-lost'] = { closed: 150, skipped: 0, reason: 'Dejó de responder' };
+  };
+  it('la barra de acciones solo aparece con algo seleccionado y el responsable no incluye a los inactivos', async () => {
+    setup(3); wrap(<StaleDeals />);
+    await screen.findByText('Trato 0');
+    expect(screen.queryByRole('group', { name: 'Acciones sobre la selección' })).toBeNull();
+    fireEvent.click(screen.getByLabelText('Seleccionar Trato 0'));
+    const barra = await screen.findByRole('group', { name: 'Acciones sobre la selección' });
+    const opciones = within(within(barra).getByLabelText('Asignar a')).getAllByRole('option').map((o) => o.textContent);
+    expect(opciones).toEqual(['Asignar a…', 'Sofia Florido', 'Ana Espinel']);
+    expect(within(barra).getByRole('button', { name: 'Asignar' }).disabled).toBe(true);   // hasta elegir a quién
+  });
+  it('asignar: confirma con las cuentas, va por lotes y suma el resultado', async () => {
+    setup(320); wrap(<StaleDeals />);
+    await screen.findByText('Trato 0');
+    fireEvent.click(screen.getByRole('button', { name: /Seleccionar los que no tienen recordatorio/ }));
+    const barra = await screen.findByRole('group', { name: 'Acciones sobre la selección' });
+    fireEvent.change(within(barra).getByLabelText('Asignar a'), { target: { value: 'u2' } });
+    fireEvent.click(within(barra).getByRole('button', { name: 'Asignar' }));
+    const cuadro = await screen.findByRole('dialog');
+    expect(cuadro.textContent).toMatch(/Se asignarán 320 tratos a Ana Espinel/);
+    expect(calls.post.length).toBe(0);
+    fireEvent.click(within(cuadro).getByRole('button', { name: 'Asignar 320' }));
+    await waitFor(() => expect(calls.post.length).toBe(3));
+    expect(calls.post.map(([p]) => p)).toEqual(Array(3).fill('/api/stale-deals/assign'));
+    expect(calls.post.map(([, b]) => b.deal_ids.length)).toEqual([150, 150, 20]);
+    expect(calls.post.every(([, b]) => b.owner_id === 'u2')).toBe(true);
+    expect(await screen.findByText(/450 tratos asignados a Ana Espinel/)).toBeTruthy();      // suma lo que respondió cada lote
+  });
+  it('cerrar como perdidos: solo administración, con confirmación en rojo que dice cuánto dinero y qué motivo', async () => {
+    setup(3); wrap(<StaleDeals />);
+    await screen.findByText('Trato 0');
+    fireEvent.click(screen.getByRole('button', { name: /Seleccionar los que no tienen recordatorio/ }));
+    const barra = await screen.findByRole('group', { name: 'Acciones sobre la selección' });
+    fireEvent.change(within(barra).getByLabelText('Motivo de pérdida'), { target: { value: 'Precio muy alto' } });
+    fireEvent.click(within(barra).getByRole('button', { name: 'Marcar como perdidos' }));
+    const cuadro = await screen.findByRole('dialog');
+    expect(cuadro.textContent).toMatch(/Se cerrarán 3 tratos como perdidos \(USD 3,000 en juego\), con el motivo «Precio muy alto»/);
+    expect(cuadro.textContent).toMatch(/Puedes reabrir cualquiera/);
+    fireEvent.click(within(cuadro).getByRole('button', { name: 'Cerrar 3' }));
+    await waitFor(() => expect(calls.post).toContainEqual(['/api/stale-deals/close-lost', { deal_ids: ['b0', 'b1', 'b2'], reason: 'Precio muy alto' }]));
+    expect(await screen.findByText(/150 tratos cerrados como perdidos/)).toBeTruthy();
+  });
+  it('cancelar la confirmación no cambia nada; quien no es administración no ve «Marcar como perdidos»', async () => {
+    setup(2); wrap(<StaleDeals />);
+    await screen.findByText('Trato 0');
+    fireEvent.click(screen.getByLabelText('Seleccionar Trato 0'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Marcar como perdidos' }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /Cancelar/ }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(calls.post.length).toBe(0);
+    cleanup(); authRole = 'operaciones'; setup(2); wrap(<StaleDeals />);
+    await screen.findByText('Trato 0');
+    fireEvent.click(screen.getByLabelText('Seleccionar Trato 0'));
+    const barra = await screen.findByRole('group', { name: 'Acciones sobre la selección' });
+    expect(within(barra).getByRole('button', { name: 'Asignar' })).toBeTruthy();         // operaciones sí puede asignar
+    expect(within(barra).queryByRole('button', { name: 'Marcar como perdidos' })).toBeNull();
+    expect(within(barra).queryByLabelText('Motivo de pérdida')).toBeNull();
+  });
+  it('si el servidor rechaza la acción, lo dice y no limpia la selección', async () => {
+    setup(2); wrap(<StaleDeals />);
+    await screen.findByText('Trato 0');
+    fireEvent.click(screen.getByLabelText('Seleccionar Trato 0'));
+    const barra = await screen.findByRole('group', { name: 'Acciones sobre la selección' });
+    fireEvent.change(within(barra).getByLabelText('Asignar a'), { target: { value: 'u1' } });
+    const api = (await import('../src/lib/api')).api; api.post.mockRejectedValueOnce(new Error('Ese responsable no existe o está inactivo.'));
+    fireEvent.click(within(barra).getByRole('button', { name: 'Asignar' }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Asignar 1' }));
+    expect(await screen.findByText(/Ese responsable no existe o está inactivo/)).toBeTruthy();
+    expect(screen.getByLabelText('Seleccionar Trato 0').checked).toBe(true);
+  });
+});
+
+describe('Finanzas: tratos ganados sin fecha de cierre', () => {
+  it('se avisa cuántos son y cuánto suman, porque no cuentan en el ganado del mes ni del año', async () => {
+    responses['/api/finance'] = { ...FIN, data_gaps: { country_unassigned_usd: 0, product_unassigned_usd: 0, won_without_close_date: 31, won_without_close_date_usd: 22400 } };
+    wrap(<FinanceStrip />);
+    expect(await screen.findByText(/31 tratos ganados \(USD 22,400\) sin fecha de cierre: no cuentan en el ganado del mes ni del año/)).toBeTruthy();
   });
 });

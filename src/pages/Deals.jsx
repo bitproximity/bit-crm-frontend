@@ -3,6 +3,8 @@ import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import Money from '../components/Money';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import AddDealModal from '../components/AddDealModal';
 import PipelineSelector from '../components/PipelineSelector';
 import { csvToDeals } from '../lib/csv';
@@ -96,6 +98,9 @@ export default function Deals() {
   useEffect(() => {
     if (view === 'archive' && pipelineId) loadArchived(pipelineId).catch(console.error);
   }, [view, pipelineId]);
+
+  // Al volver a la pestaña o a la ventana, el tablero se pone al día solo (sin reloj: aquí se arrastran tarjetas y no conviene que cambie de golpe).
+  useAutoRefresh(() => loadDeals(pipelineId), { intervalMs: 0, enabled: !!pipelineId });
 
   const onDrop = async (stageId, dealId) => {
     setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage_id: stageId } : d)));
@@ -353,7 +358,7 @@ export default function Deals() {
                         {cardFields.company && deal.companies?.name && <div className="text-xs text-brand-muted mb-2">{deal.companies.name}</div>}
                         {cardFields.value && Number(deal.value) > 0 && (
                           <div className="text-sm text-brand-ice font-tech font-medium mb-2">
-                            {deal.currency} {Number(deal.value).toLocaleString('es-CO')}
+                            <Money value={deal.value} currency={deal.currency} stack />
                           </div>
                         )}
                         <div className="flex items-center justify-between mt-2">
@@ -419,7 +424,7 @@ export default function Deals() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-brand-ice font-tech">
-                    {Number(deal.value) > 0 ? `${deal.currency} ${Number(deal.value).toLocaleString('es-CO')}` : '—'}
+                    {Number(deal.value) > 0 ? <Money value={deal.value} currency={deal.currency} stack /> : '—'}
                   </td>
                   <td className="px-4 py-3 text-brand-muted font-tech">{deal.probability}%</td>
                 </tr>
@@ -485,7 +490,7 @@ export default function Deals() {
                     >
                       <td className="px-4 py-3">{deal.title}</td>
                       <td className="px-4 py-3 text-brand-muted text-xs">{deal.pipeline_stages?.name}</td>
-                      <td className="px-4 py-3 text-brand-ice font-tech">{deal.currency} {Number(deal.value).toLocaleString('es-CO')}</td>
+                      <td className="px-4 py-3 text-brand-ice font-tech"><Money value={deal.value} currency={deal.currency} stack /></td>
                       <td className="px-4 py-3 text-brand-muted font-tech">{pct}%</td>
                       <td className="px-4 py-3 text-brand-muted font-tech">${Math.round(running).toLocaleString('es-CO')} USD</td>
                     </tr>
@@ -554,7 +559,7 @@ export default function Deals() {
                   <td className="px-4 py-3">{deal.title}</td>
                   <td className="px-4 py-3 text-brand-muted">{deal.companies?.name || '—'}</td>
                   <td className="px-4 py-3 text-brand-ice font-tech">
-                    {Number(deal.value) > 0 ? `${deal.currency} ${Number(deal.value).toLocaleString('es-CO')}` : '—'}
+                    {Number(deal.value) > 0 ? <Money value={deal.value} currency={deal.currency} stack /> : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${deal.status === 'ganado' ? 'bg-green-500/15 text-green-300' : 'bg-red-500/15 text-red-300'}`}>

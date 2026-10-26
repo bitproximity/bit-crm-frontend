@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { api } from '../lib/api';
+import Money from '../components/Money';
 
 const TITLES = {
   abierto: 'Deals abiertos',
@@ -128,7 +129,7 @@ export default function DealsList() {
                 <td className="px-4 py-3 text-brand-muted text-xs">{deal.pipelines?.name || '—'}</td>
                 <td className="px-4 py-3 text-brand-muted text-xs">{deal.pipeline_stages?.name || '—'}</td>
                 <td className="px-4 py-3 text-brand-ice font-tech">
-                  {Number(deal.value) > 0 ? `${deal.currency} ${Number(deal.value).toLocaleString('es-CO')}` : '—'}
+                  {Number(deal.value) > 0 ? <Money value={deal.value} currency={deal.currency} stack /> : '—'}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-tech ${

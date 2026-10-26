@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../lib/api';
+import Money from '../components/Money';
 import { useConfirm } from '../components/ConfirmModal';
 import ProductModal from '../components/ProductModal';
 import { Package, Plus, Pencil, Trash2, Search, EyeOff } from 'lucide-react';
@@ -148,7 +149,7 @@ export default function Products() {
                   <td className="px-4 py-3"><span className={`text-[10px] font-tech uppercase px-2 py-0.5 rounded-full ${p.type === 'servicio' ? 'bg-brand-ice/10 text-brand-ice' : 'bg-brand-violet/15 text-brand-ice'}`}>{p.type}</span></td>
                   <td className="px-4 py-3 text-brand-muted font-tech text-xs">{BILLING_LABELS[p.billing_frequency] || 'Mensual'}</td>
                   <td className="px-4 py-3 text-brand-muted font-tech text-xs hidden md:table-cell">{p.sku || '—'}</td>
-                  <td className="px-4 py-3 text-right text-brand-ice font-tech whitespace-nowrap">{p.currency} {Number(p.price).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-brand-ice font-tech whitespace-nowrap"><Money value={p.price} currency={p.currency} locale="en-US" stack /></td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     <div className="flex justify-end gap-1 opacity-60 group-hover:opacity-100 transition">
                       <button onClick={() => { setError(''); setModal({ product: p }); }} className="icon-btn p-1.5 rounded-lg text-brand-muted hover:text-brand-ice hover:bg-brand-bg" title="Editar" aria-label={`Editar ${p.name}`}><Pencil size={14} /></button>

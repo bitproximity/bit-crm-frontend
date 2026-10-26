@@ -2,13 +2,15 @@
 // El objetivo es reactivarlos: se seleccionan y se crea un recordatorio «Reactivar: …» para cada responsable.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PauseCircle, BellPlus, Search, CheckCircle2, AlertTriangle, ListChecks } from 'lucide-react';
+import { PauseCircle, BellPlus, Search, CheckCircle2, AlertTriangle, ListChecks, UserPlus, XCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { fmtUsd, fmtNative } from '../lib/money';
 import { formatDay } from '../lib/dateOnly';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import LiveStatus from '../components/LiveStatus';
 import { useConfirm } from '../components/ConfirmModal';
+import { useAuth } from '../hooks/useAuth';
+import { LOST_REASONS } from '../lib/lostReasons';
 
 const THRESHOLDS = [14, 30, 60, 90];
 const PRIORITY = { alta: 'bg-red-500/15 text-red-300', media: 'bg-yellow-500/15 text-yellow-300', baja: 'bg-brand-border text-brand-muted' };
@@ -19,6 +21,11 @@ const REMIND_CHUNK = 150; // el servicio admite hasta 200 por petición
 export default function StaleDeals() {
   const navigate = useNavigate();
   const confirm = useConfirm();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
+  const [team, setTeam] = useState([]);
+  const [assignTo, setAssignTo] = useState('');
+  const [lostReason, setLostReason] = useState('Dejó de responder');
   const [days, setDays] = useState(14);
   const [owner, setOwner] = useState('');
   const [query, setQuery] = useState('');
@@ -39,6 +46,7 @@ export default function StaleDeals() {
       .catch((e) => setError(e.message || 'No se pudo cargar la lista.'));
   }, [days, owner]);
   useEffect(() => { setData(null); setSelected(new Set()); setShown(PAGE); load(); }, [load]);
+  useEffect(() => { api.get('/api/team').then((t) => setTeam((Array.isArray(t) ? t : []).filter((m) => m.active !== false))).catch(() => {}); }, []);
   const refresh = useAutoRefresh(load, { intervalMs: 60000 });
   const refreshNow = async () => { setRefreshing(true); await refresh(); setRefreshing(false); };
 
@@ -73,6 +81,50 @@ export default function StaleDeals() {
       setSelected(new Set());
       await load();
     } catch (e) { setMsg(e.message || 'No se pudieron crear los recordatorios.'); }
+    setBusy(false);
+  };
+
+  // Depuración en bloque: asignar responsable o cerrar como perdidos los tratos seleccionados (por lotes; el servicio admite 200 por vez).
+  const runBulk = async (path, extra, ids) => {
+    const out = [];
+    for (let i = 0; i < ids.length; i += REMIND_CHUNK) out.push(await api.post(path, { deal_ids: ids.slice(i, i + REMIND_CHUNK), ...extra }));
+    return out;
+  };
+  const selectedDeals = () => (data?.deals || []).filter((d) => selected.has(d.id));
+
+  const assignOwner = async () => {
+    const ids = [...selected]; const person = team.find((m) => m.id === assignTo);
+    if (!person || ids.length === 0) return;
+    const ok = await confirm({ title: 'Asignar responsable', message: `Se asignarán ${ids.length} trato${ids.length === 1 ? '' : 's'} a ${person.full_name}. Recibirá un aviso con el total. Los que ya tenían otro responsable pasarán a ella o él.`, confirmLabel: `Asignar ${ids.length}` });
+    if (!ok) return;
+    setBusy(true); setMsg('');
+    try {
+      const res = await runBulk('/api/stale-deals/assign', { owner_id: assignTo }, ids);
+      const n = res.reduce((s, r) => s + (r.updated || 0), 0);
+      setMsg(`${n} trato${n === 1 ? '' : 's'} asignado${n === 1 ? '' : 's'} a ${person.full_name}.`);
+      setSelected(new Set()); setAssignTo('');
+      await load();
+    } catch (e) { setMsg(e.message || 'No se pudo asignar.'); }
+    setBusy(false);
+  };
+
+  const closeLost = async () => {
+    const ids = [...selected]; if (ids.length === 0) return;
+    const usd = selectedDeals().reduce((s, d) => s + d.value_usd, 0);
+    const ok = await confirm({
+      title: 'Marcar como perdidos', danger: true,
+      message: `Se cerrarán ${ids.length} trato${ids.length === 1 ? '' : 's'} como perdido${ids.length === 1 ? '' : 's'} (${fmtUsd(usd)} en juego), con el motivo «${lostReason}». Dejarán de contar en el pipeline abierto. Puedes reabrir cualquiera desde su ficha.`,
+      confirmLabel: `Cerrar ${ids.length}`,
+    });
+    if (!ok) return;
+    setBusy(true); setMsg('');
+    try {
+      const res = await runBulk('/api/stale-deals/close-lost', { reason: lostReason }, ids);
+      const n = res.reduce((s, r) => s + (r.closed || 0), 0);
+      setMsg(`${n} trato${n === 1 ? '' : 's'} cerrado${n === 1 ? '' : 's'} como perdido${n === 1 ? '' : 's'} («${lostReason}»).`);
+      setSelected(new Set());
+      await load();
+    } catch (e) { setMsg(e.message || 'No se pudieron cerrar los tratos.'); }
     setBusy(false);
   };
 
@@ -123,6 +175,26 @@ export default function StaleDeals() {
               <BellPlus size={14} /> {busy ? 'Creando…' : `Crear recordatorios${selected.size ? ` (${selected.size})` : ''}`}
             </button>
           </div>
+
+          {selected.size > 0 && (
+            <div role="group" aria-label="Acciones sobre la selección" className="flex flex-wrap items-center gap-2 mb-3 px-3 py-2.5 rounded-xl border border-brand-violet/30 bg-brand-violet/5">
+              <span className="text-xs text-brand-ice mr-1">{selected.size} seleccionado{selected.size === 1 ? '' : 's'}:</span>
+              <select aria-label="Asignar a" value={assignTo} onChange={(e) => setAssignTo(e.target.value)} style={{ colorScheme: 'dark' }} className="px-2.5 py-1.5 rounded-lg text-xs bg-brand-panel border border-brand-border text-brand-muted">
+                <option value="">Asignar a…</option>
+                {team.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+              </select>
+              <button type="button" disabled={!assignTo || busy} onClick={assignOwner} className="px-3 py-1.5 rounded-lg border border-brand-border text-xs hover:border-brand-violet disabled:opacity-40 flex items-center gap-1.5"><UserPlus size={13} /> Asignar</button>
+              {isAdmin && (
+                <>
+                  <span className="mx-1 h-5 w-px bg-brand-border" />
+                  <select aria-label="Motivo de pérdida" value={lostReason} onChange={(e) => setLostReason(e.target.value)} style={{ colorScheme: 'dark' }} className="px-2.5 py-1.5 rounded-lg text-xs bg-brand-panel border border-brand-border text-brand-muted">
+                    {LOST_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <button type="button" disabled={busy} onClick={closeLost} className="px-3 py-1.5 rounded-lg border border-red-500/40 text-red-300 text-xs hover:bg-red-500/10 disabled:opacity-40 flex items-center gap-1.5"><XCircle size={13} /> Marcar como perdidos</button>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="bg-brand-panel border border-brand-border rounded-xl overflow-x-auto">
             <table className="w-full text-sm min-w-[820px]">

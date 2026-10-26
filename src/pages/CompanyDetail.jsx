@@ -2,6 +2,7 @@ import { SkeletonPage } from '../components/Skeleton';
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import Money from '../components/Money';
 import {
   ChevronLeft, MapPin, Users, DollarSign, Phone, Linkedin, FileText, Trash2, Plus, Pencil,
   Briefcase, TrendingUp, Trophy, CalendarDays, Globe2, Factory, Building2,
@@ -236,7 +237,7 @@ export default function CompanyDetail() {
                     </div>
                   </div>
                   <span className={`text-[10px] font-tech uppercase px-2 py-0.5 rounded-full ${STATUS_STYLE[d.status || 'abierto'] || STATUS_STYLE.abierto}`}>{d.status || 'abierto'}</span>
-                  <span className="text-brand-ice font-tech text-sm flex-shrink-0 text-right min-w-[84px]">{d.currency} {Number(d.value || 0).toLocaleString()}</span>
+                  <span className="text-brand-ice font-tech text-sm flex-shrink-0 text-right min-w-[84px]"><Money value={d.value || 0} currency={d.currency} locale="en-US" stack /></span>
                 </div>
               ))}
               {deals.length === 0 && <Empty>Sin tratos todavía. Crea el primero con el botón +.</Empty>}
