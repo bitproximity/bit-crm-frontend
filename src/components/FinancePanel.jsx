@@ -59,6 +59,7 @@ export function FinanceStrip({ refreshSignal = 0 }) {
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-brand-muted">
         {lead.product && <span className="flex items-center gap-1.5"><Package size={12} className="text-brand-ice" /> Producto líder: <b className="text-brand-white font-medium">{lead.product.name}</b> {fmtUsd(lead.product.won_usd)}</span>}
         {lead.country && <span className="flex items-center gap-1.5"><Globe2 size={12} className="text-brand-ice" /> País que más vende: <b className="text-brand-white font-medium">{lead.country.name}</b> {fmtUsd(lead.country.won_usd)}</span>}
+        {f.data_gaps?.country_unassigned_usd > 0 && <span className="flex items-center gap-1.5 text-yellow-300"><AlertTriangle size={12} /> {fmtUsd(f.data_gaps.country_unassigned_usd)} ganados sin país asignado</span>}
         {slow && <span className="flex items-center gap-1.5"><Gauge size={12} className="text-yellow-300" /> Paga más lento: <b className="text-brand-white font-medium">{slow.client}</b> ({slow.avg_days_to_pay} días)</span>}
         {rec && rec.won_without_invoice > 0 && <Link to="/invoicing" className="flex items-center gap-1.5 text-yellow-300 hover:underline"><Link2 size={12} /> {rec.won_without_invoice} tratos ganados sin factura ({fmtUsd(rec.won_without_invoice_usd)})</Link>}
       </div>
@@ -115,6 +116,7 @@ export default function FinancePanel({ refreshSignal = 0 }) {
       </div>
       <p className="text-xs text-brand-muted mb-4">Ventas, facturación y cobranza en un solo lugar, siempre en USD y al día.</p>
       <Cards f={f} />
+      <p className="text-[11px] text-brand-muted mt-2">Los «cobros del mes» y los días de cobro cuentan solo pagos registrados con fecha. Desde ahora, marcar una factura como pagada registra el pago con su fecha; lo anterior no tiene fecha de cobro.</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
         <Box title="Antigüedad de la cartera" icon={Hourglass}><Bars rows={agingRows} valueKey="v" tone="from-yellow-400 to-red-500" empty="Sin cartera pendiente." /></Box>
@@ -132,7 +134,10 @@ export default function FinancePanel({ refreshSignal = 0 }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-        <Box title="País que más vende" icon={Globe2}><Bars rows={f.by_country.slice(0, 6)} valueKey="won_usd" empty="Sin ventas este año." /></Box>
+        <Box title="País que más vende" icon={Globe2}>
+          <Bars rows={f.by_country.slice(0, 6)} valueKey="won_usd" empty="Sin ventas este año." />
+          {f.data_gaps?.country_unassigned_usd > 0 && <div className="text-[11px] text-yellow-300 mt-3">{fmtUsd(f.data_gaps.country_unassigned_usd)} no tienen país (la empresa no lo trae y el embudo no es de un solo país). Complétalo en las empresas para ver el ranking real.</div>}
+        </Box>
         <Box title="Producto más vendido" icon={Package}><Bars rows={f.by_product.slice(0, 6)} valueKey="won_usd" empty="Sin ventas este año." /></Box>
         <Box title="Embudo que más vende" icon={Workflow}><Bars rows={f.by_pipeline.slice(0, 6)} valueKey="won_usd" empty="Sin ventas este año." /></Box>
       </div>

@@ -31,6 +31,7 @@ import StaleDeals from '../src/pages/StaleDeals.jsx';
 import Invoicing from '../src/pages/Invoicing.jsx';
 import { ConfirmProvider } from '../src/components/ConfirmModal.jsx';
 import { canAccessPath } from '../src/lib/permissions.js';
+import { todayLocal } from '../src/lib/dateOnly.js';
 
 const wrap = (el, path = '/') => render(<ConfirmProvider><MemoryRouter initialEntries={[path]}><Routes><Route path="*" element={el} /></Routes></MemoryRouter></ConfirmProvider>);
 beforeEach(() => { calls.get = []; calls.post = []; calls.patch = []; responses = {}; failFor = null; });
@@ -202,6 +203,15 @@ describe('Finanzas del CEO', () => {
     expect(screen.getByText(/70% de lo ganado en 2026 ya tiene factura/)).toBeTruthy();
     expect(screen.getByRole('link', { name: /26 sin factura · 138 facturas sin trato/ }).getAttribute('href')).toBe('/invoicing');
   });
+  it('el país líder es uno real; lo «sin especificar» se informa como brecha de datos', async () => {
+    responses['/api/finance'] = { ...FIN, data_gaps: { country_unassigned_usd: 9849, product_unassigned_usd: 0 } };
+    wrap(<FinanceStrip />);
+    expect(await screen.findByText(/USD 9,849 ganados sin país asignado/)).toBeTruthy();
+    expect(screen.getByText('Ecuador')).toBeTruthy();
+    cleanup(); wrap(<FinancePanel />);
+    expect(await screen.findByText(/no tienen país/)).toBeTruthy();
+    expect(screen.getByText(/cuentan solo pagos registrados con fecha/)).toBeTruthy();
+  });
   it('avisa si falta la tasa de una moneda y que lo de esa moneda no se suma', async () => {
     responses['/api/finance'] = { ...FIN, rates: { ...FIN.rates, missing: ['PYG'] } };
     wrap(<FinanceStrip />);
@@ -251,8 +261,36 @@ describe('Tratos estáticos', () => {
     expect(screen.getByRole('button', { name: /Crear recordatorios/ }).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: /Seleccionar los que no tienen recordatorio/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Crear recordatorios (2)' }));
+    expect(calls.post.length).toBe(0);                                         // primero pide confirmar, con las cuentas claras
+    const cuadro = await screen.findByRole('dialog');
+    expect(cuadro.textContent).toMatch(/Se crearán 2 tareas/); expect(cuadro.textContent).toMatch(/s2 .*|1 no tiene responsable y se te asignará a ti|no tiene/);
+    fireEvent.click(within(cuadro).getByRole('button', { name: 'Crear 2' }));
     await waitFor(() => expect(calls.post).toContainEqual(['/api/stale-deals/remind', { deal_ids: ['s1', 's2'], due_in_days: 1 }]));
     expect(await screen.findByText(/2 recordatorios creados para mañana a las 9:00/)).toBeTruthy();
+  });
+  it('si se cancela la confirmación no se crea nada', async () => {
+    wrap(<StaleDeals />);
+    await screen.findByText('Neomedia — Banco Unión');
+    fireEvent.click(screen.getByLabelText('Seleccionar Neomedia — Banco Unión'));
+    fireEvent.click(screen.getByRole('button', { name: 'Crear recordatorios (1)' }));
+    fireEvent.click(await within(await screen.findByRole('dialog')).findByRole('button', { name: /Cancelar/ }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(calls.post.length).toBe(0);
+  });
+  it('con cientos de tratos los recordatorios van por lotes (el servicio admite 200), avisa cuántos no tienen responsable y suma el resultado', async () => {
+    const muchos = Array.from({ length: 320 }, (_, i) => ({ ...STALE.deals[0], id: `m${i}`, title: `Trato ${i}`, owner: i % 2 ? null : 'Sofia', owner_id: i % 2 ? null : 'u1', has_reminder: false }));
+    responses['/api/stale-deals'] = { ...STALE, deals: muchos, summary: { ...STALE.summary, count: 320 } };
+    responses['POST /api/stale-deals/remind'] = { created: 100, skipped: 0, already_had_reminder: 0, not_open: 0 };
+    wrap(<StaleDeals />);
+    await screen.findByText('Trato 0');
+    fireEvent.click(screen.getByRole('button', { name: /Seleccionar los que no tienen recordatorio/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Crear recordatorios (320)' }));
+    const cuadro = await screen.findByRole('dialog');
+    expect(cuadro.textContent).toMatch(/160 no tienen responsable y se te asignarán a ti/); expect(cuadro.textContent).toMatch(/Son muchas/);
+    fireEvent.click(within(cuadro).getByRole('button', { name: 'Crear 320' }));
+    await waitFor(() => expect(calls.post.length).toBe(3));
+    expect(calls.post.map(([, b]) => b.deal_ids.length)).toEqual([150, 150, 20]);
+    expect(await screen.findByText(/300 recordatorios creados/)).toBeTruthy();
   });
   it('la búsqueda filtra, y el estado vacío es amable', async () => {
     wrap(<StaleDeals />);
@@ -280,7 +318,8 @@ describe('Tratos estáticos', () => {
 });
 
 describe('Facturación rediseñada', () => {
-  const day = (n) => new Date(Date.now() + n * 86400000 - 5 * 3600000).toISOString().slice(0, 10);
+  // el mismo reloj que usa la pantalla (la fecha local de quien la usa), para que la prueba no dependa de la hora del día
+  const day = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return todayLocal(d); };
   const inv = (o) => ({ id: o.id, invoice_number: o.n, client_name: o.client, source_account: o.src, currency: o.cur, total: o.total, paid_amount: o.paid, status: o.status, issue_date: day(-5), due_date: o.due == null ? null : day(o.due), deals: o.deal ? { title: o.deal } : null, total_usd: o.usd, paid_usd: o.paidUsd, overdue: o.due != null && o.due < 0 && o.status !== 'pagada', days_late: o.due < 0 ? -o.due : 0, rate_missing: !!o.noRate });
   beforeEach(() => {
     responses['/api/invoices/summary'] = { total_facturado: 128450, total_cobrado: 91200, total_pendiente: 37250, total_vencido: 12400, count: 840, count_overdue: 7, collection_rate_pct: 71, missing_rates: ['PYG'], rates_updated_at: new Date(Date.now() - 3 * 3600000).toISOString(), by_account: [{ name: 'Bit Colombia SAS', facturado: 38000, cobrado: 22000, pendiente: 16000 }], aging: { al_dia: 1, '1_30': 0, '31_60': 0, '61_90': 0, mas_90: 0 } };
@@ -324,13 +363,13 @@ describe('Facturación rediseñada', () => {
     expect(screen.getByText(/Sincronización automática cada 15 min/).textContent).toMatch(/Alegra hace 7 min · Stripe hace 7 min/);
     expect(screen.getByText(/En vivo/)).toBeTruthy();
   });
-  it('las diferencias con el origen se avisan y se pueden desplegar, sin cambiar nada', async () => {
+  it('NO muestra aviso de «diferencias con el origen»: los pagos se registran a mano en el CRM, así que «pagada aquí y abierta en Alegra» es lo normal', async () => {
     wrap(<Invoicing />);
-    const aviso = await screen.findByRole('button', { name: /1 factura no cuadra con su origen/ });
+    await fila('BIT8');
+    expect(calls.get).toContain('/api/invoice-sync/status');                       // el estado sí se consulta (hora de la última sincronización)…
+    expect(screen.queryByText(/no cuadra/i)).toBeNull();                          // …pero la diferencia (BIT1) no genera ninguna leyenda
     expect(screen.queryByText(/abierta en el origen/)).toBeNull();
-    fireEvent.click(aviso);
-    expect(screen.getByText(/está pagada en el CRM pero abierta en el origen/)).toBeTruthy(); expect(screen.getByText('BIT1')).toBeTruthy();
-    expect(calls.patch.length).toBe(0);
+    expect(screen.getByText(/Sincronización automática cada 15 min/)).toBeTruthy();
   });
   it('«Sincronizar → Todo» corre las tres fuentes y cuenta las actualizadas', async () => {
     wrap(<Invoicing />);

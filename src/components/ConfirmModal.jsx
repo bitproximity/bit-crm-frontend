@@ -34,6 +34,9 @@ export function ConfirmProvider({ children }) {
       {state && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 overlay-in" onClick={() => close(false)}>
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={state.title}
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-sm bg-brand-panel border border-brand-border rounded-2xl shadow-2xl overflow-hidden modal-in"
           >

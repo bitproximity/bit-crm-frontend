@@ -20,11 +20,6 @@ const STATUS_COLORS = {
   cancelada: 'bg-brand-border text-brand-muted',
 };
 
-const DIFF_TEXT = {
-  pagada_en_crm_abierta_en_origen: 'está pagada en el CRM pero abierta en el origen (no se registró el cobro allá)',
-  cobro_en_crm_no_registrado_en_origen: 'el CRM tiene más cobrado que el origen',
-  anulada_en_origen_con_cobros_en_crm: 'anulada en el origen pero con cobros en el CRM',
-};
 const clamp2 = { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' };
 
 function contactName(c) {
@@ -58,7 +53,6 @@ export default function Invoicing() {
   const [syncState, setSyncState] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [showDiffs, setShowDiffs] = useState(false);
 
   const togglePaid = async (inv) => {
     setMarkingPaid(inv.id);
@@ -175,8 +169,8 @@ export default function Invoicing() {
     load();
   };
 
-  // Diferencias con el origen: facturas que el CRM da por cobradas y el origen (Alegra, Stripe) sigue teniendo abiertas, etc.
-  const diffs = Object.values(syncState?.sources || {}).flatMap((src) => src.discrepancies || []);
+  // Los pagos se registran a mano en el CRM: que una factura figure «pagada» aquí y abierta en Alegra/Stripe es lo normal,
+  // así que NO se muestra ningún aviso de «diferencias con el origen». La sincronización nunca pisa lo registrado en el CRM.
   const syncAges = Object.entries(syncState?.sources || {}).map(([name, v]) => ({ name, ok: v.ok, text: agoFrom(v.at) }));
 
   return (
@@ -235,21 +229,6 @@ export default function Invoicing() {
           <AlertTriangle size={13} /> Falta la tasa de cambio de {summary.missing_rates.join(', ')}: las facturas en esa moneda no se suman al USD. Agrégala en Configuración → Tipos de cambio.
         </div>
       )}
-      {diffs.length > 0 && (
-        <div className="mb-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-100 text-xs">
-          <button type="button" onClick={() => setShowDiffs((v) => !v)} aria-expanded={showDiffs} className="w-full text-left px-4 py-2.5 flex items-center gap-2">
-            <AlertTriangle size={13} className="text-yellow-300 flex-shrink-0" />
-            <span className="flex-1">{diffs.length} factura{diffs.length === 1 ? '' : 's'} no cuadra{diffs.length === 1 ? '' : 'n'} con su origen (el CRM y Alegra/Stripe dicen cosas distintas). No se cambió nada: revísalas.</span>
-            <ChevronDown size={13} className={showDiffs ? 'rotate-180 transition' : 'transition'} />
-          </button>
-          {showDiffs && (
-            <ul className="px-4 pb-3 space-y-1">
-              {diffs.slice(0, 40).map((d) => <li key={`${d.source}-${d.external_id}`}><span className="font-tech">{d.invoice_number}</span> · {DIFF_TEXT[d.kind] || d.kind} <span className="text-yellow-200/60">({d.source})</span></li>)}
-            </ul>
-          )}
-        </div>
-      )}
-
       {summary && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">

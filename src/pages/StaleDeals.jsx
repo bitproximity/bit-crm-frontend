@@ -8,14 +8,17 @@ import { fmtUsd, fmtNative } from '../lib/money';
 import { formatDay } from '../lib/dateOnly';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import LiveStatus from '../components/LiveStatus';
+import { useConfirm } from '../components/ConfirmModal';
 
 const THRESHOLDS = [14, 30, 60, 90];
 const PRIORITY = { alta: 'bg-red-500/15 text-red-300', media: 'bg-yellow-500/15 text-yellow-300', baja: 'bg-brand-border text-brand-muted' };
 const BUCKETS = [['14_29', '14–29 días'], ['30_59', '30–59 días'], ['60_89', '60–89 días'], ['90_mas', '90+ días']];
 const PAGE = 100;
+const REMIND_CHUNK = 150; // el servicio admite hasta 200 por petición
 
 export default function StaleDeals() {
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [days, setDays] = useState(14);
   const [owner, setOwner] = useState('');
   const [query, setQuery] = useState('');
@@ -49,10 +52,24 @@ export default function StaleDeals() {
   const allVisibleSelected = deals.length > 0 && deals.slice(0, shown).every((d) => selected.has(d.id));
 
   const createReminders = async () => {
+    const ids = [...selected];
+    const byId = new Map((data?.deals || []).map((d) => [d.id, d]));
+    const unowned = ids.filter((id) => !byId.get(id)?.owner_id).length;
+    // Con cientos de tratos sin movimiento, un clic podría llenar de tareas a alguien: se pide confirmar, con las cuentas claras.
+    const ok = await confirm({
+      title: 'Crear recordatorios',
+      message: `Se crearán ${ids.length} tarea${ids.length === 1 ? '' : 's'} «Reactivar: …» para mañana a las 9:00, una por trato, para su responsable.${unowned ? ` ${unowned} no tiene${unowned === 1 ? '' : 'n'} responsable y se te asignará${unowned === 1 ? '' : 'n'} a ti.` : ''}${ids.length > 50 ? ' Son muchas: la lista ya va de mayor a menor valor, por si prefieres empezar por los primeros.' : ''}`,
+      confirmLabel: `Crear ${ids.length}`,
+    });
+    if (!ok) return;
     setBusy(true); setMsg('');
     try {
-      const r = await api.post('/api/stale-deals/remind', { deal_ids: [...selected], due_in_days: 1 });
-      setMsg(`${r.created} recordatorio${r.created === 1 ? '' : 's'} creado${r.created === 1 ? '' : 's'} para mañana a las 9:00${r.already_had_reminder ? ` · ${r.already_had_reminder} ya tenía${r.already_had_reminder === 1 ? '' : 'n'} uno` : ''}. Cada responsable lo verá en sus Tareas.`);
+      let created = 0; let already = 0;
+      for (let i = 0; i < ids.length; i += REMIND_CHUNK) {
+        const r = await api.post('/api/stale-deals/remind', { deal_ids: ids.slice(i, i + REMIND_CHUNK), due_in_days: 1 });
+        created += r.created || 0; already += r.already_had_reminder || 0;
+      }
+      setMsg(`${created} recordatorio${created === 1 ? '' : 's'} creado${created === 1 ? '' : 's'} para mañana a las 9:00${already ? ` · ${already} ya tenía${already === 1 ? '' : 'n'} uno` : ''}. Cada responsable lo verá en sus Tareas.`);
       setSelected(new Set());
       await load();
     } catch (e) { setMsg(e.message || 'No se pudieron crear los recordatorios.'); }
