@@ -32,8 +32,10 @@ export const POSITION_OPTIONS = ['CEO', 'Gerente de IT', 'Gerente de Marketing',
 // Por cuál entidad/país se factura el trato — independiente del pipeline o del país de la
 // empresa (que ya se usaban de aproximación, pero no siempre coinciden con quién factura
 // de verdad). Orden alfabético.
+// Entidad que factura el trato. Se guarda como texto libre (sin validación en el servidor); «Ventas por facturación» en Métricas agrupa
+// por este nombre, así que cada opción nueva aparece sola como su propia fila.
 export const FACTURACION_OPTIONS = [
-  'Colombia', 'Ecuador', 'Guatemala', 'LLC', 'México',
+  'Colombia', 'Ecuador', 'Guatemala', 'LLC', 'México', 'Neomedia',
   'Panamá', 'Paraguay', 'Perú', 'República Dominicana',
 ];
 

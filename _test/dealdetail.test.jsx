@@ -99,6 +99,16 @@ describe('Detalle del trato: la lógica de edición no cambió', () => {
     fireEvent.click(screen.getByText('Guardar'));
     await waitFor(() => expect(calls.patch).toContainEqual(['/api/deals/d1', { probability: 80 }]));
   });
+  it('Facturación ofrece «Neomedia» (entre México y Panamá) y la guarda en el trato', async () => {
+    await open();
+    fireEvent.click(screen.getByText('Facturación'));
+    await waitFor(() => expect(document.activeElement.tagName).toBe('SELECT'));
+    const select = document.activeElement;
+    const opciones = [...select.querySelectorAll('option')].map((o) => o.value).filter(Boolean);
+    expect(opciones).toEqual(['Colombia', 'Ecuador', 'Guatemala', 'LLC', 'México', 'Neomedia', 'Panamá', 'Paraguay', 'Perú', 'República Dominicana']);
+    fireEvent.change(select, { target: { value: 'Neomedia' } });
+    await waitFor(() => expect(calls.patch).toContainEqual(['/api/deals/d1', { facturacion: 'Neomedia' }]));
+  });
   it('«Ganado» sigue llamando al mismo servicio', async () => {
     await open();
     fireEvent.click(screen.getByRole('button', { name: 'Ganado' }));
