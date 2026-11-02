@@ -14,6 +14,7 @@ import {
   CalendarClock, CalendarX,
 } from 'lucide-react';
 import { isPastDay } from '../lib/dateOnly';
+import NewActivityModal from '../components/NewActivityModal';
 
 // Próxima actividad (regla tipo Pipedrive): 'none' = sin agendar, 'late' = vencida, 'ok' = al día.
 // Solo aplica cuando el backend la envía (tratos abiertos); si no viene el campo, no se marca nada.
@@ -48,6 +49,8 @@ export default function Deals() {
   };
   const [cardFields, setCardFields] = useState({ company: true, contact: true, value: true, due_date_warning: true, avatar: true, next_activity: true });
   const [onlyNoActivity, setOnlyNoActivity] = useState(false);
+  const [scheduleFor, setScheduleFor] = useState(null); // trato al que se le agenda actividad desde la tarjeta
+  const [scheduledNotice, setScheduledNotice] = useState('');
   const [visibleCount, setVisibleCount] = useState({}); // { [stageId]: n } — cuántas tarjetas renderizar por columna
   const [flatVisibleCount, setFlatVisibleCount] = useState(100); // límite compartido para las vistas Lista y Archivo
   const [archiveFilter, setArchiveFilter] = useState('todos'); // todos | ganado | perdido
@@ -174,7 +177,9 @@ export default function Deals() {
     return d.title.toLowerCase().includes(q) || d.companies?.name?.toLowerCase().includes(q);
   };
   const searchedDeals = search ? deals.filter(matchesSearch) : deals;
-  const noActivityCount = searchedDeals.filter((d) => nextActivityState(d) === 'none' || nextActivityState(d) === 'late').length;
+  const noneCount = searchedDeals.filter((d) => nextActivityState(d) === 'none').length;
+  const lateCount = searchedDeals.filter((d) => nextActivityState(d) === 'late').length;
+  const noActivityCount = noneCount + lateCount;
   const filteredDeals = onlyNoActivity
     ? searchedDeals.filter((d) => nextActivityState(d) === 'none' || nextActivityState(d) === 'late')
     : searchedDeals;
@@ -210,7 +215,10 @@ export default function Deals() {
         <div className="flex items-center gap-2 md:gap-3 flex-wrap">
           {(noActivityCount > 0 || onlyNoActivity) && (
             <button
-              onClick={() => setOnlyNoActivity((v) => !v)}
+              onClick={() => {
+                setOnlyNoActivity((v) => !v);
+                if (view === 'archive') setView('board');
+              }}
               title="Tratos abiertos sin próxima actividad agendada o con la actividad vencida"
               className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-manrope border transition ${
                 onlyNoActivity
@@ -219,8 +227,7 @@ export default function Deals() {
               }`}
             >
               <CalendarX size={14} />
-              {noActivityCount} sin actividad al día
-              {onlyNoActivity && <span className="text-brand-muted">· ver todos</span>}
+              {onlyNoActivity ? 'Quitar filtro' : `${noActivityCount} sin actividad al día`}
             </button>
           )}
           <div className="relative">
@@ -309,6 +316,29 @@ export default function Deals() {
       />
 
       {/* ── VISTA TABLERO (kanban) ── */}
+      {scheduledNotice && (
+        <div className="mb-3 px-4 py-2.5 rounded-xl border border-green-500/30 bg-green-500/10 text-green-200 text-sm flex items-center justify-between">
+          <span>{scheduledNotice}</span>
+          <button onClick={() => setScheduledNotice('')} className="text-xs underline">Cerrar</button>
+        </div>
+      )}
+      {onlyNoActivity && view !== 'archive' && (
+        <div className="mb-4 px-4 py-3 rounded-xl border border-red-500/40 bg-red-500/10 text-sm flex items-center gap-3 flex-wrap">
+          <CalendarX size={16} className="text-red-300 shrink-0" />
+          <span className="text-red-100">
+            Mostrando <b>{filteredDeals.length}</b> de {searchedDeals.length} tratos abiertos: <b>{noneCount}</b> sin próxima actividad y <b>{lateCount}</b> con la actividad vencida.
+            {' '}Haz clic en la etiqueta roja de cada tarjeta para agendarle una.
+          </span>
+          <button onClick={() => setOnlyNoActivity(false)} className="ml-auto px-3 py-1 rounded-lg border border-red-500/40 text-xs text-red-100 hover:bg-red-500/20">
+            Ver todos los tratos
+          </button>
+        </div>
+      )}
+      {onlyNoActivity && noActivityCount === 0 && view !== 'archive' && (
+        <div className="mb-4 px-4 py-3 rounded-xl border border-green-500/30 bg-green-500/10 text-green-200 text-sm">
+          Todos los tratos abiertos de este embudo tienen su próxima actividad al día.
+        </div>
+      )}
       {view === 'board' && (
         <div className="relative">
           {/* Flechas fijas para moverse entre columnas — más confiable que depender de la
@@ -400,14 +430,24 @@ export default function Deals() {
                             {cardFields.next_activity && (() => {
                               const st = nextActivityState(deal);
                               if (st === 'none') return (
-                                <span title="Sin próxima actividad agendada" className="flex items-center gap-1 text-[10px] font-tech text-red-300 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5">
-                                  <CalendarX size={11} /> Sin actividad
-                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setScheduleFor(deal); }}
+                                  title="Sin próxima actividad — clic para agendar una"
+                                  className="flex items-center gap-1 text-[10px] font-tech text-red-300 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5 hover:bg-red-500/25"
+                                >
+                                  <CalendarX size={11} /> Agendar
+                                </button>
                               );
                               if (st === 'late') return (
-                                <span title={`Actividad vencida: ${deal.next_activity.title || ''}`} className="flex items-center gap-1 text-[10px] font-tech text-red-300">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setScheduleFor(deal); }}
+                                  title={`Actividad vencida: ${deal.next_activity.title || ''} — clic para agendar la siguiente`}
+                                  className="flex items-center gap-1 text-[10px] font-tech text-red-300 hover:text-red-100"
+                                >
                                   <CalendarClock size={12} /> {new Date(deal.next_activity.due_date).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
-                                </span>
+                                </button>
                               );
                               if (st === 'ok') return (
                                 <span title={deal.next_activity.title || 'Próxima actividad'} className="flex items-center gap-1 text-[10px] font-tech text-brand-muted">
@@ -635,6 +675,17 @@ export default function Deals() {
             </button>
           )}
         </div>
+      )}
+      {scheduleFor && (
+        <NewActivityModal
+          presetDeal={scheduleFor}
+          onClose={() => setScheduleFor(null)}
+          onCreated={() => {
+            setScheduledNotice(`Actividad agendada para «${scheduleFor.title}».`);
+            setScheduleFor(null);
+            loadDeals(pipelineId);
+          }}
+        />
       )}
     </div>
   );
