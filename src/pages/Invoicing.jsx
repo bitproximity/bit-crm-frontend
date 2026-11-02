@@ -171,7 +171,8 @@ export default function Invoicing() {
 
   // Los pagos se registran a mano en el CRM: que una factura figure «pagada» aquí y abierta en Alegra/Stripe es lo normal,
   // así que NO se muestra ningún aviso de «diferencias con el origen». La sincronización nunca pisa lo registrado en el CRM.
-  const syncAges = Object.entries(syncState?.sources || {}).map(([name, v]) => ({ name, ok: v.ok, text: agoFrom(v.at) }));
+  const syncAges = Object.entries(syncState?.sources || {}).map(([name, v]) => ({ name, ok: v.ok, text: agoFrom(v.at), error: v.error, failed: v.failed || [] }));
+  const syncFailures = syncAges.flatMap((a) => a.failed.map((f) => ({ ...f, source: a.name })));
 
   return (
     <div>
@@ -208,8 +209,22 @@ export default function Invoicing() {
       </div>
       {syncAges.length > 0 && (
         <p className="text-[11px] text-brand-muted mb-1">
-          Sincronización automática cada 15 min: {syncAges.map((a, i) => <span key={a.name}>{i > 0 && ' · '}<span className={a.ok ? '' : 'text-red-300'}>{a.name} {a.ok ? a.text : 'con error'}</span></span>)}
+          Sincronización automática cada 15 min: {syncAges.map((a, i) => <span key={a.name}>{i > 0 && ' · '}<span className={a.ok ? '' : 'text-red-300'} title={a.error || ''}>{a.name} {a.ok ? a.text : `con error${a.error ? `: ${a.error}` : ''}`}</span></span>)}
         </p>
+      )}
+      {syncFailures.length > 0 && (
+        <details className="mb-2 text-xs rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2">
+          <summary className="cursor-pointer text-red-300">
+            {syncFailures.length} {syncFailures.length === 1 ? 'registro no se pudo importar' : 'registros no se pudieron importar'} en la última sincronización — ver motivo
+          </summary>
+          <ul className="mt-2 space-y-1 text-brand-muted">
+            {syncFailures.map((f) => (
+              <li key={`${f.source}-${f.id}`}>
+                <span className="text-brand-white">{f.source} · {f.number || f.id}</span>{f.client ? ` · ${f.client}` : ''} — <span className="text-red-300">{f.error}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
       {syncMsg && <p className="text-xs text-brand-ice mb-2">{syncMsg}</p>}
       <div className="flex gap-1 border-b border-brand-border mb-5 mt-3" role="tablist">
