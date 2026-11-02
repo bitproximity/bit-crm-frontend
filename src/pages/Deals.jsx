@@ -11,8 +11,17 @@ import { csvToDeals } from '../lib/csv';
 import {
   LayoutGrid, List, DollarSign, Archive, Plus, Search,
   Info, ChevronDown, User, AlertTriangle, Upload, GripVertical, ChevronLeft, ChevronRight,
+  CalendarClock, CalendarX,
 } from 'lucide-react';
 import { isPastDay } from '../lib/dateOnly';
+
+// Próxima actividad (regla tipo Pipedrive): 'none' = sin agendar, 'late' = vencida, 'ok' = al día.
+// Solo aplica cuando el backend la envía (tratos abiertos); si no viene el campo, no se marca nada.
+function nextActivityState(deal) {
+  if (!('next_activity' in deal)) return null;
+  if (!deal.next_activity) return 'none';
+  return new Date(deal.next_activity.due_date).getTime() < Date.now() ? 'late' : 'ok';
+}
 
 function isOverdue(deal) {
   return isPastDay(deal.expected_close_date);
@@ -37,7 +46,8 @@ export default function Deals() {
     setPipelineIdRaw(id);
     if (id) localStorage.setItem('bitcrm_last_pipeline_id', id);
   };
-  const [cardFields, setCardFields] = useState({ company: true, contact: true, value: true, due_date_warning: true, avatar: true });
+  const [cardFields, setCardFields] = useState({ company: true, contact: true, value: true, due_date_warning: true, avatar: true, next_activity: true });
+  const [onlyNoActivity, setOnlyNoActivity] = useState(false);
   const [visibleCount, setVisibleCount] = useState({}); // { [stageId]: n } — cuántas tarjetas renderizar por columna
   const [flatVisibleCount, setFlatVisibleCount] = useState(100); // límite compartido para las vistas Lista y Archivo
   const [archiveFilter, setArchiveFilter] = useState('todos'); // todos | ganado | perdido
@@ -163,7 +173,11 @@ export default function Deals() {
     const q = search.toLowerCase();
     return d.title.toLowerCase().includes(q) || d.companies?.name?.toLowerCase().includes(q);
   };
-  const filteredDeals = search ? deals.filter(matchesSearch) : deals;
+  const searchedDeals = search ? deals.filter(matchesSearch) : deals;
+  const noActivityCount = searchedDeals.filter((d) => nextActivityState(d) === 'none' || nextActivityState(d) === 'late').length;
+  const filteredDeals = onlyNoActivity
+    ? searchedDeals.filter((d) => nextActivityState(d) === 'none' || nextActivityState(d) === 'late')
+    : searchedDeals;
   // La vista Archivo (Ganados/Perdidos) usa su propia lista (archivedDeals, cargada aparte
   // por estado, no por etapa) y nunca pasaba por el buscador — escribir algo ahí no filtraba
   // nada, siempre se veían los mismos 211 tratos sin importar lo que se buscara.
@@ -194,6 +208,21 @@ export default function Deals() {
           <Info size={15} className="text-brand-muted" />
         </div>
         <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+          {(noActivityCount > 0 || onlyNoActivity) && (
+            <button
+              onClick={() => setOnlyNoActivity((v) => !v)}
+              title="Tratos abiertos sin próxima actividad agendada o con la actividad vencida"
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-manrope border transition ${
+                onlyNoActivity
+                  ? 'bg-red-500/15 border-red-500/50 text-red-200'
+                  : 'bg-brand-panel border-brand-border text-red-300 hover:border-red-500/50'
+              }`}
+            >
+              <CalendarX size={14} />
+              {noActivityCount} sin actividad al día
+              {onlyNoActivity && <span className="text-brand-muted">· ver todos</span>}
+            </button>
+          )}
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
             <input
@@ -367,7 +396,28 @@ export default function Deals() {
                               {cName ? initials(cName) : <User size={12} />}
                             </div>
                           )}
-                          {cardFields.due_date_warning && overdue && <AlertTriangle size={14} className="text-yellow-400" />}
+                          <div className="flex items-center gap-1.5 ml-auto">
+                            {cardFields.next_activity && (() => {
+                              const st = nextActivityState(deal);
+                              if (st === 'none') return (
+                                <span title="Sin próxima actividad agendada" className="flex items-center gap-1 text-[10px] font-tech text-red-300 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5">
+                                  <CalendarX size={11} /> Sin actividad
+                                </span>
+                              );
+                              if (st === 'late') return (
+                                <span title={`Actividad vencida: ${deal.next_activity.title || ''}`} className="flex items-center gap-1 text-[10px] font-tech text-red-300">
+                                  <CalendarClock size={12} /> {new Date(deal.next_activity.due_date).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
+                                </span>
+                              );
+                              if (st === 'ok') return (
+                                <span title={deal.next_activity.title || 'Próxima actividad'} className="flex items-center gap-1 text-[10px] font-tech text-brand-muted">
+                                  <CalendarClock size={12} /> {new Date(deal.next_activity.due_date).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
+                                </span>
+                              );
+                              return null;
+                            })()}
+                            {cardFields.due_date_warning && overdue && <AlertTriangle size={14} className="text-yellow-400" title="Fecha de cierre vencida" />}
+                          </div>
                         </div>
                       </div>
                     );

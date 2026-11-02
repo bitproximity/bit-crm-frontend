@@ -5,6 +5,7 @@ import DateTimePicker from './DateTimePicker';
 import { User, Building2, X, Plus } from 'lucide-react';
 import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS, FACTURACION_OPTIONS, isGenericPipeline } from './B2bRecordModal';
 import { hardwareOptionsFor, productOptions } from '../lib/productCatalog';
+import { CompanyDuplicateHint } from './DuplicateHint';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
@@ -374,6 +375,9 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
                       </button>
                     ))}
                   </div>
+                )}
+                {!selectedCompany && companyResults.length === 0 && (
+                  <CompanyDuplicateHint name={companyQuery} onPick={pickCompany} />
                 )}
               </div>
 

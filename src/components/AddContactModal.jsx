@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import { X, Building2, Plus } from 'lucide-react';
 import { INDUSTRY_OPTIONS, POSITION_OPTIONS, COUNTRY_OPTIONS } from './B2bRecordModal';
 import { useOutsideClick } from '../hooks/useOutsideClick';
+import { CompanyDuplicateHint, ContactDuplicateHint } from './DuplicateHint';
 
 const PHONE_TYPES = ['Móvil', 'Personal', 'Trabajo', 'Otro'];
 const EMAIL_TYPES = ['Personal', 'Trabajo', 'Otro'];
@@ -154,6 +155,9 @@ export default function AddContactModal({ onClose, onCreated, presetCompany }) {
                   ))}
                 </div>
               )}
+              {!selectedCompany && companyResults.length === 0 && (
+                <CompanyDuplicateHint name={companyQuery} onPick={pickCompany} />
+              )}
             </div>
 
             <div>
@@ -175,6 +179,8 @@ export default function AddContactModal({ onClose, onCreated, presetCompany }) {
                 </select>
               </div>
             </div>
+
+            <ContactDuplicateHint email={email} firstName={firstName} lastName={lastName} companyId={selectedCompany?.id} />
 
             <div>
               <label className={labelClass}>Cargo</label>

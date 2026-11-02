@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
-import { Flag, Trash2, FileText, ChevronDown } from 'lucide-react';
+import { Flag, Trash2, FileText, ChevronDown, ClipboardList } from 'lucide-react';
 import { STATUSES, PRIORITY_COLORS, Avatar, dueBadge, InlineAddRow, TaskDetailModal } from './Tasks';
 
 const PROJECT_STATUSES = ['activo', 'pausado', 'completado', 'cancelado'];
@@ -27,6 +27,10 @@ export default function ProjectDetail() {
   const [statusEditing, setStatusEditing] = useState(false);
   const [nameValue, setNameValue] = useState('');
   const [docs, setDocs] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [applyId, setApplyId] = useState('');
+  const [applying, setApplying] = useState(false);
+  const [applyMsg, setApplyMsg] = useState('');
 
   const load = () => {
     setError('');
@@ -37,7 +41,26 @@ export default function ProjectDetail() {
     load();
     api.get('/api/team').then(setTeam).catch(() => setTeam([]));
     api.get(`/api/documents/tree?project_id=${id}`).then(setDocs).catch(() => setDocs([]));
+    api.get('/api/templates').then((t) => setTemplates(Array.isArray(t) ? t : [])).catch(() => setTemplates([]));
   }, [id]);
+
+  // Cargar las tareas de una plantilla en este proyecto (útil para los proyectos que quedaron vacíos)
+  const applyTemplate = async () => {
+    if (!applyId || applying) return;
+    setApplying(true); setApplyMsg('');
+    try {
+      const r = await api.post(`/api/templates/${applyId}/apply`, {
+        project_id: id,
+        base_date: project?.start_date ? `${project.start_date}T12:00:00` : undefined,
+      });
+      setApplyMsg(`${r.created} tareas cargadas.`);
+      setApplyId('');
+      load();
+    } catch (err) {
+      setApplyMsg(err.message || 'No se pudo cargar la plantilla.');
+    }
+    setApplying(false);
+  };
 
   const createDoc = async () => {
     const created = await api.post('/api/documents', { title: `${project.name} — nuevo documento`, content: '', project_id: id });
@@ -141,6 +164,26 @@ export default function ProjectDetail() {
         </div>
       </div>
       <p className="text-brand-muted text-sm mb-2">{project.description || project.companies?.name}</p>
+
+      {templates.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <ClipboardList size={14} className="text-brand-muted" />
+          <select
+            value={applyId}
+            onChange={(e) => setApplyId(e.target.value)}
+            className="px-3 py-1.5 rounded-lg bg-brand-panel border border-brand-border text-xs focus:outline-none focus:border-brand-violet"
+          >
+            <option value="">{(project.tasks || []).length ? 'Agregar tareas de una plantilla…' : 'Este proyecto no tiene tareas — cargar una plantilla…'}</option>
+            {templates.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.task_template_items?.length || 0} tareas</option>)}
+          </select>
+          {applyId && (
+            <button onClick={applyTemplate} disabled={applying} className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-xs font-medium disabled:opacity-50">
+              {applying ? 'Cargando…' : 'Cargar tareas'}
+            </button>
+          )}
+          {applyMsg && <span className="text-xs text-brand-muted">{applyMsg}</span>}
+        </div>
+      )}
 
       {(project.tasks || []).length > 0 && (() => {
         const total = project.tasks.length;

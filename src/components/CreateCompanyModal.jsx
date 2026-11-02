@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Building2, MapPin, X, Loader2 } from 'lucide-react';
 import { INDUSTRY_OPTIONS, COUNTRY_OPTIONS } from './B2bRecordModal';
 import { colorForName, initials } from '../lib/avatar';
+import { CompanyDuplicateHint } from './DuplicateHint';
 
 const inputClass =
   'w-full px-3.5 py-2.5 rounded-lg bg-brand-bg border border-brand-border text-sm placeholder:text-brand-muted/70 focus:outline-none focus:border-brand-violet transition-colors';
@@ -61,6 +62,7 @@ export default function CreateCompanyModal({ onClose, onCreated }) {
                 onChange={set('name')}
                 className={inputClass}
               />
+              <CompanyDuplicateHint name={form.name} />
             </div>
           </div>
 

@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { formatDay, parseDay } from '../lib/dateOnly';
 import { todayLocal } from '../lib/dateOnly';
-import { FolderKanban, Calendar, Plus, X, Building2, DollarSign, LayoutGrid, List, Search } from 'lucide-react';
+import { FolderKanban, Calendar, Plus, X, Building2, DollarSign, LayoutGrid, List, Search, ClipboardList } from 'lucide-react';
+import TemplatesModal from '../components/TemplatesModal';
 import { colorForName, initials } from '../lib/avatar';
 import RowActionButtons from '../components/RowActionButtons';
 import { useConfirm } from '../components/ConfirmModal';
@@ -33,6 +34,17 @@ function NewProjectModal({ onClose, onCreated }) {
   useOutsideClick(dealBoxRef, () => setDealResults([]), dealResults.length > 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [templates, setTemplates] = useState([]);
+  const [templateId, setTemplateId] = useState('');
+
+  useEffect(() => {
+    api.get('/api/templates').then((t) => {
+      setTemplates(Array.isArray(t) ? t : []);
+      // Por defecto, la plantilla de onboarding para proyectos de onboarding
+      const onb = (t || []).find((x) => /onboarding/i.test(x.name));
+      if (onb) setTemplateId(onb.id);
+    }).catch(() => setTemplates([]));
+  }, []);
 
   useEffect(() => {
     if (!companyQuery.trim() || selectedCompany?.name === companyQuery) { setCompanyResults([]); return; }
@@ -64,6 +76,7 @@ function NewProjectModal({ onClose, onCreated }) {
         due_date: dueDate || null,
         start_date: todayLocal(),
         status: 'activo',
+        ...(templateId ? { template_id: templateId } : {}),
       });
       onCreated(project);
     } catch (err) {
@@ -95,6 +108,17 @@ function NewProjectModal({ onClose, onCreated }) {
               {PROJECT_TYPES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
             </select>
           </div>
+          {templates.length > 0 && (
+            <div>
+              <label className={labelClass}>Plantilla de tareas</label>
+              <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className={inputClass}>
+                <option value="">Sin plantilla (proyecto vacío)</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name} · {t.task_template_items?.length || 0} tareas</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="relative" ref={companyBoxRef}>
             <label className={labelClass}>Empresa</label>
             <div className="relative">
@@ -161,6 +185,7 @@ export default function Projects() {
   const [projects, setProjects] = useState([]);
   const [search, setSearch] = useState('');
   const [showNew, setShowNew] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [view, setView] = useState('lista');
 
   const load = () => api.get('/api/projects').then(setProjects).catch(console.error);
@@ -197,9 +222,14 @@ export default function Projects() {
     <div>
       <div className="flex items-center justify-between mb-1">
         <h1 className="font-headline text-xl font-semibold">Proyectos</h1>
-        <button onClick={() => setShowNew(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium">
-          <Plus size={14} /> Nuevo proyecto
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowTemplates(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-brand-border text-sm text-brand-muted hover:text-brand-white hover:border-brand-violet transition">
+            <ClipboardList size={14} /> Plantillas
+          </button>
+          <button onClick={() => setShowNew(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-brand-violet to-brand-magenta text-sm font-medium">
+            <Plus size={14} /> Nuevo proyecto
+          </button>
+        </div>
       </div>
       <p className="text-brand-muted text-sm mb-6">{filteredProjects.length} proyectos{search ? ` de ${projects.length}` : ''}</p>
 
@@ -340,6 +370,7 @@ export default function Projects() {
       </div>
       )}
 
+      {showTemplates && <TemplatesModal onClose={() => setShowTemplates(false)} />}
       {showNew && (
         <NewProjectModal
           onClose={() => setShowNew(false)}
