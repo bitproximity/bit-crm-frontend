@@ -11,6 +11,7 @@ import { Receipt, Plus, X, DollarSign, AlertTriangle, CheckCircle2, Clock, Check
 import NewInvoiceModal from '../components/NewInvoiceModal';
 import InvoiceImportModal from '../components/InvoiceImportModal';
 import { SOURCE_ACCOUNTS, CURRENCIES } from '../lib/invoiceMeta';
+import ReminderModal from '../components/ReminderModal';
 
 const STATUS_LABELS = { pendiente: 'Pendiente', parcial: 'Parcial', pagada: 'Pagada', cancelada: 'Cancelada' };
 const STATUS_COLORS = {
@@ -30,7 +31,9 @@ function contactName(c) {
 export default function Invoicing() {
   const [invoices, setInvoices] = useState([]);
   const [summary, setSummary] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('');
+  // ?status=vencida llega desde la notificación diaria de facturas vencidas
+  const [statusFilter, setStatusFilter] = useState(() => new URLSearchParams(window.location.search).get('status') || '');
+  const [reminderFor, setReminderFor] = useState(null);
   const [yearFilter, setYearFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
   const [accountFilter, setAccountFilter] = useState('');
@@ -227,6 +230,7 @@ export default function Invoicing() {
         </details>
       )}
       {syncMsg && <p className="text-xs text-brand-ice mb-2">{syncMsg}</p>}
+      {reminderFor && <ReminderModal invoice={reminderFor} onClose={() => setReminderFor(null)} />}
       <div className="flex gap-1 border-b border-brand-border mb-5 mt-3" role="tablist">
         {[['facturas', 'Facturas', Receipt], ['conciliacion', 'Conciliación con tratos', Link2]].map(([key, label, Icon]) => (
           <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`px-4 py-2.5 text-sm flex items-center gap-1.5 border-b-2 -mb-px transition ${tab === key ? 'border-brand-violet text-brand-white' : 'border-transparent text-brand-muted hover:text-brand-white'}`}>
@@ -284,7 +288,7 @@ export default function Invoicing() {
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 mb-4">
-        {[{ key: '', label: 'Todas' }, { key: 'pendiente', label: 'Pendientes' }, { key: 'parcial', label: 'Parciales' }, { key: 'pagada', label: 'Pagadas' }, { key: 'cancelada', label: 'Canceladas' }].map((f) => (
+        {[{ key: '', label: 'Todas' }, { key: 'vencida', label: 'Vencidas' }, { key: 'pendiente', label: 'Pendientes' }, { key: 'parcial', label: 'Parciales' }, { key: 'pagada', label: 'Pagadas' }, { key: 'cancelada', label: 'Canceladas' }].map((f) => (
           <button
             key={f.key}
             onClick={() => setStatusFilter(f.key)}
@@ -460,7 +464,16 @@ export default function Invoicing() {
                 </td>
                 <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1.5">
-                    {inv.overdue && <AlertTriangle size={11} className="text-red-400 flex-shrink-0" />}
+                    {inv.overdue && (
+                      <button
+                        type="button"
+                        onClick={() => setReminderFor(inv)}
+                        title={`Vencida hace ${inv.days_late} d — preparar recordatorio de pago`}
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-tech text-red-300 border border-red-500/30 hover:bg-red-500/15 flex-shrink-0"
+                      >
+                        <AlertTriangle size={11} /> Recordar
+                      </button>
+                    )}
                     <select
                       value={inv.status}
                       onChange={(e) => changeStatus(inv, e.target.value)}
