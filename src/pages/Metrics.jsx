@@ -294,6 +294,27 @@ export default function Metrics() {
               );
             })()}
             <div className="text-xs text-brand-muted font-tech mt-3">{dashboard.lost_total} tratos perdidos en total</div>
+            {dashboard.deals_lost_by_stage?.length > 0 && (
+              <div className="mt-5 pt-4 border-t border-brand-border">
+                <div className="text-xs text-brand-muted font-tech uppercase mb-3">En qué etapa se pierden</div>
+                <div className="space-y-2.5">
+                  {dashboard.deals_lost_by_stage.map((st) => (
+                    <div key={st.stage}>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span>{st.stage}</span>
+                        <span className="font-tech text-brand-muted">{st.count} · {st.pct}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-brand-bg overflow-hidden mb-1">
+                        <div className="h-full bg-gradient-to-r from-red-500/70 to-brand-magenta rounded-full" style={{ width: `${st.pct}%` }} />
+                      </div>
+                      <div className="text-[11px] text-brand-muted truncate">
+                        {st.top_reasons.map((r) => `${r.reason} (${r.count})`).join(' · ')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Average value of won deals */}
@@ -425,11 +446,11 @@ export default function Metrics() {
           <DollarSign size={15} className="text-brand-muted" /> MRR / ARR
         </div>
         <p className="text-xs text-brand-muted mb-4">
-          Ingreso recurrente mensual/anual — normalizado por la frecuencia de facturación de cada producto. No hay seguimiento de cancelaciones todavía, así que "Ganado" asume que todo lo vendido como recurrente sigue activo.
+          Ingreso recurrente mensual/anual según la frecuencia de facturación del trato. «Activo» descuenta los clientes que cancelaron (se registra en el trato ganado → «Registrar cancelación»).
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <div className="text-xs text-brand-muted font-tech uppercase mb-2">Ganado (real)</div>
+            <div className="text-xs text-brand-muted font-tech uppercase mb-2">Activo (ganado sin cancelar)</div>
             <div className="text-2xl font-headline font-semibold text-green-300">${dashboard.mrr_arr.mrr_won.toLocaleString()}<span className="text-sm text-brand-muted font-tech"> MRR</span></div>
             <div className="text-sm text-brand-muted font-tech mt-1">${dashboard.mrr_arr.arr_won.toLocaleString()} ARR</div>
           </div>
@@ -444,6 +465,35 @@ export default function Metrics() {
             <div className="text-sm text-brand-muted font-tech mt-1">${dashboard.mrr_arr.arr_pipeline_weighted.toLocaleString()} ARR</div>
           </div>
         </div>
+        {dashboard.mrr_arr.churn?.enabled && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pt-4 border-t border-brand-border">
+            <div>
+              <div className="text-xs text-brand-muted font-tech uppercase mb-1">Clientes recurrentes activos</div>
+              <div className="text-xl font-headline font-semibold">{dashboard.mrr_arr.churn.active_customers}</div>
+            </div>
+            <div>
+              <div className="text-xs text-brand-muted font-tech uppercase mb-1">MRR perdido este mes</div>
+              <div className={`text-xl font-headline font-semibold ${dashboard.mrr_arr.churn.mrr_churned_month > 0 ? 'text-red-300' : ''}`}>
+                ${dashboard.mrr_arr.churn.mrr_churned_month.toLocaleString()}
+              </div>
+              <div className="text-xs text-brand-muted">{dashboard.mrr_arr.churn.churned_month_count} cancelaciones</div>
+            </div>
+            <div>
+              <div className="text-xs text-brand-muted font-tech uppercase mb-1">Churn del mes (MRR)</div>
+              <div className={`text-xl font-headline font-semibold ${dashboard.mrr_arr.churn.churn_rate_month_pct >= 3 ? 'text-red-300' : 'text-green-300'}`}>
+                {dashboard.mrr_arr.churn.churn_rate_month_pct}%
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-brand-muted font-tech uppercase mb-1">MRR perdido histórico</div>
+              <div className="text-xl font-headline font-semibold text-brand-muted">${dashboard.mrr_arr.churn.mrr_churned_total.toLocaleString()}</div>
+              <div className="text-xs text-brand-muted">{dashboard.mrr_arr.churn.churned_total_count} clientes</div>
+            </div>
+          </div>
+        )}
+        {dashboard.mrr_arr.churn && !dashboard.mrr_arr.churn.enabled && (
+          <div className="mt-4 text-xs text-yellow-300">Para medir cancelaciones falta correr la migración 060 en Supabase.</div>
+        )}
       </div>
       )}
 

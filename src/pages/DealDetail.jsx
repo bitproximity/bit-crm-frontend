@@ -929,6 +929,10 @@ export default function DealDetail() {
         </div>
       </div>
 
+      {deal.status === 'ganado' && (deal.billing_frequency === 'mensual' || deal.billing_frequency === 'anual') && (
+        <ChurnBar deal={deal} onSaved={(patch) => setDeal((d) => ({ ...d, ...patch }))} />
+      )}
+
       {/* Indicadores */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 px-6 py-4 border-b border-brand-border">
         <Kpi icon={TrendingUp} label="Valor" value={`${deal.currency} ${Number(deal.value || 0).toLocaleString()}`}
@@ -1729,6 +1733,55 @@ export default function DealDetail() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+
+// Cancelación de un cliente recurrente (churn): deja de sumar al MRR activo desde esa fecha.
+const CHURN_REASONS = ['Precio', 'No vio resultados', 'Cerró el negocio', 'Se fue con otro proveedor', 'Problemas técnicos o de servicio', 'Recorte de presupuesto', 'Otro'];
+function ChurnBar({ deal, onSaved }) {
+  const [editing, setEditing] = useState(false);
+  const [date, setDate] = useState('');
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const save = async (patch) => {
+    setSaving(true); setError('');
+    try {
+      await api.patch(`/api/deals/${deal.id}`, patch);
+      onSaved(patch); setEditing(false);
+    } catch (err) {
+      setError(/churn/i.test(err.message || '') ? 'Falta correr la migración 060 en Supabase.' : (err.message || 'No se pudo guardar.'));
+    }
+    setSaving(false);
+  };
+  if (deal.churned_at) {
+    return (
+      <div className="mx-6 mt-3 px-4 py-2.5 rounded-xl border border-red-500/30 bg-red-500/10 text-sm flex items-center gap-3 flex-wrap">
+        <span className="text-red-200">Cliente cancelado el {new Date(`${deal.churned_at}T12:00:00`).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}{deal.churn_reason ? ` — ${deal.churn_reason}` : ''}. Ya no suma al MRR activo.</span>
+        <button disabled={saving} onClick={() => save({ churned_at: null, churn_reason: null })} className="ml-auto text-xs underline text-brand-muted hover:text-brand-white">Revertir (sigue activo)</button>
+        {error && <span className="w-full text-xs text-red-300">{error}</span>}
+      </div>
+    );
+  }
+  return (
+    <div className="mx-6 mt-3 px-4 py-2.5 rounded-xl border border-brand-border bg-brand-bg/40 text-sm flex items-center gap-3 flex-wrap">
+      <span className="text-green-300">Cliente recurrente activo</span>
+      {!editing ? (
+        <button onClick={() => { setDate(new Date().toISOString().slice(0, 10)); setEditing(true); }} className="ml-auto text-xs text-brand-muted hover:text-red-300">Registrar cancelación</button>
+      ) : (
+        <div className="flex items-center gap-2 flex-wrap ml-auto">
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="px-2 py-1 rounded-lg bg-brand-panel border border-brand-border text-xs" />
+          <select value={reason} onChange={(e) => setReason(e.target.value)} className="px-2 py-1 rounded-lg bg-brand-panel border border-brand-border text-xs">
+            <option value="">Motivo…</option>
+            {CHURN_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <button disabled={!date || saving} onClick={() => save({ churned_at: date, churn_reason: reason || null })} className="px-3 py-1 rounded-lg bg-red-500/20 border border-red-500/40 text-xs text-red-100 disabled:opacity-50">Confirmar</button>
+          <button onClick={() => setEditing(false)} className="text-xs text-brand-muted">Cancelar</button>
+        </div>
+      )}
+      {error && <span className="w-full text-xs text-red-300">{error}</span>}
     </div>
   );
 }
