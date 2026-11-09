@@ -48,7 +48,9 @@ export default function Deals() {
     if (id) localStorage.setItem('bitcrm_last_pipeline_id', id);
   };
   const [cardFields, setCardFields] = useState({ company: true, contact: true, value: true, due_date_warning: true, avatar: true, next_activity: true });
-  const [onlyNoActivity, setOnlyNoActivity] = useState(false);
+  // Desde el Dashboard: ?sin_actividad=1&owner_id=… abre el Pipeline filtrado por vendedor
+  const [onlyNoActivity, setOnlyNoActivity] = useState(() => searchParams.get('sin_actividad') === '1');
+  const [ownerFilter, setOwnerFilter] = useState(() => searchParams.get('owner_id') || '');
   const [scheduleFor, setScheduleFor] = useState(null); // trato al que se le agenda actividad desde la tarjeta
   const [scheduledNotice, setScheduledNotice] = useState('');
   const [visibleCount, setVisibleCount] = useState({}); // { [stageId]: n } — cuántas tarjetas renderizar por columna
@@ -82,7 +84,7 @@ export default function Deals() {
 
   const loadDeals = async (pid) => {
     if (!pid) return;
-    const dealsData = await api.get(`/api/deals?pipeline_id=${pid}&status=abierto`);
+    const dealsData = await api.get(`/api/deals?pipeline_id=${pid}&status=abierto${ownerFilter ? `&owner_id=${ownerFilter}` : ''}`);
     setDeals(dealsData);
   };
 
@@ -106,7 +108,7 @@ export default function Deals() {
     loadDeals(pipelineId).catch(console.error);
     setVisibleCount({});
     setFlatVisibleCount(100);
-  }, [pipelineId]);
+  }, [pipelineId, ownerFilter]);
 
   useEffect(() => {
     if (view === 'archive' && pipelineId) loadArchived(pipelineId).catch(console.error);
@@ -213,6 +215,15 @@ export default function Deals() {
           <Info size={15} className="text-brand-muted" />
         </div>
         <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+          {ownerFilter && (
+            <button
+              onClick={() => setOwnerFilter('')}
+              title="Quitar el filtro por vendedor"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-manrope border bg-brand-violet/15 border-brand-violet/50 text-brand-ice"
+            >
+              <User size={14} /> {deals.find((d) => d.owner_id === ownerFilter)?.team_members?.full_name || 'Un vendedor'} · quitar
+            </button>
+          )}
           {(noActivityCount > 0 || onlyNoActivity) && (
             <button
               onClick={() => {

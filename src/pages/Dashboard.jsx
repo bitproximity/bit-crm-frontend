@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FinanceStrip } from '../components/FinancePanel';
 import StaleDealsBanner from '../components/StaleDealsBanner';
+import ActivityHealthPanel from '../components/ActivityHealthPanel';
 import LiveStatus from '../components/LiveStatus';
 import { useNavigate, Link } from 'react-router-dom';
 import { TrendingUp, DollarSign, Trophy, AlertCircle, ListTodo, Calendar, MapPin, Video, ExternalLink, PieChart, ListChecks, XCircle, PlusCircle, Crown, Package } from 'lucide-react';
@@ -116,6 +117,7 @@ export default function Dashboard() {
 
       <FinanceStrip refreshSignal={financeSignal} />
       <StaleDealsBanner />
+      <ActivityHealthPanel />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 mb-6">
         {!data ? (
