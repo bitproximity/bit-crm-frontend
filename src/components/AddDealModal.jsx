@@ -6,6 +6,7 @@ import { User, Building2, X, Plus } from 'lucide-react';
 import { POSITION_OPTIONS, COUNTRY_OPTIONS, INDUSTRY_OPTIONS, FACTURACION_OPTIONS, isGenericPipeline } from './B2bRecordModal';
 import { hardwareOptionsFor, productOptions } from '../lib/productCatalog';
 import { CompanyDuplicateHint } from './DuplicateHint';
+import { suspiciousUsdValue, suspiciousMessage } from '../lib/valueSanity';
 
 const CURRENCIES = ['USD', 'COP', 'MXN', 'PYG', 'DOP', 'EUR'];
 
@@ -209,6 +210,7 @@ export default function AddDealModal({ open, onClose, pipelines, pipelineId, onC
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim() || !pipeline || !stageId) return;
+    if (suspiciousUsdValue(value, currency) && !window.confirm(suspiciousMessage(value))) return;
     setSaving(true);
     setError('');
     try {

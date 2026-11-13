@@ -9,6 +9,7 @@ import Money from '../components/Money';
 import { LOST_REASONS } from '../lib/lostReasons';
 import { formatDay, parseDay } from '../lib/dateOnly';
 import { useConfirm } from '../components/ConfirmModal';
+import { suspiciousUsdValue, suspiciousMessage } from '../lib/valueSanity';
 import { useOutsideClick } from '../hooks/useOutsideClick';
 import { FACTURACION_OPTIONS, isGenericPipeline } from '../components/B2bRecordModal';
 import { hardwareOptionsFor, productOptions, useProductCatalog } from '../lib/productCatalog';
@@ -529,6 +530,7 @@ export default function DealDetail() {
   };
 
   const saveValue = async () => {
+    if (suspiciousUsdValue(valueEdit, currencyEdit) && !window.confirm(suspiciousMessage(valueEdit))) return;
     await api.patch(`/api/deals/${id}`, { value: Number(valueEdit) || 0, currency: currencyEdit });
     setValueEditing(false);
     refreshDeal();
