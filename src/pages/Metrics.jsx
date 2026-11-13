@@ -1,6 +1,7 @@
 import { SkeletonPage } from '../components/Skeleton';
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import FinancePanel from '../components/FinancePanel';
+import RevenueBreakdownPanel from '../components/RevenueBreakdownPanel';
 import LiveStatus from '../components/LiveStatus';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import { useNavigate } from 'react-router-dom';
@@ -435,6 +436,8 @@ export default function Metrics() {
           </div>
         </div>
       )}
+
+      <RevenueBreakdownPanel />
 
       {/* MRR / ARR — normalizado por frecuencia de facturación de cada producto (mensual
           tal cual, anual /12, único no cuenta). Sin seguimiento de cancelaciones todavía,
