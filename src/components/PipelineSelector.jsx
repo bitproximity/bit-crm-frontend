@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { api } from '../lib/api';
 import {
   LayoutGrid, ChevronDown, Search, GripVertical, Eye, EyeOff,
@@ -106,15 +106,19 @@ const CARD_FIELD_LABELS = {
   value: 'Valor',
   due_date_warning: 'Alerta de vencimiento',
   avatar: 'Avatar del contacto',
+  next_activity: 'Próxima actividad (o «Agendar»)',
 };
+const CARD_FIELD_DEFAULTS = { company: true, contact: true, value: true, due_date_warning: true, avatar: true, next_activity: true };
 
 function CardFieldsPanel({ onBack }) {
   const [fields, setFields] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  useState(() => {
-    api.get('/api/settings/deal_card_fields').then(setFields).catch(() => setFields({}));
-  });
+  useEffect(() => {
+    api.get('/api/settings/deal_card_fields')
+      .then((saved) => setFields({ ...CARD_FIELD_DEFAULTS, ...(saved || {}) }))
+      .catch(() => setFields({ ...CARD_FIELD_DEFAULTS }));
+  }, []);
 
   const toggle = (key) => setFields((f) => ({ ...f, [key]: !f[key] }));
 
@@ -122,6 +126,7 @@ function CardFieldsPanel({ onBack }) {
     setSaving(true);
     try {
       await api.patch('/api/settings/deal_card_fields', fields);
+      window.dispatchEvent(new CustomEvent('deal-card-fields-changed', { detail: fields })); // el Pipeline se actualiza sin recargar
     } finally {
       setSaving(false);
     }

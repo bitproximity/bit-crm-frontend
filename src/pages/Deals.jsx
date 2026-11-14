@@ -96,12 +96,17 @@ export default function Deals() {
 
   useEffect(() => {
     loadPipelines().catch(console.error);
-    api.get('/api/settings/deal_card_fields').then(setCardFields).catch(() => {});
+    // La configuración guardada se MEZCLA con los valores por defecto: si solo los reemplazara, cualquier
+    // campo nuevo (como la próxima actividad) quedaría oculto para siempre en cuentas con config vieja.
+    api.get('/api/settings/deal_card_fields').then((saved) => setCardFields((cur) => ({ ...cur, ...(saved || {}) }))).catch(() => {});
+    const onFieldsChanged = (e) => setCardFields((cur) => ({ ...cur, ...(e.detail || {}) }));
+    window.addEventListener('deal-card-fields-changed', onFieldsChanged);
     // Tipos de cambio para convertir tratos en otras monedas (COP, PYG, DOP, etc.) a USD
     // antes de sumarlos por etapa — si no, mezclar monedas sin convertir da totales sin sentido.
     api.get('/api/exchange-rates').then((rates) => {
       setExchangeRates(Object.fromEntries(rates.map((r) => [r.currency, Number(r.rate_to_usd)])));
     }).catch(() => {});
+    return () => window.removeEventListener('deal-card-fields-changed', onFieldsChanged);
   }, []);
 
   useEffect(() => {

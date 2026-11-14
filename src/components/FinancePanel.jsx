@@ -26,7 +26,7 @@ function Cards({ f }) {
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
       <Card icon={TrendingUp} label="Ganado este mes" value={fmtUsd(f.sales.won_month_usd)} sub={`${f.sales.won_count_month} trato${f.sales.won_count_month === 1 ? '' : 's'} · año ${fmtUsd(f.sales.won_ytd_usd)}`} to="/metrics" tone="text-brand-ice" />
       <Card icon={Receipt} label="Facturado este mes" value={fmtUsd(f.billing.facturado_month_usd)} sub={`año ${fmtUsd(f.billing.facturado_ytd_usd)}`} to="/invoicing" />
-      <Card icon={Wallet} label="Cobros del mes" value={fmtUsd(c.cobros_month_usd)} tone="text-green-300" sub={c.collection_rate_pct == null ? 'sin facturas del año' : `${c.collection_rate_pct}% de lo facturado en el año`} to="/invoicing" />
+      <Card icon={Wallet} label="Cobros del mes" value={fmtUsd(c.cobros_month_usd)} tone="text-green-300" sub={c.collection_rate_pct == null ? 'sin facturas del año' : `en el año se cobró el ${c.collection_rate_pct}% de lo facturado`} to="/invoicing" />
       <Card icon={Hourglass} label="Por cobrar" value={fmtUsd(c.por_cobrar_usd)} tone="text-yellow-300" sub={c.dso_days == null ? 'aún sin días de cobro' : `se cobra en ~${c.dso_days} días`} to="/invoicing" />
       <Card icon={AlertTriangle} label="Vencido" value={fmtUsd(c.vencido_usd)} tone={c.vencido_usd > 0 ? 'text-red-300' : 'text-brand-white'} sub={`${c.vencido_count} factura${c.vencido_count === 1 ? '' : 's'} vencida${c.vencido_count === 1 ? '' : 's'}`} to="/invoicing" />
     </div>

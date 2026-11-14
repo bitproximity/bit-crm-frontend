@@ -81,7 +81,8 @@ export default function Activities() {
     if (view !== 'tablero') params.set('status', tab);
     if (onlyMine) params.set('mine', 'true');
     const qs = params.toString();
-    return api.get(`/api/activities${qs ? `?${qs}` : ''}`).then(setActivities).catch(console.error);
+    // Las notas no son algo por hacer: viven en la ficha del trato. Aquí ensuciaban «Pendientes».
+    return api.get(`/api/activities${qs ? `?${qs}` : ''}`).then((list) => setActivities((list || []).filter((a) => a.type !== 'nota'))).catch(console.error);
   };
 
   useEffect(() => {
