@@ -180,7 +180,7 @@ describe('Finanzas del CEO', () => {
     wrap(<FinanceStrip />);
     expect(await screen.findByText('USD 14,200')).toBeTruthy();
     for (const t of ['USD 9,800', 'USD 6,400', 'USD 37,250', 'USD 12,400']) expect(screen.getByText(t)).toBeTruthy();
-    expect(screen.getByText(/71% de lo facturado en el año/)).toBeTruthy(); expect(screen.getByText(/se cobra en ~23 días/)).toBeTruthy();
+    expect(screen.getByText(/en el año se cobró el 71% de lo facturado/)).toBeTruthy(); expect(screen.getByText(/se cobra en ~23 días/)).toBeTruthy();
     expect(screen.getByText('Bit WiFi')).toBeTruthy(); expect(screen.getByText('Ecuador')).toBeTruthy();
     expect(screen.getByText(/Alcaldía de Castilla/)).toBeTruthy(); expect(screen.getByText(/58 días/)).toBeTruthy();
     expect(screen.getByText(/26 tratos ganados sin factura \(USD 56,400\)/)).toBeTruthy();

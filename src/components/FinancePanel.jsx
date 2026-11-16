@@ -1,7 +1,9 @@
 // Finanzas del CEO, todo en USD: ventas, facturación, cobranza, líderes y velocidad.
 // <FinanceStrip /> es la versión compacta del Dashboard; <FinancePanel /> la completa de Métricas.
 import { Link } from 'react-router-dom';
-import { TrendingUp, Receipt, Wallet, Hourglass, AlertTriangle, Gauge, Link2, Globe2, Package, Workflow } from 'lucide-react';
+import { TrendingUp, Receipt, Wallet, Hourglass, AlertTriangle, Gauge, Link2, Globe2, Package, Workflow, Mail } from 'lucide-react';
+import { useState } from 'react';
+import { api } from '../lib/api';
 import { useFinance } from '../hooks/useFinance';
 import { fmtUsd, agoFrom } from '../lib/money';
 
@@ -114,6 +116,7 @@ export default function FinancePanel({ refreshSignal = 0 }) {
     <section aria-label="Finanzas del CEO" className="mb-8">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
         <h2 className="font-headline text-lg font-semibold flex items-center gap-2"><Wallet size={16} className="text-brand-ice" /> Finanzas y cobranza <span className="text-xs font-normal text-brand-muted">USD · {f.year}</span></h2>
+        <WeeklyDigestButton />
       </div>
       <p className="text-xs text-brand-muted mb-4">Ventas, facturación y cobranza en un solo lugar, siempre en USD y al día.</p>
       <Cards f={f} />
@@ -165,5 +168,28 @@ export default function FinancePanel({ refreshSignal = 0 }) {
       )}
       <RatesNote f={f} />
     </section>
+  );
+}
+
+// El resumen semanal llega solo cada lunes a las 8:00; este botón lo manda ahora a quien lo pide.
+function WeeklyDigestButton() {
+  const [state, setState] = useState({ busy: false, msg: '', error: false });
+  const send = async () => {
+    setState({ busy: true, msg: '', error: false });
+    try {
+      const r = await api.post('/api/finance/weekly-digest/send', {});
+      setState({ busy: false, msg: `Enviado a ${r.to || 'tu correo'}`, error: false });
+    } catch (err) {
+      setState({ busy: false, msg: err.message || 'No se pudo enviar', error: true });
+    }
+  };
+  return (
+    <div className="flex items-center gap-2">
+      {state.msg && <span className={`text-xs ${state.error ? 'text-red-300' : 'text-green-300'}`}>{state.msg}</span>}
+      <button type="button" onClick={send} disabled={state.busy} title="Llega solo cada lunes a las 8:00; con este botón te lo envías ahora"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand-border text-xs text-brand-muted hover:text-brand-white hover:border-brand-violet transition disabled:opacity-50">
+        <Mail size={13} /> {state.busy ? 'Enviando…' : 'Enviarme el resumen semanal'}
+      </button>
+    </div>
   );
 }
