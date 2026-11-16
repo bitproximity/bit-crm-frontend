@@ -44,6 +44,17 @@ const ENTITY_LABELS = {
   b2b_record: 'registro de Bit Prospect',
 };
 
+// Sincronizaciones de facturas: no apuntan a un registro, se describen por su resultado
+const SYNC_LABELS = { stripe_sync: 'Stripe', alegra_sync: 'Alegra', facturero_movil_sync: 'Facturero Móvil' };
+function syncSummary(f) {
+  const c = f.changes || {};
+  const parts = [];
+  if (c.created) parts.push(`${c.created} ${c.created === 1 ? 'factura nueva' : 'facturas nuevas'}`);
+  if (c.updated) parts.push(`${c.updated} ${c.updated === 1 ? 'actualizada' : 'actualizadas'}`);
+  if (c.failed) parts.push(`${c.failed} sin poder importar`);
+  return `Sincronización de ${SYNC_LABELS[f.action] || 'facturas'}${parts.length ? `: ${parts.join(', ')}` : ''}`;
+}
+
 export default function Metrics() {
   const navigate = useNavigate();
   const [metrics, setMetrics] = useState(null);
@@ -920,11 +931,15 @@ export default function Metrics() {
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {feed.map((f) => (
             <div key={f.id} className="flex justify-between text-sm border-b border-brand-border/50 pb-2">
-              <div>
-                <span className="text-brand-white">{f.team_members?.full_name || 'Alguien'}</span>{' '}
-                <span className="text-brand-muted">{ACTION_LABELS[f.action] || f.action}</span>{' '}
-                <span className="text-brand-ice">{ENTITY_LABELS[f.entity_type]} "{f.entity_label}"</span>
-              </div>
+              {f.entity_type === 'invoice_sync' ? (
+                <div className="text-brand-muted">{syncSummary(f)}</div>
+              ) : (
+                <div>
+                  <span className="text-brand-white">{f.team_members?.full_name || 'Alguien'}</span>{' '}
+                  <span className="text-brand-muted">{ACTION_LABELS[f.action] || f.action}</span>{' '}
+                  <span className="text-brand-ice">{ENTITY_LABELS[f.entity_type] || f.entity_type}{f.entity_label ? ` "${f.entity_label}"` : ''}</span>
+                </div>
+              )}
               <div className="text-brand-muted font-tech text-xs whitespace-nowrap ml-3">
                 {new Date(f.created_at).toLocaleString()}
               </div>
