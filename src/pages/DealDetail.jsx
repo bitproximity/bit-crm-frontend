@@ -4,6 +4,7 @@ import { canAccessPath } from '../lib/permissions';
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import DealFormResponses from '../components/DealFormResponses';
 import { safeUrl } from '../lib/safeUrl';
 import Money from '../components/Money';
 import { LOST_REASONS } from '../lib/lostReasons';
@@ -132,7 +133,10 @@ export default function DealDetail() {
   const [loadError, setLoadError] = useState('');
   const [optionsOpen, setOptionsOpen] = useState(false);
 
-  const [tab, setTab] = useState('notas');
+  // ?tab=respuestas abre directo esa pestaña (p. ej. desde el distintivo «Respondió» del Pipeline).
+  const [tab, setTab] = useState(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab')) || 'notas');
+  const [formResponses, setFormResponses] = useState(null);
+  const [formFieldIds, setFormFieldIds] = useState([]);
   const [historyFilter, setHistoryFilter] = useState('todo');
   const [pipelinePopoverOpen, setPipelinePopoverOpen] = useState(false);
   const [pipelineSel, setPipelineSel] = useState(null);
@@ -221,12 +225,16 @@ export default function DealDetail() {
 
   // Solo lo propio de ESTE trato — esto sí hay que refrescar después de cada guardado.
   const loadDeal = async (defs) => {
-    const [dealData, items, acts, values] = await Promise.all([
+    const [dealData, items, acts, values, formResp] = await Promise.all([
       api.get(`/api/deals/${id}`),
       api.get(`/api/deals/${id}/line-items`),
       api.get(`/api/activities/for/deal/${id}`),
       api.get(`/api/custom-fields/values/${id}`),
+      // Respuestas de formularios: un extra, si falla el trato se ve igual.
+      api.get(`/api/deals/${id}/form-responses`).catch(() => ({ submissions: [], form_field_ids: [] })),
     ]);
+    setFormResponses(formResp?.submissions || []);
+    setFormFieldIds(formResp?.form_field_ids || []);
     setDeal(dealData);
     setLineItems(items);
     setActivities(acts);
@@ -255,6 +263,10 @@ export default function DealDetail() {
   // Refresco liviano tras guardar algo en el trato — reutiliza las definiciones de campos
   // personalizados ya cargadas, sin volver a pedir pipelines/productos/etiquetas/equipo.
   const refreshDeal = () => loadDeal(customFields.map((cf) => cf.custom_field_definitions));
+  // Las preguntas de los formularios (Bit Music, Bitwifi…) solo aparecen en «Detalles» si este trato
+  // tiene respuesta; vacías eran 19 filas de ruido en todos los tratos. Las respuestas completas
+  // están en la pestaña «Respuestas».
+  const visibleCustomFields = customFields.filter((f) => !formFieldIds.includes(f.field_id) || (f.value && String(f.value).trim() !== ''));
 
   useEffect(() => { load().catch((err) => { setLoadError(err.message || 'No se pudo cargar el trato.'); setLoading(false); }); }, [id]);
 
@@ -1251,11 +1263,11 @@ export default function DealDetail() {
             />
           </div>
 
-          {customFields.length > 0 && (
+          {visibleCustomFields.length > 0 && (
             <div>
               <div className="text-xs font-tech uppercase tracking-wide text-brand-muted mb-3">Detalles</div>
               <div className="space-y-2">
-                {customFields.map((f) => (
+                {visibleCustomFields.map((f) => (
                   <div key={f.field_id} className="flex justify-between items-center text-sm gap-3">
                     <span className="text-brand-muted flex-shrink-0">{f.custom_field_definitions?.label}</span>
                     <input
@@ -1280,6 +1292,7 @@ export default function DealDetail() {
           <div className="flex flex-wrap gap-1 mb-4 border-b border-brand-border pb-0">
             {[
               { key: 'notas', label: 'Notas', count: activities.filter((a) => a.type === 'nota').length },
+              ...(formResponses?.length ? [{ key: 'respuestas', label: 'Respuestas', count: formResponses.length }] : []),
               { key: 'actividad', label: 'Actividad', count: activities.filter((a) => a.type !== 'nota').length },
               { key: 'reuniones', label: 'Planificador de reuniones' },
               { key: 'correo', label: 'Correo electrónico', count: gmailMessages.length },
@@ -1296,6 +1309,8 @@ export default function DealDetail() {
               </button>
             ))}
           </div>
+
+          {tab === 'respuestas' && formResponses && <DealFormResponses submissions={formResponses} />}
 
           {tab === 'notas' && (
             <div className="mb-6">

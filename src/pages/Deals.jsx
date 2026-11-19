@@ -12,6 +12,7 @@ import {
   LayoutGrid, List, DollarSign, Archive, Plus, Search,
   Info, ChevronDown, User, AlertTriangle, Upload, GripVertical, ChevronLeft, ChevronRight,
   CalendarClock, CalendarX,
+  ClipboardCheck,
 } from 'lucide-react';
 import { isPastDay } from '../lib/dateOnly';
 import NewActivityModal from '../components/NewActivityModal';
@@ -443,6 +444,17 @@ export default function Deals() {
                             </div>
                           )}
                           <div className="flex items-center gap-1.5 ml-auto">
+                            {deal.form_response && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); navigate(`/deals/${deal.id}?tab=respuestas`); }}
+                                title={`Respondió «${deal.form_response.form || 'un formulario'}» el ${new Date(deal.form_response.last_at).toLocaleDateString('es', { day: 'numeric', month: 'short' })}${deal.form_response.count > 1 ? ` (${deal.form_response.count} veces)` : ''} — clic para ver sus respuestas`}
+                                aria-label="Ver respuestas del formulario"
+                                className="flex items-center gap-1 text-[10px] font-tech text-brand-ice bg-brand-violet/15 border border-brand-violet/35 rounded-full px-1.5 py-0.5 hover:bg-brand-violet/30"
+                              >
+                                <ClipboardCheck size={11} /> Respondió
+                              </button>
+                            )}
                             {cardFields.next_activity && (() => {
                               const st = nextActivityState(deal);
                               if (st === 'none') return (

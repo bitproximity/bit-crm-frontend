@@ -279,3 +279,25 @@ describe('Tarjetas de formularios (rediseño)', () => {
     await waitFor(() => expect(calls.post.some(([p]) => p === '/api/lead-forms/templates/bitwifi')).toBe(true));
   });
 });
+
+describe('Todo centralizado en el trato y en el Pipeline', () => {
+  it('la pestaña «Respuestas» muestra cada envío completo con su formulario, la más reciente abierta', async () => {
+    const DealFormResponses = (await import('../src/components/DealFormResponses.jsx')).default;
+    render(<DealFormResponses submissions={[
+      { id: 's2', created_at: '2026-11-18T15:00:00Z', form: { name: 'Bitwifi · Brief WiFi Marketing', logo_url: '/brands/bitwifi-logo.png', brand_name: 'Bitwifi' }, contact: { name: 'Pedro Gil', email: 'pedro@kfc.ec', company: 'KFC Ecuador' }, answers: [{ field_id: 'a', label: '¿Qué CRM utilizan?', value: 'HubSpot' }], message: '' },
+      { id: 's1', created_at: '2026-11-10T15:00:00Z', form: { name: 'Bit Music · Perfil musical de la marca' }, contact: {}, answers: [{ field_id: 'b', label: 'Artistas', value: 'Shakira' }], message: '' },
+    ]} />);
+    expect(screen.getByAltText('Bitwifi')).toBeTruthy();
+    expect(screen.getByText('HubSpot')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /pedro@kfc.ec/ }).getAttribute('href')).toBe('mailto:pedro@kfc.ec');
+    expect(screen.queryByText('Shakira')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Bit Music · Perfil musical/ }));
+    expect(screen.getByText('Shakira')).toBeTruthy();
+  });
+
+  it('sin respuestas, dice cómo pedírselas al cliente', async () => {
+    const DealFormResponses = (await import('../src/components/DealFormResponses.jsx')).default;
+    render(<DealFormResponses submissions={[]} />);
+    expect(screen.getByText(/Link para un trato/)).toBeTruthy();
+  });
+});

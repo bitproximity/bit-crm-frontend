@@ -79,6 +79,17 @@ describe('Pipeline: próxima actividad en las tarjetas', () => {
   });
 });
 
+describe('Pipeline: distintivo de formulario', () => {
+  it('la tarjeta de un cliente que respondió muestra «Respondió» con el formulario y la fecha', async () => {
+    responses['/api/deals?pipeline_id=p1&status=abierto'] = [deal('d5', 'KFC Ecuador · Bitwifi', { next_activity: null, form_response: { last_at: '2026-11-18T15:00:00Z', form: 'Bitwifi · Brief WiFi Marketing', count: 2 } }), deal('d6', 'Sin brief', { next_activity: null })];
+    wrap(<Deals />);
+    expect(await screen.findByText('KFC Ecuador · Bitwifi')).toBeTruthy();
+    const b = screen.getByRole('button', { name: 'Ver respuestas del formulario' });
+    expect(b.getAttribute('title')).toMatch(/Bitwifi · Brief WiFi Marketing.*\(2 veces\)/);
+    expect(screen.getAllByRole('button', { name: 'Ver respuestas del formulario' }).length).toBe(1);
+  });
+});
+
 describe('Actividades', () => {
   it('las notas no aparecen como actividades pendientes (eran 12 de 15)', async () => {
     responses['/api/activities'] = [
