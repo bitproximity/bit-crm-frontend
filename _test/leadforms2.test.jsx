@@ -301,3 +301,15 @@ describe('Todo centralizado en el trato y en el Pipeline', () => {
     expect(screen.getByText(/Link para un trato/)).toBeTruthy();
   });
 });
+
+describe('Avisos por correo', () => {
+  it('«Avisar por correo a» muestra los correos actuales y guarda la lista que escribas', async () => {
+    render(<DesignDrawer form={{ id: 'f1', name: 'X', settings: { notify_emails: ['mario@bitproximity.com'] } }} fields={[]} onClose={() => {}} />);
+    const input = screen.getByLabelText('Avisar por correo a');
+    expect(input.value).toBe('mario@bitproximity.com');
+    fireEvent.change(input, { target: { value: 'mario@bitproximity.com, ventas@bitproximity.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(calls.patch.length).toBe(1));
+    expect(calls.patch[0][1].settings.notify_emails).toEqual(['mario@bitproximity.com', 'ventas@bitproximity.com']);
+  });
+});

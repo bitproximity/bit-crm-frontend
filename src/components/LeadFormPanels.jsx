@@ -341,6 +341,7 @@ export function DesignDrawer({ form, fields, onClose, onSaved }) {
     match_existing: init.match_existing !== false,
   });
   const [slug, setSlug] = useState(form.slug || '');
+  const [notifyText, setNotifyText] = useState((init.notify_emails || []).join(', '));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState(false);
@@ -439,6 +440,16 @@ export function DesignDrawer({ form, fields, onClose, onSaved }) {
 
         <section className="space-y-1">
           <div className="text-[11px] font-tech uppercase tracking-wide text-brand-muted mb-1">Al recibir una respuesta</div>
+          <Field label="Avisar por correo a">
+            <input
+              className={inputCls}
+              aria-label="Avisar por correo a"
+              value={notifyText}
+              placeholder="mario@bitproximity.com, ventas@bitproximity.com"
+              onChange={(e) => { setNotifyText(e.target.value); set('notify_emails', e.target.value.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean)); }}
+            />
+          </Field>
+          <p className="text-[11px] text-brand-muted pb-2">Separa varios correos con comas. Al responsable del trato también le llega siempre. Déjalo vacío para no avisar a nadie más.</p>
           <Toggle on={s.match_existing} onChange={(v) => set('match_existing', v)} label="Si el cliente ya tiene un trato en este pipeline, guardar ahí las respuestas"
             hint="Busca por correo y por empresa. Usa el trato abierto o, si no hay, el último ganado; si no tiene, crea uno nuevo." />
         </section>
