@@ -6,7 +6,8 @@ import {
   Type, Hash, Calendar, CheckSquare, List, ChevronUp, ChevronDown,
   Sparkles, Link2, Code2, Users2, Target, Eye,
 } from 'lucide-react';
-import { Inbox, ArrowRight, Radio } from 'lucide-react';
+import { Inbox, ArrowRight, Radio, BarChart3, Palette, Music2 } from 'lucide-react';
+import { ResponsesDrawer, DesignDrawer, LeadFormPreview, toViewForm, iframeSnippet } from '../components/LeadFormPanels';
 import { Drawer, Field, inputCls, selectCls, primaryBtn, ghostBtn } from '../components/Modal';
 import { colorForName, initials } from '../lib/avatar';
 
@@ -212,100 +213,6 @@ function QuestionsEditor({ allFields, selectedIds, onChange, onFieldCreated }) {
   );
 }
 
-const previewInputClass = 'w-full px-3.5 py-2.5 rounded-xl bg-[#080712] border border-[#211D34] text-[#FBFAFF] text-sm placeholder:text-[#5B5775] focus:border-[#8500FF] focus:outline-none transition';
-const previewLabelClass = 'block text-xs text-[#8B87A3] mb-1.5';
-
-// Exactamente lo que ve el visitante en /public/lead-forms/:id — mismos campos, mismo
-// orden, mismo estilo — pero nada se manda a ningún lado al "enviar".
-function LeadFormPreviewModal({ form, fields, onClose }) {
-  const [values, setValues] = useState({ name: '', email: '', phone: '', company: '', message: '' });
-  const [customAnswers, setCustomAnswers] = useState({});
-  const [triedSubmit, setTriedSubmit] = useState(false);
-
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 overlay-in" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[480px] max-h-[88vh] overflow-y-auto modal-in">
-        <div className="flex items-center justify-between mb-3 px-1">
-          <div className="flex items-center gap-2">
-            <Eye size={14} className="text-brand-ice" />
-            <span className="text-xs font-tech uppercase tracking-wide text-brand-ice">Vista previa — así lo ve quien lo llena</span>
-          </div>
-          <button onClick={onClose} className="text-brand-muted hover:text-white transition"><X size={18} /></button>
-        </div>
-
-        <form onSubmit={(e) => { e.preventDefault(); setTriedSubmit(true); }} className="bg-[#100E1C] border border-[#211D34] rounded-2xl p-7 shadow-2xl">
-          <h1 className="text-xl font-semibold text-white mb-5" style={{ fontFamily: 'Sora, sans-serif' }}>{form.name}</h1>
-
-          {triedSubmit && (
-            <div className="mb-4 px-3.5 py-2.5 rounded-xl bg-brand-violet/10 border border-brand-violet/30 text-brand-ice text-sm">
-              Esto es solo una vista previa — no se envía nada de verdad.
-            </div>
-          )}
-
-          <div className="space-y-3.5">
-            <div>
-              <label className={previewLabelClass}>Nombre *</label>
-              <input className={previewInputClass} value={values.name} onChange={(e) => setValues({ ...values, name: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={previewLabelClass}>Correo</label>
-                <input className={previewInputClass} value={values.email} onChange={(e) => setValues({ ...values, email: e.target.value })} />
-              </div>
-              <div>
-                <label className={previewLabelClass}>Teléfono</label>
-                <input className={previewInputClass} value={values.phone} onChange={(e) => setValues({ ...values, phone: e.target.value })} />
-              </div>
-            </div>
-            <div>
-              <label className={previewLabelClass}>Empresa</label>
-              <input className={previewInputClass} value={values.company} onChange={(e) => setValues({ ...values, company: e.target.value })} />
-            </div>
-
-            {fields.length > 0 && (
-              <div className="space-y-3.5" style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid #211D34' }}>
-                {fields.map((f) => (
-                  <div key={f.id}>
-                    <label className={previewLabelClass}>{f.label}</label>
-                    {f.field_type === 'select' ? (
-                      <select className={previewInputClass} style={{ colorScheme: 'dark' }} value={customAnswers[f.id] || ''} onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.value })}>
-                        <option value="">Elige...</option>
-                        {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
-                      </select>
-                    ) : f.field_type === 'boolean' ? (
-                      <label className="flex items-center gap-2 text-sm text-white py-1 cursor-pointer">
-                        <input type="checkbox" checked={customAnswers[f.id] === 'Sí'} onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.checked ? 'Sí' : 'No' })} className="w-4 h-4 accent-[#8500FF]" />
-                        Sí
-                      </label>
-                    ) : (
-                      <input className={previewInputClass} type={f.field_type === 'number' ? 'number' : f.field_type === 'date' ? 'date' : 'text'} value={customAnswers[f.id] || ''} onChange={(e) => setCustomAnswers({ ...customAnswers, [f.id]: e.target.value })} />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div>
-              <label className={previewLabelClass}>Mensaje (opcional)</label>
-              <textarea className={`${previewInputClass} min-h-[80px] resize-y`} value={values.message} onChange={(e) => setValues({ ...values, message: e.target.value })} />
-            </div>
-          </div>
-
-          <button type="submit" className="w-full mt-5 py-3 rounded-xl bg-gradient-to-r from-[#8500FF] to-[#E000FF] hover:opacity-90 transition text-white text-sm font-semibold">
-            Enviar
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 function StatTile({ icon: Icon, label, value, tone = 'text-brand-ice' }) {
   return (
     <div className="bg-brand-panel border border-brand-border rounded-2xl px-4 py-3.5 panel-depth flex items-center gap-3">
@@ -339,6 +246,9 @@ export default function LeadForms() {
   const [newForm, setNewForm] = useState({ name: '', pipeline_id: '', stage_id: '', owner_id: '', field_ids: [] });
   const [editingFieldsId, setEditingFieldsId] = useState(null);
   const [previewFormId, setPreviewFormId] = useState(null);
+  const [responsesFor, setResponsesFor] = useState(null);
+  const [designFor, setDesignFor] = useState(null);
+  const [usingTemplate, setUsingTemplate] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -369,6 +279,19 @@ export default function LeadForms() {
       setError(err.message || 'No se pudo crear el formulario.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const applyTemplate = async (key) => {
+    setError(''); setUsingTemplate(true);
+    try {
+      const created = await api.post(`/api/lead-forms/templates/${key}`);
+      await Promise.all([load(), api.get('/api/custom-fields?entity_type=deal').then(setDealFields).catch(() => {})]);
+      if (created?.already_existed) setError('Ese formulario ya existía: lo tienes en la lista.');
+    } catch (err) {
+      setError(err.message || 'No se pudo crear desde la plantilla.');
+    } finally {
+      setUsingTemplate(false);
     }
   };
 
@@ -407,9 +330,16 @@ export default function LeadForms() {
           </h1>
           <p className="text-brand-muted text-sm mt-1.5 max-w-2xl">Cada envío crea (o reutiliza) contacto y empresa, y cae directo a un trato en el pipeline y etapa que elijas. Agrega tus propias preguntas para llevar mejor data.</p>
         </div>
-        <button onClick={() => { setError(''); setShowForm(true); }} className="px-4 py-2.5 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 transition rounded-xl text-sm font-medium flex items-center gap-1.5">
-          <Plus size={15} /> Nuevo formulario
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {!(forms || []).some((f) => f.name === 'Bit Music · Perfil musical de la marca') && (
+            <button onClick={() => applyTemplate('bitmusic')} disabled={usingTemplate} className="px-4 py-2.5 rounded-xl border border-brand-border hover:border-brand-violet transition text-sm flex items-center gap-1.5 disabled:opacity-50">
+              <Music2 size={15} className="text-brand-ice" /> {usingTemplate ? 'Creando…' : 'Plantilla Bit Music'}
+            </button>
+          )}
+          <button onClick={() => { setError(''); setShowForm(true); }} className="px-4 py-2.5 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 transition rounded-xl text-sm font-medium flex items-center gap-1.5">
+            <Plus size={15} /> Nuevo formulario
+          </button>
+        </div>
       </div>
 
       {forms && forms.length > 0 && (
@@ -495,13 +425,19 @@ export default function LeadForms() {
                     <Link2 size={13} className="text-brand-muted flex-shrink-0" />
                     <input readOnly aria-label="Link público" value={publicUrl} className="flex-1 min-w-0 bg-transparent text-xs font-tech text-brand-muted focus:outline-none focus-visible:outline-none focus:shadow-none" />
                   </div>
+                  <button onClick={() => setResponsesFor(f)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-violet/15 border border-brand-violet/40 text-xs text-brand-ice hover:border-brand-violet transition">
+                    <BarChart3 size={13} /> Respuestas y métricas
+                  </button>
+                  <button onClick={() => setDesignFor(f)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
+                    <Palette size={13} /> Diseño y textos
+                  </button>
                   <button onClick={() => setPreviewFormId(f.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
                     <Eye size={13} /> Vista previa
                   </button>
                   <button onClick={() => copy(publicUrl, `link-${f.id}`)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
                     {copiedId === `link-${f.id}` ? <Check size={13} className="text-green-300" /> : <Copy size={13} />} {copiedId === `link-${f.id}` ? 'Copiado' : 'Copiar link'}
                   </button>
-                  <button onClick={() => copy(embedSnippet(f.id, formFields), `embed-${f.id}`)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
+                  <button onClick={() => copy(f.settings?.theme?.logo_url || f.settings?.title ? iframeSnippet(publicUrl, f.settings?.title || f.name) : embedSnippet(f.id, formFields), `embed-${f.id}`)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
                     {copiedId === `embed-${f.id}` ? <Check size={13} className="text-green-300" /> : <Code2 size={13} />} {copiedId === `embed-${f.id}` ? 'Copiado' : 'Código para tu web'}
                   </button>
                 </div>
@@ -572,8 +508,18 @@ export default function LeadForms() {
         if (!previewForm) return null;
         const fieldIds = isNew ? newForm.field_ids : (previewForm.field_ids || []);
         const previewFields = fieldIds.map((id) => dealFields.find((df) => df.id === id)).filter(Boolean);
-        return <LeadFormPreviewModal form={previewForm} fields={previewFields} onClose={() => setPreviewFormId(null)} />;
+        return <LeadFormPreview form={toViewForm(previewForm, previewFields)} onClose={() => setPreviewFormId(null)} />;
       })()}
+
+      {responsesFor && <ResponsesDrawer form={responsesFor} onClose={() => setResponsesFor(null)} />}
+      {designFor && (
+        <DesignDrawer
+          form={designFor}
+          fields={(designFor.field_ids || []).map((id) => dealFields.find((df) => df.id === id)).filter(Boolean)}
+          onClose={() => setDesignFor(null)}
+          onSaved={load}
+        />
+      )}
     </div>
   );
 }
