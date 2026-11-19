@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BarChart3, Download, Palette, Eye, X, ExternalLink, ChevronDown, ChevronRight, Inbox, Sparkles, Link2, Trophy, CalendarDays } from 'lucide-react';
+import { BarChart3, Download, Palette, Eye, X, ExternalLink, ChevronDown, ChevronRight, Inbox, Sparkles, Link2, Trophy, CalendarDays, Search, Copy, Check, ArrowRightLeft, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
-import { Drawer, Field, inputCls, primaryBtn, ghostBtn } from './Modal';
+import { Drawer, Modal, Field, inputCls, primaryBtn, ghostBtn } from './Modal';
+import { useConfirm } from './ConfirmModal';
 import LeadFormView, { DEFAULT_THEME, themeOf } from './LeadFormView';
 
 // Lo que necesita LeadFormView a partir de un formulario guardado + sus preguntas.
@@ -41,6 +42,83 @@ export function LeadFormPreview({ form, onClose }) {
 // ───────────────────────── Respuestas y métricas ─────────────────────────
 
 const STATUS = { abierto: ['Abierto', 'text-brand-ice bg-brand-violet/15'], ganado: ['Ganado', 'text-green-300 bg-green-500/15'], perdido: ['Perdido', 'text-red-300 bg-red-500/10'] };
+
+export const PUBLIC_APP_URL = 'https://crm.bitproximity.com';
+export const publicUrlOf = (f) => `${PUBLIC_APP_URL}/public/${f.slug || `lead-forms/${f.id}`}`;
+
+// Buscador de tratos (por título), por defecto dentro del pipeline del formulario.
+export function DealPicker({ pipelineId, onPick, excludeId }) {
+  const [q, setQ] = useState('');
+  const [all, setAll] = useState(false);
+  const [list, setList] = useState(null);
+  useEffect(() => {
+    const h = setTimeout(() => {
+      const params = new URLSearchParams({ limit: '15' });
+      if (q.trim()) params.set('search', q.trim());
+      if (pipelineId && !all) params.set('pipeline_id', pipelineId);
+      api.get(`/api/deals?${params}`).then((d) => setList(Array.isArray(d) ? d : d?.data || [])).catch(() => setList([]));
+    }, 250);
+    return () => clearTimeout(h);
+  }, [q, all, pipelineId]);
+  const items = (list || []).filter((d) => d.id !== excludeId);
+  return (
+    <div className="space-y-2">
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
+        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Busca el trato por nombre…" aria-label="Buscar trato" className={`${inputCls} pl-9`} />
+      </div>
+      {pipelineId && (
+        <label className="flex items-center gap-1.5 text-[11px] text-brand-muted"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} className="accent-[#8500FF]" /> Buscar en todos los pipelines</label>
+      )}
+      <div className="max-h-72 overflow-y-auto space-y-1">
+        {list === null && <div className="flex justify-center py-4"><Loader2 size={16} className="animate-spin text-brand-muted" /></div>}
+        {list !== null && items.length === 0 && <p className="text-xs text-brand-muted py-3 text-center">Sin resultados.</p>}
+        {items.map((d) => (
+          <button key={d.id} type="button" onClick={() => onPick(d)} className="w-full text-left px-3 py-2 rounded-xl border border-transparent hover:border-brand-violet hover:bg-brand-violet/10 transition">
+            <div className="text-sm text-brand-white truncate">{d.title}</div>
+            <div className="text-[11px] text-brand-muted truncate">{[d.companies?.name, d.pipelines?.name, d.pipeline_stages?.name, STATUS[d.status]?.[0]].filter(Boolean).join(' · ')}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Link personalizado de un trato: el cliente lo abre con sus datos ya puestos y lo que responda va a ese trato.
+export function DealLinkModal({ form, onClose }) {
+  const [deal, setDeal] = useState(null);
+  const [url, setUrl] = useState('');
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+  const pick = async (d) => {
+    setDeal(d); setUrl(''); setError(''); setCopied(false);
+    try { const r = await api.get(`/api/lead-forms/${form.id}/deal-link?deal_id=${d.id}`); setUrl(r.url); } catch (e) { setError(e.message || 'No se pudo generar el link.'); }
+  };
+  const copy = () => { navigator.clipboard?.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  return (
+    <Modal title="Link para un trato" subtitle={form.name} icon={Link2} onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-sm text-brand-muted">Elige el trato y copia su link. El cliente verá el formulario con su nombre, correo y marca ya llenos, y lo que responda se guarda en ese trato.</p>
+        {!deal ? <DealPicker pipelineId={form.pipeline_id} onPick={pick} /> : (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border">
+              <span className="text-sm text-brand-white truncate">{deal.title}</span>
+              <button type="button" onClick={() => { setDeal(null); setUrl(''); }} className="text-[11px] text-brand-ice hover:underline whitespace-nowrap">Cambiar trato</button>
+            </div>
+            {error && <div className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+            {url && (
+              <div className="flex items-center gap-2">
+                <input readOnly value={url} aria-label="Link del trato" className={`${inputCls} text-xs font-tech`} onFocus={(e) => e.target.select()} />
+                <button type="button" onClick={copy} className={primaryBtn}><span className="flex items-center gap-1.5 whitespace-nowrap">{copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Copiado' : 'Copiar'}</span></button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 const fmtDate = (iso) => new Date(iso).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' });
 const fmtDateTime = (iso) => new Date(iso).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
@@ -95,7 +173,7 @@ function QuestionSummary({ q }) {
   );
 }
 
-function ResponseRow({ r, fields, labels }) {
+function ResponseRow({ r, fields, labels, onAssign }) {
   const [open, setOpen] = useState(false);
   const st = STATUS[r.deal?.status];
   return (
@@ -117,7 +195,10 @@ function ResponseRow({ r, fields, labels }) {
             <div key={f.id}><div className="text-[11px] text-brand-muted">{f.label}</div><div className="text-brand-white whitespace-pre-wrap">{r.custom[f.id]}</div></div>
           ) : null))}
           {r.message && <div><div className="text-[11px] text-brand-muted">Mensaje</div><div className="text-brand-white whitespace-pre-wrap">{r.message}</div></div>}
-          {r.deal && <Link to={`/deals/${r.deal.id}`} className="inline-flex items-center gap-1 text-xs text-brand-ice hover:underline"><ExternalLink size={12} /> {r.deal.title}{r.deal.stage ? ` · ${r.deal.stage}` : ''}</Link>}
+          <div className="flex items-center gap-3 flex-wrap pt-1">
+            {r.deal && <Link to={`/deals/${r.deal.id}`} className="inline-flex items-center gap-1 text-xs text-brand-ice hover:underline"><ExternalLink size={12} /> {r.deal.title}{r.deal.stage ? ` · ${r.deal.stage}` : ''}</Link>}
+            {onAssign && <button type="button" onClick={() => onAssign(r)} className="inline-flex items-center gap-1 text-xs text-brand-muted hover:text-brand-ice"><ArrowRightLeft size={12} /> {r.deal ? 'Asignar a otro trato' : 'Asignar a un trato'}</button>}
+          </div>
         </div>
       )}
     </div>
@@ -128,7 +209,25 @@ export function ResponsesDrawer({ form, onClose }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [q, setQ] = useState('');
-  useEffect(() => { api.get(`/api/lead-forms/${form.id}/responses`).then(setData).catch((e) => setError(e.message || 'No se pudieron cargar las respuestas.')); }, [form.id]);
+  const [assigning, setAssigning] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const confirm = useConfirm();
+  const load = () => api.get(`/api/lead-forms/${form.id}/responses`).then(setData).catch((e) => setError(e.message || 'No se pudieron cargar las respuestas.'));
+  useEffect(() => { load(); }, [form.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const assign = async (deal) => {
+    const sub = assigning; setAssigning(null); setError('');
+    try {
+      const r = await api.post(`/api/lead-forms/submissions/${sub.id}/assign`, { deal_id: deal.id });
+      setNotice({ text: `La respuesta de ${sub.company || sub.name} quedó en «${deal.title}».`, autoDealId: r.previous_was_auto_created ? r.previous_deal_id : null, autoDealTitle: sub.deal?.title });
+      load();
+    } catch (e) { setError(e.message || 'No se pudo asignar.'); }
+  };
+  const deleteAutoDeal = async () => {
+    const ok = await confirm({ title: 'Borrar trato duplicado', message: `¿Borrar «${notice.autoDealTitle}»? Lo creó el formulario automáticamente y ya no tiene esta respuesta.`, confirmLabel: 'Borrar', danger: true });
+    if (!ok) return;
+    try { await api.delete(`/api/deals/${notice.autoDealId}`); setNotice({ text: 'Listo: el trato duplicado se borró.' }); load(); } catch (e) { setError(e.message || 'No se pudo borrar el trato.'); }
+  };
 
   const rows = useMemo(() => {
     if (!data) return [];
@@ -149,7 +248,24 @@ export function ResponsesDrawer({ form, onClose }) {
   return (
     <Drawer title="Respuestas y métricas" subtitle={form.name} icon={BarChart3} width="max-w-2xl" onClose={onClose}
       footer={data && data.rows.length > 0 ? <button type="button" onClick={download} className={primaryBtn}><span className="flex items-center gap-1.5"><Download size={14} /> Descargar CSV (Excel)</span></button> : null}>
-      {error && <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+      {error && <div className="mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+      {notice && (
+        <div role="status" className="mb-4 px-4 py-3 rounded-xl bg-green-500/10 border border-green-500/30 text-green-200 text-sm flex items-center gap-3 flex-wrap">
+          <span className="flex-1">{notice.text}</span>
+          {notice.autoDealId && <button type="button" onClick={deleteAutoDeal} className="text-xs px-2.5 py-1 rounded-lg border border-red-400/40 text-red-300 hover:bg-red-500/10">Borrar el trato que se había creado</button>}
+          <button type="button" onClick={() => setNotice(null)} aria-label="Cerrar aviso" className="text-green-200/70 hover:text-white"><X size={14} /></button>
+        </div>
+      )}
+      {assigning && (
+        <div className="mb-5 rounded-2xl border border-brand-violet/50 bg-brand-violet/5 p-4" role="region" aria-label="Asignar a un trato">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2 text-sm text-brand-white"><ArrowRightLeft size={14} className="text-brand-ice" /> Asignar la respuesta de <b>{assigning.company || assigning.name}</b> a un trato</div>
+            <button type="button" onClick={() => setAssigning(null)} className="text-xs text-brand-muted hover:text-white">Cancelar</button>
+          </div>
+          <p className="text-[11px] text-brand-muted mb-3">Las respuestas se copian al trato que elijas, con una nota.</p>
+          <DealPicker pipelineId={data?.form?.pipeline_id} excludeId={assigning.deal?.id} onPick={assign} />
+        </div>
+      )}
       {!data && !error && <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="skeleton h-20 rounded-xl" />)}</div>}
       {data && (
         <div className="space-y-6">
@@ -187,7 +303,7 @@ export function ResponsesDrawer({ form, onClose }) {
             {data.rows.length === 0 ? (
               <p className="text-sm text-brand-muted py-6 text-center border border-dashed border-brand-border rounded-xl">Todavía no hay respuestas. Comparte el link y aparecerán acá al instante.</p>
             ) : (
-              <div className="space-y-2">{rows.map((r) => <ResponseRow key={r.id} r={r} fields={data.fields} labels={data.form.settings?.labels || {}} />)}</div>
+              <div className="space-y-2">{rows.map((r) => <ResponseRow key={r.id} r={r} fields={data.fields} labels={data.form.settings?.labels || {}} onAssign={(r) => { setAssigning(r); document.querySelector('[role=dialog] .overflow-y-auto')?.scrollTo?.({ top: 0, behavior: 'smooth' }); }} />)}</div>
             )}
           </div>
         </div>
@@ -224,6 +340,7 @@ export function DesignDrawer({ form, fields, onClose, onSaved }) {
     theme: { ...(init.theme || {}) }, long_field_ids: [...(init.long_field_ids || [])], required_field_ids: [...(init.required_field_ids || [])],
     match_existing: init.match_existing !== false,
   });
+  const [slug, setSlug] = useState(form.slug || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState(false);
@@ -235,10 +352,13 @@ export function DesignDrawer({ form, fields, onClose, onSaved }) {
   const save = async () => {
     setSaving(true); setError('');
     try {
-      await api.patch(`/api/lead-forms/${form.id}`, { settings: s });
+      const body = { settings: s };
+      if ((slug || '') !== (form.slug || '')) body.slug = slug.trim() || null;
+      await api.patch(`/api/lead-forms/${form.id}`, body);
       onSaved?.(); onClose();
     } catch (e) {
-      setError(/settings/.test(e.message || '') ? 'Falta correr el script 066 en Supabase para guardar el diseño.' : (e.message || 'No se pudo guardar.'));
+      const m = e.message || '';
+      setError(/slug/.test(m) && /column|schema/i.test(m) ? 'Falta correr el script 067 en Supabase para el link corto.' : /settings/.test(m) ? 'Falta correr el script 066 en Supabase para guardar el diseño.' : (m || 'No se pudo guardar.'));
     } finally { setSaving(false); }
   };
 
@@ -253,6 +373,15 @@ export function DesignDrawer({ form, fields, onClose, onSaved }) {
       )}>
       <div className="space-y-6">
         {error && <div className="px-3.5 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+
+        <section className="space-y-2">
+          <div className="text-[11px] font-tech uppercase tracking-wide text-brand-muted">Link</div>
+          <div className="flex items-center rounded-xl border border-brand-border bg-brand-bg overflow-hidden focus-within:border-brand-violet">
+            <span className="pl-3 pr-1 text-xs font-tech text-brand-muted whitespace-nowrap">crm.bitproximity.com/public/</span>
+            <input aria-label="Link corto" value={slug} placeholder="bitmusic" onChange={(e) => setSlug(e.target.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))} className="flex-1 min-w-0 bg-transparent py-2.5 pr-3 text-sm text-brand-white font-tech focus:outline-none" />
+          </div>
+          <p className="text-[11px] text-brand-muted">Letras, números y guiones. El link anterior deja de funcionar si lo cambias.</p>
+        </section>
 
         <section className="space-y-3">
           <div className="text-[11px] font-tech uppercase tracking-wide text-brand-muted">Textos</div>

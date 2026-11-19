@@ -27,8 +27,9 @@ export default function LeadFormView({ form, onSubmit, preview = false }) {
   const L = s.labels || {};
   const req = s.required || {};
   const fields = form.custom_fields || [];
-  const [values, setValues] = useState({ name: '', email: '', phone: '', company: '', message: '', website: '' });
-  const [answers, setAnswers] = useState({});
+  const pre = form.prefill || {};
+  const [values, setValues] = useState({ name: pre.name || '', email: pre.email || '', phone: pre.phone || '', company: pre.company || '', message: '', website: '' });
+  const [answers, setAnswers] = useState(() => ({ ...(pre.custom_answers || {}) }));
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');

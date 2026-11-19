@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import LeadFormView, { DEFAULT_THEME } from '../components/LeadFormView';
 
@@ -16,22 +16,25 @@ function Shell({ children, bg = DEFAULT_THEME.background }) {
 }
 
 export default function PublicLeadForm() {
-  const { id } = useParams();
+  const { id: rawId, slug } = useParams();
+  const id = encodeURIComponent(rawId || slug || '');
+  // ?t=… = link personalizado de un trato: el formulario llega con los datos del cliente y la respuesta va a ese trato.
+  const token = new URLSearchParams(useLocation().search).get('t') || '';
   const [form, setForm] = useState(null);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/public/lead-forms/${id}`)
+    fetch(`${API_URL}/api/public/lead-forms/${id}${token ? `?t=${encodeURIComponent(token)}` : ''}`)
       .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then(setForm)
       .catch(() => setNotFound(true));
-  }, [id]);
+  }, [id, token]);
 
   const submit = async (payload) => {
     const r = await fetch(`${API_URL}/api/public/lead-forms/${id}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(token ? { ...payload, t: token } : payload),
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || 'No se pudo enviar el formulario.');

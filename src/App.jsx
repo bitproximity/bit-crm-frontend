@@ -114,6 +114,7 @@ export default function App() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/public/b2b/:token" element={<Suspense fallback={<PageFallback />}><PublicB2bReport /></Suspense>} />
             <Route path="/public/lead-forms/:id" element={<Suspense fallback={<PageFallback />}><PublicLeadForm /></Suspense>} />
+            <Route path="/public/:slug" element={<Suspense fallback={<PageFallback />}><PublicLeadForm /></Suspense>} />
             <Route element={<PrivateRoutes />}>
               <Route path="/" element={<Suspense fallback={<PageFallback />}><Dashboard /></Suspense>} />
               <Route path="/deals" element={<Suspense fallback={<PageFallback />}><Deals /></Suspense>} />

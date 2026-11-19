@@ -6,8 +6,8 @@ import {
   Type, Hash, Calendar, CheckSquare, List, ChevronUp, ChevronDown,
   Sparkles, Link2, Code2, Users2, Target, Eye,
 } from 'lucide-react';
-import { Inbox, ArrowRight, Radio, BarChart3, Palette, Music2 } from 'lucide-react';
-import { ResponsesDrawer, DesignDrawer, LeadFormPreview, toViewForm, iframeSnippet } from '../components/LeadFormPanels';
+import { Inbox, ArrowRight, Radio, BarChart3, Palette, Music2, UserRoundCheck } from 'lucide-react';
+import { ResponsesDrawer, DesignDrawer, LeadFormPreview, toViewForm, iframeSnippet, DealLinkModal, publicUrlOf } from '../components/LeadFormPanels';
 import { Drawer, Field, inputCls, selectCls, primaryBtn, ghostBtn } from '../components/Modal';
 import { colorForName, initials } from '../lib/avatar';
 
@@ -248,6 +248,7 @@ export default function LeadForms() {
   const [previewFormId, setPreviewFormId] = useState(null);
   const [responsesFor, setResponsesFor] = useState(null);
   const [designFor, setDesignFor] = useState(null);
+  const [dealLinkFor, setDealLinkFor] = useState(null);
   const [usingTemplate, setUsingTemplate] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -366,7 +367,7 @@ export default function LeadForms() {
 
       <div className="space-y-3">
         {forms?.map((f, idx) => {
-          const publicUrl = `${PUBLIC_APP_URL}/public/lead-forms/${f.id}`;
+          const publicUrl = publicUrlOf(f);
           const formFields = (f.field_ids || []).map((id) => dealFields.find((df) => df.id === id)).filter(Boolean);
           const ownerName = f.team_members?.full_name;
           return (
@@ -427,6 +428,9 @@ export default function LeadForms() {
                   </div>
                   <button onClick={() => setResponsesFor(f)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-violet/15 border border-brand-violet/40 text-xs text-brand-ice hover:border-brand-violet transition">
                     <BarChart3 size={13} /> Respuestas y métricas
+                  </button>
+                  <button onClick={() => setDealLinkFor(f)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
+                    <UserRoundCheck size={13} /> Link para un trato
                   </button>
                   <button onClick={() => setDesignFor(f)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
                     <Palette size={13} /> Diseño y textos
@@ -511,6 +515,7 @@ export default function LeadForms() {
         return <LeadFormPreview form={toViewForm(previewForm, previewFields)} onClose={() => setPreviewFormId(null)} />;
       })()}
 
+      {dealLinkFor && <DealLinkModal form={dealLinkFor} onClose={() => setDealLinkFor(null)} />}
       {responsesFor && <ResponsesDrawer form={responsesFor} onClose={() => setResponsesFor(null)} />}
       {designFor && (
         <DesignDrawer

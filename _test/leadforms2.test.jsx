@@ -17,7 +17,7 @@ vi.mock('../src/lib/api', () => ({
 import LeadFormView from '../src/components/LeadFormView.jsx';
 import PublicLeadForm from '../src/pages/PublicLeadForm.jsx';
 import LeadForms from '../src/pages/LeadForms.jsx';
-import { ResponsesDrawer, DesignDrawer, responsesCsv } from '../src/components/LeadFormPanels.jsx';
+import { ResponsesDrawer, DesignDrawer, responsesCsv, DealLinkModal } from '../src/components/LeadFormPanels.jsx';
 import { ConfirmProvider } from '../src/components/ConfirmModal.jsx';
 
 const SETTINGS = {
@@ -113,7 +113,7 @@ const RESP = {
 describe('Respuestas y métricas', () => {
   it('muestra totales, reparto por opción, estadísticas numéricas y cada respuesta con su trato', async () => {
     responses['/api/lead-forms/f1/responses'] = RESP;
-    render(<MemoryRouter><ResponsesDrawer form={{ id: 'f1', name: FORM.name }} onClose={() => {}} /></MemoryRouter>);
+    render(<ConfirmProvider><MemoryRouter><ResponsesDrawer form={{ id: 'f1', name: FORM.name }} onClose={() => {}} /></MemoryRouter></ConfirmProvider>);
     expect(await screen.findByText('2 a tratos existentes')).toBeTruthy();
     expect(screen.getByText('100% de los cerrados')).toBeTruthy();
     expect(screen.getByText('202')).toBeTruthy();
@@ -134,7 +134,7 @@ describe('Respuestas y métricas', () => {
   it('si falta el script 066, lo dice', async () => {
     const { api } = await import('../src/lib/api');
     api.get.mockImplementationOnce(async () => { throw new Error('Falta correr el script 066 en Supabase para guardar las respuestas.'); });
-    render(<MemoryRouter><ResponsesDrawer form={{ id: 'f1', name: 'X' }} onClose={() => {}} /></MemoryRouter>);
+    render(<ConfirmProvider><MemoryRouter><ResponsesDrawer form={{ id: 'f1', name: 'X' }} onClose={() => {}} /></MemoryRouter></ConfirmProvider>);
     expect(await screen.findByText(/script 066/)).toBeTruthy();
   });
 });
@@ -188,5 +188,64 @@ describe('Diseño: cada campo de contacto puede ser obligatorio', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     await waitFor(() => expect(calls.patch.length).toBe(1));
     expect(calls.patch[0][1].settings.required).toMatchObject({ phone: true });
+  });
+});
+
+describe('Link corto, link por trato y reasignar', () => {
+  it('/public/bitmusic?t=… pide el formulario por su link corto con el token, llega precargado y el envío lleva el token', async () => {
+    const seen = [];
+    vi.stubGlobal('fetch', vi.fn(async (url, opts) => {
+      seen.push([String(url), opts]);
+      if (!opts) return { ok: true, json: async () => ({ ...FORM, custom_fields: FIELDS, prefill: { name: 'Rosa Díaz', email: 'rosa@calesa.pa', phone: '', company: 'Grupo Calesa', custom_answers: { q1: '40' } } }) };
+      return { ok: true, status: 201, json: async () => ({ ok: true }) };
+    }));
+    const { container } = render(<MemoryRouter initialEntries={['/public/bitmusic?t=abc.firma']}><Routes><Route path="/public/lead-forms/:id" element={<PublicLeadForm />} /><Route path="/public/:slug" element={<PublicLeadForm />} /></Routes></MemoryRouter>);
+    await screen.findByText('Musicalizamos espacios comerciales');
+    expect(seen[0][0]).toMatch(/\/api\/public\/lead-forms\/bitmusic\?t=abc\.firma$/);
+    expect(container.querySelector('#lf-name').value).toBe('Rosa Díaz');
+    expect(container.querySelector('#lf-company').value).toBe('Grupo Calesa');
+    expect(container.querySelector('#lf-q1').value).toBe('40');
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }));
+    await waitFor(() => expect(seen.some(([, o]) => o?.method === 'POST')).toBe(true));
+    const [url, opts] = seen.find(([, o]) => o?.method === 'POST');
+    expect(url).toMatch(/lead-forms\/bitmusic\/submit$/);
+    expect(JSON.parse(opts.body)).toMatchObject({ t: 'abc.firma', name: 'Rosa Díaz', custom_answers: { q1: '40' } });
+  });
+
+  it('«Link para un trato»: buscas el trato y copias su link', async () => {
+    responses['/api/deals?'] = [{ id: 'd9', title: 'Grupo Calesa · Bit Music', status: 'abierto', companies: { name: 'Grupo Calesa' }, pipelines: { name: 'Bit Music' } }];
+    responses['/api/lead-forms/f1/deal-link'] = { url: 'https://crm.bitproximity.com/public/bitmusic?t=d9.sig', deal: { id: 'd9' } };
+    render(<DealLinkModal form={{ id: 'f1', name: FORM.name, pipeline_id: 'p-music' }} onClose={() => {}} />);
+    fireEvent.click(await screen.findByText('Grupo Calesa · Bit Music'));
+    expect(await screen.findByDisplayValue('https://crm.bitproximity.com/public/bitmusic?t=d9.sig')).toBeTruthy();
+    expect(calls.get.some((p) => p.startsWith('/api/deals?') && p.includes('pipeline_id=p-music'))).toBe(true);
+    expect(calls.get).toContain('/api/lead-forms/f1/deal-link?deal_id=d9');
+  });
+
+  it('reasignar una respuesta a otro trato y borrar el duplicado que se había creado', async () => {
+    const { api } = await import('../src/lib/api');
+    responses['/api/lead-forms/f1/responses'] = { ...RESP, form: { ...RESP.form, pipeline_id: 'p-music' } };
+    responses['/api/deals?'] = [{ id: 'd-toks', title: 'Toks · Bit Music', status: 'ganado' }, { id: 'd-cal', title: 'Grupo Calesa · Bit Music', status: 'abierto' }];
+    responses['POST /api/lead-forms/submissions/s1/assign'] = { ok: true, previous_deal_id: 'd2', previous_was_auto_created: true };
+    render(<ConfirmProvider><MemoryRouter><ResponsesDrawer form={{ id: 'f1', name: FORM.name }} onClose={() => {}} /></MemoryRouter></ConfirmProvider>);
+    fireEvent.click(await screen.findByText('Pollo "Feliz"'));
+    fireEvent.click(screen.getByRole('button', { name: /Asignar a otro trato/ }));
+    fireEvent.click(await screen.findByText('Grupo Calesa · Bit Music'));
+    await waitFor(() => expect(calls.post.some(([p]) => p === '/api/lead-forms/submissions/s1/assign')).toBe(true));
+    expect(calls.post.find(([p]) => p === '/api/lead-forms/submissions/s1/assign')[1]).toEqual({ deal_id: 'd-cal' });
+    fireEvent.click(await screen.findByRole('button', { name: /Borrar el trato que se había creado/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Borrar' }));
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/api/deals/d2'));
+  });
+
+  it('el link corto se edita en «Diseño y textos» y se limpia al escribir', async () => {
+    render(<DesignDrawer form={{ id: 'f1', name: 'X', slug: 'bitmusic', settings: {} }} fields={[]} onClose={() => {}} />);
+    const input = screen.getByLabelText('Link corto');
+    expect(input.value).toBe('bitmusic');
+    fireEvent.change(input, { target: { value: 'Brief Música' } });
+    expect(input.value).toBe('brief-musica');
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(calls.patch.length).toBe(1));
+    expect(calls.patch[0][1].slug).toBe('brief-musica');
   });
 });
