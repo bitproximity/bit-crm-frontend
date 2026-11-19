@@ -266,9 +266,9 @@ export function DesignDrawer({ form, fields, onClose, onSaved }) {
           <div className="text-[11px] font-tech uppercase tracking-wide text-brand-muted">Marca</div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Nombre de la marca"><input className={inputCls} value={t.brand_name || ''} onChange={(e) => setIn('theme', 'brand_name', e.target.value)} /></Field>
-            <Field label="Logo (URL https)"><input className={inputCls} value={t.logo_url || ''} placeholder="https://…/logo.png" onChange={(e) => setIn('theme', 'logo_url', e.target.value)} /></Field>
+            <Field label="Logo (URL)"><input className={inputCls} value={t.logo_url || ''} placeholder="https://…/logo.png o /brands/…" onChange={(e) => setIn('theme', 'logo_url', e.target.value)} /></Field>
           </div>
-          {t.logo_url && /^https:\/\//.test(t.logo_url) && <div className="rounded-xl p-3 flex justify-center" style={{ background: t.background }}><img src={t.logo_url} alt="Logo" className="h-8 w-auto" /></div>}
+          {t.logo_url && /^(https:\/\/|\/[^/])/.test(t.logo_url) && <div className="rounded-xl p-3 flex justify-center" style={{ background: t.background }}><img src={t.logo_url} alt="Logo" className="h-8 w-auto" /></div>}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <ColorInput label="Principal" value={t.primary} onChange={(v) => setIn('theme', 'primary', v)} />
             <ColorInput label="Secundario" value={t.secondary} onChange={(v) => setIn('theme', 'secondary', v)} />
