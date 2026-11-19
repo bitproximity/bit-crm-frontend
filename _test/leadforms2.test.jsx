@@ -1,6 +1,6 @@
 // Formularios con marca (réplica del de forms.app de Bit Music), respuestas y métricas.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 const calls = { get: [], post: [], patch: [] };
@@ -174,8 +174,9 @@ describe('Pantalla de formularios', () => {
     wrap();
     await screen.findByText(FORM.name, { selector: 'h3' });
     fireEvent.click(screen.getByRole('button', { name: /^Vista previa$/ }));
-    expect(await screen.findByAltText('Bit Music')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }));
+    const dlg = await screen.findByRole('dialog', { name: 'Vista previa del formulario' });
+    expect(within(dlg).getByAltText('Bit Music')).toBeTruthy();
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Enviar' }));
     expect(screen.getByRole('alert').textContent).toMatch(/Faltan 3|Vista previa/);
   });
 });
@@ -247,5 +248,34 @@ describe('Link corto, link por trato y reasignar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
     await waitFor(() => expect(calls.patch.length).toBe(1));
     expect(calls.patch[0][1].slug).toBe('brief-musica');
+  });
+});
+
+describe('Tarjetas de formularios (rediseño)', () => {
+  const wrap = () => render(<ConfirmProvider><MemoryRouter><LeadForms /></MemoryRouter></ConfirmProvider>);
+  it('muestra el logo de la marca, el link corto completo, el contador y agrupa lo secundario en el menú ⋯', async () => {
+    responses['/api/lead-forms'] = [{ id: 'f1', slug: 'bitmusic', name: FORM.name, active: true, submissions_count: 3, field_ids: ['q1'], settings: SETTINGS, pipelines: { name: 'Bit Music' }, pipeline_stages: { name: 'Prospecto' } }];
+    responses['/api/custom-fields'] = [{ id: 'q1', label: 'Puntos', field_type: 'number' }];
+    wrap();
+    const card = await screen.findByRole('article', { name: FORM.name });
+    expect(within(card).getByAltText('Bit Music')).toBeTruthy();
+    expect(within(card).getByText('crm.bitproximity.com/public/bitmusic')).toBeTruthy();
+    expect(within(card).getByText('1 pregunta')).toBeTruthy();
+    expect(within(card).getByRole('switch', { name: /Pausar/ }).getAttribute('aria-checked')).toBe('true');
+    expect(within(card).queryByText('Borrar formulario')).toBeNull();
+    fireEvent.click(within(card).getByRole('button', { name: 'Más acciones' }));
+    expect(screen.getByRole('menuitem', { name: /Borrar formulario/ })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /Copiar código para tu web/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('menuitem', { name: /Editar preguntas/ }));
+    expect(within(card).getByRole('button', { name: /1 pregunta/ }).getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('ofrece la plantilla Bitwifi y la crea en el servidor', async () => {
+    responses['/api/lead-forms'] = [{ id: 'f1', name: 'Bit Music · Perfil musical de la marca', active: true, field_ids: [], settings: {}, pipelines: {}, pipeline_stages: {} }];
+    wrap();
+    await screen.findByRole('article', { name: 'Bit Music · Perfil musical de la marca' });
+    expect(screen.queryByRole('button', { name: /Plantilla Bit Music/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Plantilla Bitwifi/ }));
+    await waitFor(() => expect(calls.post.some(([p]) => p === '/api/lead-forms/templates/bitwifi')).toBe(true));
   });
 });

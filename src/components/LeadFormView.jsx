@@ -182,7 +182,7 @@ const CSS = `
 .lf-root::before{content:"";position:absolute;inset:-20% -10% auto -10%;height:520px;background:radial-gradient(ellipse at 30% 0%,rgba(var(--lf-p-rgb),.28),transparent 60%),radial-gradient(ellipse at 85% 10%,rgba(var(--lf-s-rgb),.18),transparent 55%);pointer-events:none}
 .lf-wrap{position:relative;max-width:620px;margin:0 auto;padding:40px 16px 56px}
 .lf-head{display:flex;justify-content:center;margin-bottom:28px;min-height:8px}
-.lf-logo{height:40px;width:auto;max-width:220px;object-fit:contain}
+.lf-logo{height:44px;width:auto;max-width:240px;object-fit:contain}
 .lf-brand{font-family:Sora,sans-serif;font-weight:700;font-size:20px;background:linear-gradient(90deg,#fff,var(--lf-s));-webkit-background-clip:text;background-clip:text;color:transparent}
 .lf-card{position:relative;background:var(--lf-card);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:32px 28px;box-shadow:0 30px 80px -30px rgba(var(--lf-p-rgb),.45),inset 0 1px 0 rgba(255,255,255,.04)}
 @media (max-width:480px){.lf-card{padding:24px 18px;border-radius:20px}.lf-wrap{padding-top:28px}}

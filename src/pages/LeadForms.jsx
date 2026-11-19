@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { useConfirm } from '../components/ConfirmModal';
 import {
@@ -6,7 +6,7 @@ import {
   Type, Hash, Calendar, CheckSquare, List, ChevronUp, ChevronDown,
   Sparkles, Link2, Code2, Users2, Target, Eye,
 } from 'lucide-react';
-import { Inbox, ArrowRight, Radio, BarChart3, Palette, Music2, UserRoundCheck } from 'lucide-react';
+import { Inbox, ArrowRight, Radio, BarChart3, Palette, UserRoundCheck, MoreHorizontal, ExternalLink, ListChecks } from 'lucide-react';
 import { ResponsesDrawer, DesignDrawer, LeadFormPreview, toViewForm, iframeSnippet, DealLinkModal, publicUrlOf } from '../components/LeadFormPanels';
 import { Drawer, Field, inputCls, selectCls, primaryBtn, ghostBtn } from '../components/Modal';
 import { colorForName, initials } from '../lib/avatar';
@@ -236,6 +236,144 @@ function Switch({ on, onChange, label }) {
   );
 }
 
+// Plantillas listas para crear con un clic (las define el backend: /api/lead-forms/templates/:key).
+const TEMPLATES = [
+  { key: 'bitmusic', name: 'Bit Music · Perfil musical de la marca', label: 'Bit Music', logo: '/brands/bitmusic-logo.png' },
+  { key: 'bitwifi', name: 'Bitwifi · Brief WiFi Marketing', label: 'Bitwifi', logo: '/brands/bitwifi-logo.png' },
+];
+
+function ActionsMenu({ items }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', close); document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', esc); };
+  }, [open]);
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open} aria-label="Más acciones" className="icon-btn w-9 h-9 rounded-xl flex items-center justify-center text-brand-muted hover:text-white hover:bg-white/5 transition">
+        <MoreHorizontal size={17} />
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 mt-1.5 w-56 bg-brand-panel border border-brand-border rounded-xl shadow-2xl shadow-black/40 z-30 py-1.5 overlay-in">
+          {items.filter(Boolean).map((it) => (it === '-' ? <div key={Math.random()} className="my-1.5 h-px bg-brand-border" /> : (
+            <button key={it.label} role="menuitem" type="button" onClick={() => { setOpen(false); it.onClick(); }} className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-left transition ${it.danger ? 'text-red-300 hover:bg-red-500/10' : 'text-brand-white hover:bg-white/5'}`}>
+              <it.icon size={14} className={it.danger ? '' : 'text-brand-muted'} /> {it.label}
+            </button>
+          )))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FormCard({ f, idx, formFields, copiedId, editingFields, onToggleFields, questionsEditor, onToggleActive, onRemove, onCopy, onResponses, onDealLink, onDesign, onPreview }) {
+  const theme = { primary: '#8500FF', secondary: '#E000FF', background: '#080712', ...(f.settings?.theme || {}) };
+  const publicUrl = publicUrlOf(f);
+  const shortUrl = publicUrl.replace(/^https?:\/\//, '');
+  const ownerName = f.team_members?.full_name;
+  const count = f.submissions_count || 0;
+  const linkCopied = copiedId === `link-${f.id}`;
+  const embed = () => onCopy(f.settings?.theme?.logo_url || f.settings?.title ? iframeSnippet(publicUrl, f.settings?.title || f.name) : embedSnippet(f.id, formFields), `embed-${f.id}`);
+  return (
+    <article
+      className={`group relative bg-brand-panel border border-brand-border rounded-2xl panel-depth stagger-item transition hover:border-brand-violet/40 ${f.active ? '' : 'opacity-75 hover:opacity-100'}`}
+      style={{ animationDelay: `${Math.min(idx, 8) * 40}ms` }}
+      aria-label={f.name}
+    >
+      {/* Franja con los colores de la marca del formulario */}
+      <div className="h-1 rounded-t-2xl" style={{ background: f.active ? `linear-gradient(90deg, ${theme.primary}, ${theme.secondary})` : 'rgba(255,255,255,.08)' }} />
+      <div className="p-5 sm:p-6">
+        <div className="grid gap-x-4 gap-y-3 grid-cols-[auto_1fr] sm:grid-cols-[auto_1fr_auto] items-start">
+          <div className="row-start-1 col-start-1 w-[104px] h-14 rounded-xl flex items-center justify-center flex-shrink-0 border border-white/5 overflow-hidden" style={{ background: theme.background }}>
+            {theme.logo_url
+              ? <img src={theme.logo_url} alt={theme.brand_name || ''} className="max-w-[84px] max-h-9 object-contain" />
+              : <ClipboardList size={20} className="text-brand-ice" />}
+          </div>
+
+          <div className="min-w-0 col-span-2 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+                <h3 className="font-headline font-semibold text-[17px] leading-tight sm:truncate">{f.name}</h3>
+                <div className="flex items-center gap-x-3 gap-y-1.5 text-xs text-brand-muted mt-2 flex-wrap">
+                  <span className="flex items-center gap-1.5 whitespace-nowrap"><Target size={12} /> {f.pipelines?.name || 'Sin pipeline'} <ArrowRight size={10} className="opacity-50" /> {f.pipeline_stages?.name || 'Sin etapa'}</span>
+                  <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-brand-border" aria-hidden="true" />
+                  <span className="flex items-center gap-1.5 whitespace-nowrap">
+                    {ownerName ? <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-tech font-bold text-white" style={{ background: colorForName(ownerName) }}>{initials(ownerName)}</span> : <Users2 size={12} />}
+                    {ownerName || 'Sin dueño'}
+                  </span>
+                  <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-brand-border" aria-hidden="true" />
+                  <button type="button" onClick={onToggleFields} aria-expanded={editingFields} className="flex items-center gap-1 whitespace-nowrap hover:text-brand-ice transition">
+                    <ListChecks size={12} /> {formFields.length ? `${formFields.length} pregunta${formFields.length === 1 ? '' : 's'}` : 'Solo datos básicos'}
+                    <ChevronDown size={11} className={`transition-transform ${editingFields ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+          </div>
+
+              <div className="row-start-1 col-start-2 sm:col-start-3 justify-self-end flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  type="button" role="switch" aria-checked={!!f.active} onClick={onToggleActive}
+                  aria-label={f.active ? `Pausar ${f.name}` : `Reactivar ${f.name}`}
+                  title={f.active ? 'Recibiendo respuestas — clic para pausar' : 'Pausado: el link no recibe respuestas — clic para activar'}
+                  className={`flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 rounded-full border text-[11px] font-medium transition ${f.active ? 'border-green-500/30 bg-green-500/10 text-green-300 hover:bg-green-500/15' : 'border-brand-border bg-brand-bg text-brand-muted hover:text-white'}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${f.active ? 'bg-green-400 shadow-[0_0_8px] shadow-green-400' : 'bg-brand-muted'}`} />
+                  {f.active ? 'Activo' : 'Pausado'}
+                  <span className={`relative w-7 h-4 rounded-full transition-colors ${f.active ? 'bg-green-500' : 'bg-brand-border'}`}>
+                    <span className={`absolute left-0 top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${f.active ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                  </span>
+                </button>
+                <ActionsMenu items={[
+                  { label: 'Vista previa', icon: Eye, onClick: onPreview },
+                  { label: 'Abrir formulario', icon: ExternalLink, onClick: () => window.open(publicUrl, '_blank', 'noopener') },
+                  { label: editingFields ? 'Cerrar preguntas' : 'Editar preguntas', icon: Sparkles, onClick: onToggleFields },
+                  { label: 'Copiar código para tu web', icon: Code2, onClick: embed },
+                  '-',
+                  { label: 'Borrar formulario', icon: Trash2, onClick: onRemove, danger: true },
+                ]} />
+              </div>
+        </div>
+
+        {editingFields && (
+          <div className="mt-5 pt-5 border-t border-brand-border">{questionsEditor}</div>
+        )}
+
+        <div className="mt-5 grid gap-3 lg:grid-cols-[auto,1fr] items-stretch">
+          <button type="button" onClick={onResponses} className="flex items-center gap-3 pl-3.5 pr-4 py-2.5 rounded-xl bg-brand-bg border border-brand-border hover:border-brand-violet/60 transition text-left" title="Ver respuestas y métricas">
+            <span className="font-headline text-2xl font-semibold leading-none text-brand-ice tabular-nums">{count.toLocaleString('es')}</span>
+            <span className="text-[11px] leading-tight text-brand-muted">{count === 1 ? 'respuesta' : 'respuestas'}<br /><span className="text-brand-ice/80">ver métricas</span></span>
+          </button>
+
+          <div className="flex items-center gap-2 min-w-0 rounded-xl bg-brand-bg border border-brand-border pl-3.5 pr-1.5 py-1.5">
+            <Link2 size={14} className="text-brand-muted flex-shrink-0" />
+            <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0 truncate text-xs font-tech text-brand-white/90 hover:text-brand-ice" title={publicUrl}>{shortUrl}</a>
+            <button type="button" onClick={() => onCopy(publicUrl, `link-${f.id}`)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition flex-shrink-0 ${linkCopied ? 'bg-green-500/15 text-green-300' : 'bg-white/5 text-brand-white hover:bg-white/10'}`}>
+              {linkCopied ? <Check size={13} /> : <Copy size={13} />} {linkCopied ? 'Copiado' : 'Copiar link'}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
+          <button type="button" onClick={onResponses} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 transition shadow-lg shadow-brand-violet/20">
+            <BarChart3 size={14} /> Respuestas y métricas
+          </button>
+          <button type="button" onClick={onDealLink} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs bg-brand-bg border border-brand-border hover:border-brand-violet transition">
+            <UserRoundCheck size={14} className="text-brand-ice" /> Link para un trato
+          </button>
+          <button type="button" onClick={onDesign} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs bg-brand-bg border border-brand-border hover:border-brand-violet transition">
+            <Palette size={14} className="text-brand-ice" /> Diseño y textos
+          </button>
+          <button type="button" onClick={onPreview} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs text-brand-muted hover:text-white transition">
+            <Eye size={14} /> Vista previa
+          </button>
+          {copiedId === `embed-${f.id}` && <span className="text-[11px] text-green-300 flex items-center gap-1"><Check size={12} /> Código copiado</span>}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function LeadForms() {
   const confirm = useConfirm();
   const [forms, setForms] = useState(null);
@@ -249,7 +387,7 @@ export default function LeadForms() {
   const [responsesFor, setResponsesFor] = useState(null);
   const [designFor, setDesignFor] = useState(null);
   const [dealLinkFor, setDealLinkFor] = useState(null);
-  const [usingTemplate, setUsingTemplate] = useState(false);
+  const [usingTemplate, setUsingTemplate] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -284,7 +422,7 @@ export default function LeadForms() {
   };
 
   const applyTemplate = async (key) => {
-    setError(''); setUsingTemplate(true);
+    setError(''); setUsingTemplate(key);
     try {
       const created = await api.post(`/api/lead-forms/templates/${key}`);
       await Promise.all([load(), api.get('/api/custom-fields?entity_type=deal').then(setDealFields).catch(() => {})]);
@@ -292,7 +430,7 @@ export default function LeadForms() {
     } catch (err) {
       setError(err.message || 'No se pudo crear desde la plantilla.');
     } finally {
-      setUsingTemplate(false);
+      setUsingTemplate(null);
     }
   };
 
@@ -332,11 +470,12 @@ export default function LeadForms() {
           <p className="text-brand-muted text-sm mt-1.5 max-w-2xl">Cada envío crea (o reutiliza) contacto y empresa, y cae directo a un trato en el pipeline y etapa que elijas. Agrega tus propias preguntas para llevar mejor data.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {!(forms || []).some((f) => f.name === 'Bit Music · Perfil musical de la marca') && (
-            <button onClick={() => applyTemplate('bitmusic')} disabled={usingTemplate} className="px-4 py-2.5 rounded-xl border border-brand-border hover:border-brand-violet transition text-sm flex items-center gap-1.5 disabled:opacity-50">
-              <Music2 size={15} className="text-brand-ice" /> {usingTemplate ? 'Creando…' : 'Plantilla Bit Music'}
+          {TEMPLATES.filter((t) => !(forms || []).some((f) => f.name === t.name)).map((t) => (
+            <button key={t.key} onClick={() => applyTemplate(t.key)} disabled={!!usingTemplate} className="px-3.5 py-2.5 rounded-xl border border-brand-border bg-brand-panel hover:border-brand-violet transition text-sm flex items-center gap-2 disabled:opacity-50">
+              <img src={t.logo} alt="" className="h-4 w-auto" />
+              {usingTemplate === t.key ? 'Creando…' : `Plantilla ${t.label}`}
             </button>
-          )}
+          ))}
           <button onClick={() => { setError(''); setShowForm(true); }} className="px-4 py-2.5 bg-gradient-to-r from-brand-violet to-brand-magenta hover:opacity-90 transition rounded-xl text-sm font-medium flex items-center gap-1.5">
             <Plus size={15} /> Nuevo formulario
           </button>
@@ -365,90 +504,26 @@ export default function LeadForms() {
         </div>
       )}
 
-      <div className="space-y-3">
-        {forms?.map((f, idx) => {
-          const publicUrl = publicUrlOf(f);
-          const formFields = (f.field_ids || []).map((id) => dealFields.find((df) => df.id === id)).filter(Boolean);
-          const ownerName = f.team_members?.full_name;
-          return (
-            <div key={f.id} className="relative bg-brand-panel border border-brand-border rounded-2xl panel-depth overflow-hidden stagger-item" style={{ animationDelay: `${Math.min(idx, 8) * 40}ms` }}>
-              <div className={`absolute left-0 top-0 bottom-0 w-1 ${f.active ? 'bg-green-500' : 'bg-brand-border'}`} />
-              <div className="p-5 pl-6">
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div className="min-w-0">
-                    <h3 className="font-manrope font-semibold text-base truncate">{f.name}</h3>
-                    <div className="flex items-center gap-2 text-xs text-brand-muted mt-1.5 flex-wrap">
-                      <span className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-brand-bg border border-brand-border/70">
-                        <Target size={11} /> {f.pipelines?.name || 'Sin pipeline'} <ArrowRight size={10} className="opacity-60" /> {f.pipeline_stages?.name || 'Sin etapa'}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        {ownerName ? (
-                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-tech font-bold text-white" style={{ background: colorForName(ownerName) }}>{initials(ownerName)}</span>
-                        ) : <Users2 size={12} />}
-                        {ownerName || 'Sin dueño'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 flex-shrink-0">
-                    <div className="text-right">
-                      <div className="font-headline text-xl font-semibold leading-none text-brand-ice">{(f.submissions_count || 0).toLocaleString('es')}</div>
-                      <div className="text-[10px] text-brand-muted mt-1">{f.submissions_count === 1 ? 'envío' : 'envíos'}</div>
-                    </div>
-                    <div className="flex items-center gap-2" title={f.active ? 'Recibiendo envíos' : 'Pausado: el link no recibe envíos'}>
-                      <Switch on={!!f.active} onChange={() => toggleActive(f)} label={f.active ? `Pausar ${f.name}` : `Reactivar ${f.name}`} />
-                      <span className={`text-[10px] font-tech uppercase w-12 ${f.active ? 'text-green-300' : 'text-brand-muted'}`}>{f.active ? 'Activo' : 'Pausado'}</span>
-                    </div>
-                    <button onClick={() => remove(f)} aria-label={`Borrar ${f.name}`} title="Borrar formulario" className="icon-btn p-2 rounded-lg text-brand-muted hover:text-red-400 hover:bg-red-500/10 transition"><Trash2 size={15} /></button>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 flex-wrap mb-3">
-                  <span className="text-[10px] font-tech uppercase tracking-wide text-brand-muted mr-1">Preguntas</span>
-                  {formFields.slice(0, 5).map((q) => {
-                    const QIcon = TYPE_META[q.field_type]?.icon || Type;
-                    return <span key={q.id} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-brand-violet/10 text-brand-ice text-[11px]"><QIcon size={10} /> {q.label}</span>;
-                  })}
-                  {formFields.length > 5 && <span className="text-[11px] text-brand-muted">+{formFields.length - 5} más</span>}
-                  {formFields.length === 0 && <span className="text-[11px] text-brand-muted">Solo los datos básicos (nombre, correo, teléfono, empresa, mensaje)</span>}
-                  <button onClick={() => setEditingFieldsId(editingFieldsId === f.id ? null : f.id)} className="flex items-center gap-1 text-xs text-brand-ice hover:underline ml-1">
-                    <Sparkles size={11} /> {editingFieldsId === f.id ? 'Cerrar editor' : formFields.length ? 'Editar preguntas' : 'Agregar preguntas'}
-                  </button>
-                </div>
-
-                {editingFieldsId === f.id && (
-                  <div className="mb-3">
-                    <QuestionsEditor allFields={dealFields} selectedIds={f.field_ids || []} onChange={(ids) => saveFieldIds(f, ids)} onFieldCreated={onFieldCreated} />
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className="flex-1 min-w-[220px] flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border">
-                    <Link2 size={13} className="text-brand-muted flex-shrink-0" />
-                    <input readOnly aria-label="Link público" value={publicUrl} className="flex-1 min-w-0 bg-transparent text-xs font-tech text-brand-muted focus:outline-none focus-visible:outline-none focus:shadow-none" />
-                  </div>
-                  <button onClick={() => setResponsesFor(f)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-violet/15 border border-brand-violet/40 text-xs text-brand-ice hover:border-brand-violet transition">
-                    <BarChart3 size={13} /> Respuestas y métricas
-                  </button>
-                  <button onClick={() => setDealLinkFor(f)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
-                    <UserRoundCheck size={13} /> Link para un trato
-                  </button>
-                  <button onClick={() => setDesignFor(f)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
-                    <Palette size={13} /> Diseño y textos
-                  </button>
-                  <button onClick={() => setPreviewFormId(f.id)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
-                    <Eye size={13} /> Vista previa
-                  </button>
-                  <button onClick={() => copy(publicUrl, `link-${f.id}`)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
-                    {copiedId === `link-${f.id}` ? <Check size={13} className="text-green-300" /> : <Copy size={13} />} {copiedId === `link-${f.id}` ? 'Copiado' : 'Copiar link'}
-                  </button>
-                  <button onClick={() => copy(f.settings?.theme?.logo_url || f.settings?.title ? iframeSnippet(publicUrl, f.settings?.title || f.name) : embedSnippet(f.id, formFields), `embed-${f.id}`)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-bg border border-brand-border text-xs hover:border-brand-violet transition">
-                    {copiedId === `embed-${f.id}` ? <Check size={13} className="text-green-300" /> : <Code2 size={13} />} {copiedId === `embed-${f.id}` ? 'Copiado' : 'Código para tu web'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      <div className="space-y-4">
+        {forms?.map((f, idx) => (
+          <FormCard
+            key={f.id}
+            f={f}
+            idx={idx}
+            formFields={(f.field_ids || []).map((id) => dealFields.find((df) => df.id === id)).filter(Boolean)}
+            copiedId={copiedId}
+            editingFields={editingFieldsId === f.id}
+            onToggleFields={() => setEditingFieldsId(editingFieldsId === f.id ? null : f.id)}
+            questionsEditor={<QuestionsEditor allFields={dealFields} selectedIds={f.field_ids || []} onChange={(ids) => saveFieldIds(f, ids)} onFieldCreated={onFieldCreated} />}
+            onToggleActive={() => toggleActive(f)}
+            onRemove={() => remove(f)}
+            onCopy={copy}
+            onResponses={() => setResponsesFor(f)}
+            onDealLink={() => setDealLinkFor(f)}
+            onDesign={() => setDesignFor(f)}
+            onPreview={() => setPreviewFormId(f.id)}
+          />
+        ))}
       </div>
 
       {showForm && (
