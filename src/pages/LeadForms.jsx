@@ -240,6 +240,7 @@ function Switch({ on, onChange, label }) {
 const TEMPLATES = [
   { key: 'bitmusic', name: 'Bit Music · Perfil musical de la marca', label: 'Bit Music', logo: '/brands/bitmusic-logo.png' },
   { key: 'bitwifi', name: 'Bitwifi · Brief WiFi Marketing', label: 'Bitwifi', logo: '/brands/bitwifi-logo.png' },
+  { key: 'bitsignage', name: 'Bit Signage · Brief Cartelería Digital', label: 'Bit Signage', logo: '/brands/bitsignage-logo.png' },
 ];
 
 function ActionsMenu({ items }) {
