@@ -71,7 +71,8 @@ export function hardwareOptionsForPipeline(pipelineName) {
 export default function B2bRecordModal({ clientId, record, onClose, onSaved }) {
   const confirm = useConfirm();
   const [team, setTeam] = useState([]);
-  useEffect(() => { api.get('/api/team').then(setTeam).catch(() => setTeam([])); }, []);
+  // Solo el equipo de Bit Prospect (sin excluidos como Jorge Iván o Martina).
+  useEffect(() => { api.get('/api/b2b/team').then(setTeam).catch(() => setTeam([])); }, []);
   const [form, setForm] = useState({
     target_company: record?.target_company || '',
     target_contact: record?.target_contact || '',
