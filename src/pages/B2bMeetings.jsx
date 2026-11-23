@@ -3,6 +3,7 @@ import { useOutsideClick } from '../hooks/useOutsideClick';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import MeetingGoalsPanel from '../components/MeetingGoalsPanel';
+import B2bGlobalSummary from '../components/B2bGlobalSummary';
 import { formatDay, parseDay } from '../lib/dateOnly';
 import { monthLocal } from '../lib/dateOnly';
 import {
@@ -85,7 +86,7 @@ const STATUS_LABEL = {
 
 export default function B2bMeetings() {
   const confirm = useConfirm();
-  const [tab, setTab] = useState('client'); // client | team
+  const [tab, setTab] = useState('client'); // client | global | team
   const [clients, setClients] = useState([]);
   const [clientId, setClientId] = useState(null);
   const [dashboard, setDashboard] = useState(null);
@@ -333,6 +334,12 @@ export default function B2bMeetings() {
           Por marca/cliente
         </button>
         <button
+          onClick={() => setTab('global')}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${tab === 'global' ? 'bg-brand-violet text-white' : 'text-brand-muted hover:text-brand-white'}`}
+        >
+          Resumen global
+        </button>
+        <button
           onClick={() => setTab('team')}
           className={`px-3 py-1.5 rounded-md text-xs font-medium transition ${tab === 'team' ? 'bg-brand-violet text-white' : 'text-brand-muted hover:text-brand-white'}`}
         >
@@ -341,6 +348,8 @@ export default function B2bMeetings() {
       </div>
 
       {error && <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+
+      {tab === 'global' && <B2bGlobalSummary />}
 
       {tab === 'team' && (
         <>
