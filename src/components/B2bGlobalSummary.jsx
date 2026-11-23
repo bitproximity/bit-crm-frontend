@@ -94,6 +94,8 @@ export default function B2bGlobalSummary() {
 
   const t = data.totals;
   const months = data.period.months;
+  // Reuniones de quien ya no está en el equipo: suman al total pero no tienen fila.
+  const outsideTeam = t.meetings - data.executives.reduce((a, e) => a + e.total, 0);
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -175,6 +177,15 @@ export default function B2bGlobalSummary() {
             </tbody>
             {data.executives.length > 0 && (
               <tfoot>
+                {outsideTeam > 0 && (
+                  <tr className="border-t border-brand-border text-xs text-brand-muted">
+                    <td className="sticky left-0 z-10 bg-brand-panel px-5 py-2 italic whitespace-nowrap">Ex miembros del equipo</td>
+                    <td colSpan={months.length} className="px-3 py-2 text-[11px]">Reuniones de personas que ya no están en el equipo: no tienen fila, pero suman a los totales y a los repartos.</td>
+                    <td className="px-3 py-2 text-center font-tech">{outsideTeam}</td>
+                    <td />
+                    {t.undated > 0 && <td />}
+                  </tr>
+                )}
                 <tr className="border-t-2 border-brand-border text-xs">
                   <td className="sticky left-0 z-10 bg-brand-panel px-5 py-2.5 font-medium text-brand-muted">Total equipo</td>
                   {months.map((mo) => <td key={mo} className="px-1 py-2.5 text-center font-tech text-brand-white">{data.month_totals[mo] || '·'}</td>)}

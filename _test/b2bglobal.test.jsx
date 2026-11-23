@@ -67,3 +67,14 @@ describe('Bit Prospect · Resumen global', () => {
     expect(lines[lines.length - 1].startsWith('"Total equipo","1","4","2","7","3"')).toBe(true);
   });
 });
+
+describe('Ex miembros del equipo', () => {
+  it('si hay reuniones de alguien sin fila (p. ej. Martina), lo aclara con una fila aparte que cuadra el total', async () => {
+    reply = () => { const d = DATA(); d.executives = d.executives.filter((e) => e.name !== 'Martina'); return d; };
+    render(<B2bGlobalSummary />);
+    const table = await screen.findByRole('table');
+    const row = within(table).getByText('Ex miembros del equipo').closest('tr');
+    expect(within(row).getByText('2')).toBeTruthy();
+    expect(within(table).queryByText('Martina')).toBeNull();
+  });
+});
