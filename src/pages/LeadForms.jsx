@@ -7,6 +7,7 @@ import {
   Sparkles, Link2, Code2, Users2, Target, Eye,
 } from 'lucide-react';
 import { Inbox, ArrowRight, Radio, BarChart3, Palette, UserRoundCheck, MoreHorizontal, ExternalLink, ListChecks } from 'lucide-react';
+import LeadFormInbox from '../components/LeadFormInbox';
 import { ResponsesDrawer, DesignDrawer, LeadFormPreview, toViewForm, iframeSnippet, DealLinkModal, publicUrlOf } from '../components/LeadFormPanels';
 import { Drawer, Field, inputCls, selectCls, primaryBtn, ghostBtn } from '../components/Modal';
 import { colorForName, initials } from '../lib/avatar';
@@ -382,6 +383,10 @@ export default function LeadForms() {
   const [team, setTeam] = useState([]);
   const [dealFields, setDealFields] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  // Pestaña: «Formularios» o «Respuestas» (bandeja para asignar cada respuesta a su trato). ?vista=respuestas abre la bandeja.
+  const [view, setView] = useState(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('vista') === 'respuestas' ? 'respuestas' : 'formularios'));
+  const [pendingCount, setPendingCount] = useState(0);
+  useEffect(() => { api.get('/api/lead-forms/inbox?status=pending').then((d) => setPendingCount(d?.counts?.pending || 0)).catch(() => {}); }, [view]);
   const [newForm, setNewForm] = useState({ name: '', pipeline_id: '', stage_id: '', owner_id: '', field_ids: [] });
   const [editingFieldsId, setEditingFieldsId] = useState(null);
   const [previewFormId, setPreviewFormId] = useState(null);
@@ -483,49 +488,63 @@ export default function LeadForms() {
         </div>
       </div>
 
-      {forms && forms.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-          <StatTile icon={ClipboardList} label="Formularios" value={forms.length} />
-          <StatTile icon={Radio} label="Recibiendo envíos" value={activeCount} tone="text-green-300" />
-          <StatTile icon={Inbox} label="Envíos en total" value={totalSubmissions.toLocaleString('es')} />
-        </div>
-      )}
-
-      {error && !showForm && <div className="mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
-
-      {forms === null && (
-        <div className="space-y-3">{[0, 1].map((i) => <div key={i} className="skeleton h-36 rounded-2xl" />)}</div>
-      )}
-      {forms?.length === 0 && (
-        <div className="text-center py-16 border border-dashed border-brand-border rounded-2xl">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-brand-violet/15 flex items-center justify-center"><ClipboardList size={22} className="text-brand-ice" /></div>
-          <p className="text-brand-white font-medium">Sin formularios todavía</p>
-          <p className="text-brand-muted text-sm mt-1">Crea uno para empezar a capturar leads desde tu web.</p>
-          <button onClick={() => setShowForm(true)} className="mt-4 px-4 py-2 rounded-xl border border-brand-border text-sm hover:border-brand-violet transition">Crear el primero</button>
-        </div>
-      )}
-
-      <div className="space-y-4">
-        {forms?.map((f, idx) => (
-          <FormCard
-            key={f.id}
-            f={f}
-            idx={idx}
-            formFields={(f.field_ids || []).map((id) => dealFields.find((df) => df.id === id)).filter(Boolean)}
-            copiedId={copiedId}
-            editingFields={editingFieldsId === f.id}
-            onToggleFields={() => setEditingFieldsId(editingFieldsId === f.id ? null : f.id)}
-            questionsEditor={<QuestionsEditor allFields={dealFields} selectedIds={f.field_ids || []} onChange={(ids) => saveFieldIds(f, ids)} onFieldCreated={onFieldCreated} />}
-            onToggleActive={() => toggleActive(f)}
-            onRemove={() => remove(f)}
-            onCopy={copy}
-            onResponses={() => setResponsesFor(f)}
-            onDealLink={() => setDealLinkFor(f)}
-            onDesign={() => setDesignFor(f)}
-            onPreview={() => setPreviewFormId(f.id)}
-          />
+      <div className="flex items-center gap-1 border-b border-brand-border mb-5" role="tablist" aria-label="Vista">
+        {[['formularios', 'Formularios', ClipboardList], ['respuestas', 'Respuestas', Inbox]].map(([k, label, Icon]) => (
+          <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => setView(k)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm border-b-2 -mb-px transition ${view === k ? 'border-brand-magenta text-white' : 'border-transparent text-brand-muted hover:text-white'}`}>
+            <Icon size={15} /> {label}
+            {k === 'respuestas' && pendingCount > 0 && <span className="text-[10px] font-tech px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300" title="Por asignar">{pendingCount}</span>}
+          </button>
         ))}
       </div>
+
+      {view === 'respuestas' ? <LeadFormInbox /> : (
+        <>
+      {forms && forms.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+            <StatTile icon={ClipboardList} label="Formularios" value={forms.length} />
+            <StatTile icon={Radio} label="Recibiendo envíos" value={activeCount} tone="text-green-300" />
+            <StatTile icon={Inbox} label="Envíos en total" value={totalSubmissions.toLocaleString('es')} />
+          </div>
+        )}
+  
+        {error && !showForm && <div className="mb-4 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
+  
+        {forms === null && (
+          <div className="space-y-3">{[0, 1].map((i) => <div key={i} className="skeleton h-36 rounded-2xl" />)}</div>
+        )}
+        {forms?.length === 0 && (
+          <div className="text-center py-16 border border-dashed border-brand-border rounded-2xl">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-brand-violet/15 flex items-center justify-center"><ClipboardList size={22} className="text-brand-ice" /></div>
+            <p className="text-brand-white font-medium">Sin formularios todavía</p>
+            <p className="text-brand-muted text-sm mt-1">Crea uno para empezar a capturar leads desde tu web.</p>
+            <button onClick={() => setShowForm(true)} className="mt-4 px-4 py-2 rounded-xl border border-brand-border text-sm hover:border-brand-violet transition">Crear el primero</button>
+          </div>
+        )}
+  
+        <div className="space-y-4">
+          {forms?.map((f, idx) => (
+            <FormCard
+              key={f.id}
+              f={f}
+              idx={idx}
+              formFields={(f.field_ids || []).map((id) => dealFields.find((df) => df.id === id)).filter(Boolean)}
+              copiedId={copiedId}
+              editingFields={editingFieldsId === f.id}
+              onToggleFields={() => setEditingFieldsId(editingFieldsId === f.id ? null : f.id)}
+              questionsEditor={<QuestionsEditor allFields={dealFields} selectedIds={f.field_ids || []} onChange={(ids) => saveFieldIds(f, ids)} onFieldCreated={onFieldCreated} />}
+              onToggleActive={() => toggleActive(f)}
+              onRemove={() => remove(f)}
+              onCopy={copy}
+              onResponses={() => setResponsesFor(f)}
+              onDealLink={() => setDealLinkFor(f)}
+              onDesign={() => setDesignFor(f)}
+              onPreview={() => setPreviewFormId(f.id)}
+            />
+          ))}
+        </div>
+        </>
+      )}
 
       {showForm && (
         <Drawer
