@@ -332,13 +332,14 @@ function ColorInput({ label, value, onChange }) {
   );
 }
 
-export function DesignDrawer({ form, fields, onClose, onSaved }) {
+export function DesignDrawer({ form, fields, pipelines = [], onClose, onSaved }) {
   const init = form.settings || {};
   const [s, setS] = useState({
     ...init,
     labels: { ...(init.labels || {}) }, required: { ...(init.required || {}) }, hints: { ...(init.hints || {}) },
     theme: { ...(init.theme || {}) }, long_field_ids: [...(init.long_field_ids || [])], required_field_ids: [...(init.required_field_ids || [])],
     match_existing: init.match_existing !== false,
+    match_pipeline_ids: [...(init.match_pipeline_ids || [])],
   });
   const [slug, setSlug] = useState(form.slug || '');
   const [notifyText, setNotifyText] = useState((init.notify_emails || []).join(', '));
@@ -452,6 +453,21 @@ export function DesignDrawer({ form, fields, onClose, onSaved }) {
           <p className="text-[11px] text-brand-muted pb-2">Separa varios correos con comas. Al responsable del trato también le llega siempre. Déjalo vacío para no avisar a nadie más.</p>
           <Toggle on={s.match_existing} onChange={(v) => set('match_existing', v)} label="Si el cliente ya tiene un trato en este pipeline, guardar ahí las respuestas"
             hint="Busca por correo y por empresa. Usa el trato abierto o, si no hay, el último ganado; si no tiene, crea uno nuevo." />
+          {s.match_existing && pipelines.some((p) => p.id !== form.pipeline_id) && (
+            <div className="pt-2">
+              <div className="text-xs text-brand-white mb-1">Buscar también en estos pipelines</div>
+              <p className="text-[11px] text-brand-muted mb-1.5">Si no tiene trato en el pipeline del formulario, busca en estos antes de crear uno nuevo (p. ej. Bit Music también en Neomedia).</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {pipelines.filter((p) => p.id !== form.pipeline_id).map((p) => (
+                  <label key={p.id} className="flex items-center gap-1.5 text-xs text-brand-muted">
+                    <input type="checkbox" className="accent-[#8500FF]" aria-label={`Buscar también en ${p.name}`}
+                      checked={s.match_pipeline_ids.includes(p.id)} onChange={(e) => toggleId('match_pipeline_ids', p.id, e.target.checked)} />
+                    {p.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       </div>
       {preview && <LeadFormPreview form={toViewForm(form, fields, s)} onClose={() => setPreview(false)} />}

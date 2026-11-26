@@ -192,6 +192,20 @@ describe('Diseño: cada campo de contacto puede ser obligatorio', () => {
   });
 });
 
+describe('Pipelines adicionales donde buscar el trato', () => {
+  it('se marcan en «Diseño y textos», sin ofrecer el propio pipeline del formulario, y se guardan', async () => {
+    const pipes = [{ id: 'p-music', name: 'Bit Music' }, { id: 'p-neo', name: 'Neomedia' }, { id: 'p-wifi', name: 'Bit WiFi' }];
+    render(<DesignDrawer form={{ id: 'f1', name: 'X', pipeline_id: 'p-music', settings: { match_pipeline_ids: ['p-neo'] } }} pipelines={pipes} fields={[]} onClose={() => {}} />);
+    expect(screen.queryByLabelText('Buscar también en Bit Music')).toBeNull();
+    expect(screen.getByLabelText('Buscar también en Neomedia').checked).toBe(true);
+    fireEvent.click(screen.getByLabelText('Buscar también en Bit WiFi'));
+    fireEvent.click(screen.getByLabelText('Buscar también en Neomedia'));
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(calls.patch.length).toBe(1));
+    expect(calls.patch[0][1].settings.match_pipeline_ids).toEqual(['p-wifi']);
+  });
+});
+
 describe('Link corto, link por trato y reasignar', () => {
   it('/public/bitmusic?t=… pide el formulario por su link corto con el token, llega precargado y el envío lleva el token', async () => {
     const seen = [];

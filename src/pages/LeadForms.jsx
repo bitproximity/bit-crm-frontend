@@ -615,6 +615,7 @@ export default function LeadForms() {
       {designFor && (
         <DesignDrawer
           form={designFor}
+          pipelines={pipelines}
           fields={(designFor.field_ids || []).map((id) => dealFields.find((df) => df.id === id)).filter(Boolean)}
           onClose={() => setDesignFor(null)}
           onSaved={load}
