@@ -833,7 +833,8 @@ function TeamAdmin() {
     setDeletingId(id);
     setError('');
     try {
-      await api.delete(`/api/team/${id}/permanent`);
+      const res = await api.delete(`/api/team/${id}/permanent`);
+      if (res?.warning) setError(res.warning);
       load();
     } catch (err) {
       setError(err.message || 'No se pudo eliminar definitivamente.');
